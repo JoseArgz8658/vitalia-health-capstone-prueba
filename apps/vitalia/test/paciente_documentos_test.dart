@@ -32,8 +32,13 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.binding.setSurfaceSize(null);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Volver al historial'));
+    final volverAlHistorial = find.text('Volver al historial');
+    await tester.ensureVisible(volverAlHistorial);
     await tester.pumpAndSettle();
+    await tester.tap(volverAlHistorial);
+    await tester.pumpAndSettle();
+    expect(find.text('Mis exámenes'), findsOneWidget);
+    expect(find.text('Guardar examen'), findsNothing);
     await tester.tap(find.text('Cerrar sesión'));
     await tester.pumpAndSettle();
     expect(find.text('Iniciar sesión'), findsOneWidget);
