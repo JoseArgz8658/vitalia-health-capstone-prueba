@@ -17,7 +17,7 @@ export function createApp() {
   const handleError: ErrorRequestHandler = (error, _req, res, next) => {
     if (res.headersSent) { next(error); return; }
     const status = error?.type === 'entity.too.large' ? 413
-      : error instanceof SyntaxError && error?.status === 400 ? 400 : 500;
+      : error?.type === 'entity.parse.failed' ? 400 : 500;
     res.status(status).json({ error: {
       code: status === 413 ? 'PAYLOAD_TOO_LARGE' : status === 400 ? 'INVALID_JSON' : 'INTERNAL_ERROR',
       message: status === 413 ? 'Solicitud demasiado grande.'
