@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:file_selector/file_selector.dart';
 import '../../core/auth_api.dart';
