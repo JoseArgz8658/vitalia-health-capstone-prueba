@@ -1,3 +1,8 @@
+import { type S3Client } from '@aws-sdk/client-s3';
+import { readStorageConfig } from './storage/config';
+import { createStorageClient, checkPrivateBucket } from './storage/s3';
+import { createDocumentService, documentDatabase } from './documents/service';
+import { s3DocumentStorage } from './documents/storage-adapter';
 import { type Server } from 'node:http';
 import { type Pool } from 'pg';
 import { createApp } from './app';
@@ -11,6 +16,7 @@ import { createPatientRegistrar } from './auth/registration';
 
 async function main(): Promise<void> {
   let pool: Pool | undefined;
+  let storage: S3Client | undefined;
   let server: Server | undefined;
   let closing: Promise<void> | undefined;
   function shutdown(code = 0): Promise<void> {
@@ -24,6 +30,7 @@ async function main(): Promise<void> {
           current.close(() => { clearTimeout(timer); resolve(); });
         });
       }
+      storage?.destroy();
       if (pool) {
         try { await pool.end(); }
         catch { console.error('No se pudo cerrar PostgreSQL.'); process.exitCode = 1; }
@@ -38,9 +45,15 @@ async function main(): Promise<void> {
     await checkDatabaseAvailability(database);
     const schema = await database.query<{ ready: boolean }>(
       `SELECT to_regclass('public.vitalia_accounts') IS NOT NULL
-       AND to_regclass('public.vitalia_sessions') IS NOT NULL AS ready`,
+       AND to_regclass('public.vitalia_sessions') IS NOT NULL
+       AND to_regclass('public.vitalia_documents') IS NOT NULL
+       AND to_regclass('public.vitalia_document_audit') IS NOT NULL AS ready`,
     );
     if (schema.rows[0]?.ready !== true) throw new Error('Faltan migraciones de acceso.');
+    const storageConfig = readStorageConfig(process.env);
+    storage = createStorageClient(storageConfig);
+    await checkPrivateBucket(storage, storageConfig);
+    const documents = createDocumentService(documentDatabase(database), s3DocumentStorage(storage, storageConfig));
     const authenticate = await createCredentialAuthenticator(database);
     const register = createPatientRegistrar(database);
     server = createApp({
@@ -48,7 +61,7 @@ async function main(): Promise<void> {
       issue: id => issueSession(database, id),
       find: token => findSessionAccount(database, token),
       revoke: token => revokeSession(database, token),
-    }, register).listen(config.PORT, config.HOST);
+    }, register, documents).listen(config.PORT, config.HOST);
     server.on('listening', () => console.info('Vitalia API iniciada en el entorno local.'));
     server.on('error', () => {
       console.error('No se pudo iniciar el servidor. Revisa el puerto y la dirección configurados.');
@@ -57,7 +70,7 @@ async function main(): Promise<void> {
     process.on('SIGINT', () => { void shutdown(); });
     process.on('SIGTERM', () => { void shutdown(); });
   } catch {
-    console.error('No se pudo iniciar Vitalia API. Revisa configuración, PostgreSQL y las migraciones de cuentas y sesiones.');
+    console.error('No se pudo iniciar Vitalia API. Revisa configuración, PostgreSQL, S3 y las migraciones de acceso y documentos.');
     await shutdown(1);
   }
 }

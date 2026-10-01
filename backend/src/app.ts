@@ -1,10 +1,12 @@
+import { createDocumentRouter } from './documents/router';
+import { type DocumentServices } from './documents/service';
 import { localWebCors } from './http/local-web-cors';
 import express, { type ErrorRequestHandler } from 'express';
 import { createAuthRouter, type AuthServices } from './auth/router';
 import { createRegistrationRouter } from './auth/registration-router';
 import { type PatientRegistrar } from './auth/registration';
 
-export function createApp(auth?: AuthServices, register?: PatientRegistrar) {
+export function createApp(auth?: AuthServices, register?: PatientRegistrar, documents?: DocumentServices) {
   const app = express();
   app.disable('x-powered-by');
   app.use(localWebCors);
@@ -14,6 +16,8 @@ export function createApp(auth?: AuthServices, register?: PatientRegistrar) {
   app.get('/api/health', (_req, res) => {
     res.status(200).json({ status: 'ok', service: 'vitalia-api' });
   });
+
+  if (auth && documents) app.use('/api/documents', createDocumentRouter(auth, documents));
 
   if (register) app.use('/api/auth', createRegistrationRouter(register));
   if (auth) app.use('/api/auth', createAuthRouter(auth));
