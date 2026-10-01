@@ -23,10 +23,12 @@ if (-not [regex]::IsMatch($activityText, $generatedActivity) -and
 $androidNs = "http://schemas.android.com/apk/res/android"
 foreach ($node in $manifest.DocumentElement.ChildNodes) {
     if ($node.NodeType -ne [System.Xml.XmlNodeType]::Element) { continue }
-    if ($node.Name -eq "uses-permission" -and
+    # El adaptador XML puede ocultar Name con el atributo android:name.
+    $elementName = $node.get_Name()
+    if ($elementName -eq "uses-permission" -and
         $node.GetAttribute("name", $androidNs) -eq "android.permission.INTERNET" -and
         $node.Attributes.Count -eq 1) { continue }
-    if ($node.Name -eq "application" -and $node.ChildNodes.Count -eq 0 -and
+    if ($elementName -eq "application" -and $node.ChildNodes.Count -eq 0 -and
         $node.Attributes.Count -eq 1 -and
         $node.GetAttribute("networkSecurityConfig", $androidNs) -eq "@xml/vitalia_network_security_config") { continue }
     throw "El manifiesto debug contiene configuracion no reconocida. No se reemplaza."
