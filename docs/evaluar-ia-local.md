@@ -39,3 +39,17 @@ Compartir la salida de consola y, si hay fallos, los apartados correspondientes 
 ## Referencias
 - https://docs.ollama.com/api/chat
 - https://docs.ollama.com/capabilities/structured-outputs
+
+## Segunda batería y prompt versión 3
+
+Desde la raíz, ejecutar primero la original y luego la segunda:
+
+```powershell
+node --test scripts/ia/evaluar-extraccion.test.mjs scripts/ia/casos-independientes.test.mjs
+node scripts/ia/evaluar-extraccion.mjs
+node scripts/ia/evaluar-extraccion.mjs --independiente
+```
+
+La segunda batería contiene diez textos nuevos. Sus respuestas esperadas no se envían al modelo ni sus documentos se incorporan al prompt. Los informes nuevos identifican batería y versión del prompt.
+
+La primera batería se utilizó para desarrollar el prompt (versión 1: 1/8; versión 2: 6/8, según el usuario). La segunda comprueba nuevos datos con el prompt fijado, pero cubre clases de errores conocidas y fue diseñada por el mismo autor: no es validación externa, clínica o estadística. Si se ajusta el prompt según sus fallos, deberá tratarse también como batería de desarrollo.

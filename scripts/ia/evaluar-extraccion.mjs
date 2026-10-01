@@ -24,10 +24,13 @@ No diagnostiques, expliques ni recomiendes tratamientos. No inventes datos.
 REGLAS DE CAMPOS:
 - examen: título literal, o null si está ausente o ilegible.
 - fecha: texto DD-MM-AAAA solo si es legible y existe en el calendario. Fecha ausente, no visible, ilegible o imposible: null. No repares fechas.
+  Comprueba el mes (1–12) y los días permitidos: abril, junio, septiembre y noviembre tienen 30; febrero tiene 28 o 29 en año bisiesto. Los demás tienen 31. Un año es bisiesto si es divisible por 4, excepto los divisibles por 100 salvo que también sean divisibles por 400.
+  Si no puedes confirmar que la fecha es válida, devuelve null.
 - nombre: conserva el nombre completo del analito tal como aparece antes de los dos puntos; incluye palabras como Marcador o Analito.
 - valor: copia SOLO el número como texto, conservando comas, puntos y ceros. Nunca incluyas unidades. Si es ausente, ilegible o tiene alternativas ambiguas, usa null sin elegir ninguna alternativa ni copiar la descripción.
 - unidad: copia la unidad separadamente aunque valor sea null. No inventes una unidad.
 - rango_referencia: copia el rango completo con sus unidades; si no está indicado, null.
+- Extrae cada campo INDEPENDIENTEMENTE: un valor ilegible NO vuelve ilegibles el nombre, la unidad ni el rango. Conserva todo campo que sí sea visible aunque otro campo de la misma fila sea null.
 - Cada campo desconocido debe ser null, nunca una descripción como no visible.
 - resultados: conserva el orden; lista vacía si no hay resultados. No agregues resultados desde notas.
 - No incluyas datos_faltantes ni ninguna clave adicional.
@@ -108,10 +111,17 @@ export async function request(document, { model, fetchImpl = fetch } = {}) {
 }
 async function main() {
   const args = process.argv.slice(2);
-  if (args.length > 1) throw new Error('Uso: node scripts/ia/evaluar-extraccion.mjs [modelo-local]');
-  const model = args[0] || 'qwen2.5:3b';
+  const independent = args.includes('--independiente');
+  const positional = args.filter(arg => arg !== '--independiente');
+  if (positional.length > 1 || args.filter(arg => arg === '--independiente').length > 1 || positional.some(arg => arg.startsWith('--'))) {
+    throw new Error('Uso: node scripts/ia/evaluar-extraccion.mjs [modelo-local] [--independiente]');
+  }
+  const model = positional[0] || 'qwen2.5:3b';
+  const suite = independent ? 'independiente' : 'desarrollo';
   if (model.includes('cloud')) throw new Error('Esta evaluación requiere un modelo local');
-  const cases = JSON.parse(await readFile(new URL('./casos-extraccion.json', import.meta.url), 'utf8'));
+  const casesFile = independent ? './casos-extraccion-independientes.json' : './casos-extraccion.json';
+  const cases = JSON.parse(await readFile(new URL(casesFile, import.meta.url), 'utf8'));
+  console.log(`Batería: ${suite}; modelo: ${model}`);
   const results = [];
   for (const item of cases) {
     const started = performance.now();
@@ -136,11 +146,11 @@ async function main() {
   const passed = results.filter(r => r.passed).length;
   const directory = await mkdir(join(tmpdir(), 'VitaliaHealth', 'ia-evaluaciones'), { recursive: true }).then(() => join(tmpdir(), 'VitaliaHealth', 'ia-evaluaciones'));
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const report = { createdAt: new Date().toISOString(), model, parameters: { temperature: 0, seed: 42, num_ctx: 4096 }, scope: 'Texto ficticio; sin OCR, PDF, explicación clínica ni integración', passed, total: results.length, results };
+  const report = { createdAt: new Date().toISOString(), promptVersion: 3, suite, model, parameters: { temperature: 0, seed: 42, num_ctx: 4096 }, scope: 'Texto ficticio; sin OCR, PDF, explicación clínica ni integración', passed, total: results.length, results };
   const jsonPath = join(directory, `${stamp}.json`);
   const markdownPath = join(directory, `${stamp}.md`);
   await writeFile(jsonPath, JSON.stringify(report, null, 2));
-  await writeFile(markdownPath, `# Evaluación local de extracción\n\nModelo: ${model}\n\nCasos correctos: ${passed}/${results.length}\n\nLa primera medición puede incluir carga del modelo. Esta batería no acredita uso clínico.\n\n` + results.map(r => `## ${r.id}\n\n${r.passed ? 'Correcto' : 'Falló'}; ${r.elapsedMs} ms\n\n${r.errors.map(e => `- ${e}`).join('\n')}\n`).join('\n'));
+  await writeFile(markdownPath, `# Evaluación local de extracción\n\nModelo: ${model}\n\nBatería: ${suite}; prompt: versión 3\n\nCasos correctos: ${passed}/${results.length}\n\nLa primera medición puede incluir carga del modelo. Esta batería no acredita uso clínico.\n\n` + results.map(r => `## ${r.id}\n\n${r.passed ? 'Correcto' : 'Falló'}; ${r.elapsedMs} ms\n\n${r.errors.map(e => `- ${e}`).join('\n')}\n`).join('\n'));
   console.log(`\nResultado: ${passed}/${results.length} casos correctos.\nInforme: ${markdownPath}\nDetalle JSON: ${jsonPath}`);
   if (passed !== results.length) process.exitCode = 1;
 }
