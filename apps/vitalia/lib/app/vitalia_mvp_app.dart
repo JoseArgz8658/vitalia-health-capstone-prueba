@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/tema_vitalia.dart';
 import '../core/auth_api.dart';
 import '../features/acceso/acceso_page.dart';
+import '../features/documentos_reales/paciente_documentos_page.dart';
 
 class VitaliaMvpApp extends StatefulWidget {
   const VitaliaMvpApp({super.key, this.api});
@@ -74,7 +75,11 @@ class _VitaliaMvpAppState extends State<VitaliaMvpApp> with WidgetsBindingObserv
     title: 'Vitalia Health', debugShowCheckedModeBanner: false, theme: temaVitalia(),
     home: _user == null
       ? AccesoPage(api: _api, onAuthenticated: _signedIn, notice: _accessNotice)
-      : Scaffold(appBar: AppBar(title: const Text('Vitalia Health')),
+      : _user!['role'] == 'paciente'
+        ? PacienteDocumentosPage(key: ValueKey(_user!['id']), api: _api,
+            email: _user!['email'] as String, onExpired: _expired,
+            onLogout: _logout, sessionBusy: _busy)
+        : Scaffold(appBar: AppBar(title: const Text('Vitalia Health')),
           body: SafeArea(child: Center(child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(mainAxisSize: MainAxisSize.min, children: [

@@ -21,6 +21,173 @@ class AuthApi {
   void clear() { _token = null; expiresAt = null; }
   void close() { clear(); _client.close(); }
 
+  Uri documentUri([String suffix = '', Map<String, String>? query]) {
+    if (suffix.isNotEmpty && !RegExp(r'^[a-f0-9-]{36}/file(String path,
+      {Map<String, String>? body, bool get = false}) async {
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      if (_token != null) 'Authorization': 'Bearer $_token',
+    };
+    try {
+      final uri = _base.resolve('/api/auth/$path');
+      final response = await (get
+          ? _client.get(uri, headers: headers)
+          : _client.post(uri, headers: headers, body: jsonEncode(body ?? {})))
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode == 401) {
+        if (path != 'login') clear();
+        throw AuthFailure(path == 'login' ? 'Correo o contraseña incorrectos.'
+            : 'La sesión terminó. Ingresa nuevamente.', 401);
+      }
+      if (response.statusCode == 429) {
+        throw const AuthFailure('Espera antes de volver a intentar.', 429);
+      }
+      if (response.statusCode >= 400) {
+        throw AuthFailure('No se pudo completar la solicitud. Intenta nuevamente.',
+            response.statusCode);
+      }
+      if (response.statusCode == 204) return {};
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } on AuthFailure { rethrow; }
+    on TimeoutException { throw const AuthFailure('El servidor tardó demasiado en responder.'); }
+    catch (_) { throw const AuthFailure('No se pudo conectar con el servidor.'); }
+  }
+
+  Future<Map<String, dynamic>> login(String email, String password) async {
+    clear();
+    try {
+      final data = await _request('login', body: {'email': email.trim(), 'password': password});
+      _token = data['token'] as String;
+      expiresAt = DateTime.parse(data['expiresAt'] as String);
+      if (!expiresAt!.isAfter(DateTime.now())) throw const AuthFailure('La sesión terminó.');
+      return await me();
+    } catch (_) { clear(); rethrow; }
+  }
+  Future<Map<String, dynamic>> me() async {
+    final data = await _request('me', get: true);
+    final user = data['user'] as Map<String, dynamic>;
+    if (!['paciente', 'profesional', 'administrador'].contains(user['role'])) {
+      clear();
+      throw const AuthFailure('La cuenta no tiene un rol autorizado.');
+    }
+    return user;
+  }
+  Future<void> register(String email, String password) async {
+    await _request('register', body: {'email': email.trim(), 'password': password});
+  }
+  Future<void> logout() async {
+    try { await _request('logout'); } finally { clear(); }
+  }
+}
+).hasMatch(suffix)) {
+      throw const AuthFailure('Documento inválido.');
+    }
+    return _base.resolve('/api/documents${suffix.isEmpty ? '' : '/$suffix'}')
+      .replace(queryParameters: query);
+  }
+
+  Future<http.Response> sendDocumentRequest(http.BaseRequest request) async {
+    final token = _token;
+    if (token == null || expiresAt == null || !expiresAt!.isAfter(DateTime.now())) {
+      clear();
+      throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+    }
+    if (request.url.origin != _base.origin ||
+        !(request.url.path == '/api/documents' ||
+          RegExp(r'^/api/documents/[a-f0-9-]{36}/file(String path,
+      {Map<String, String>? body, bool get = false}) async {
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      if (_token != null) 'Authorization': 'Bearer $_token',
+    };
+    try {
+      final uri = _base.resolve('/api/auth/$path');
+      final response = await (get
+          ? _client.get(uri, headers: headers)
+          : _client.post(uri, headers: headers, body: jsonEncode(body ?? {})))
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode == 401) {
+        if (path != 'login') clear();
+        throw AuthFailure(path == 'login' ? 'Correo o contraseña incorrectos.'
+            : 'La sesión terminó. Ingresa nuevamente.', 401);
+      }
+      if (response.statusCode == 429) {
+        throw const AuthFailure('Espera antes de volver a intentar.', 429);
+      }
+      if (response.statusCode >= 400) {
+        throw AuthFailure('No se pudo completar la solicitud. Intenta nuevamente.',
+            response.statusCode);
+      }
+      if (response.statusCode == 204) return {};
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } on AuthFailure { rethrow; }
+    on TimeoutException { throw const AuthFailure('El servidor tardó demasiado en responder.'); }
+    catch (_) { throw const AuthFailure('No se pudo conectar con el servidor.'); }
+  }
+
+  Future<Map<String, dynamic>> login(String email, String password) async {
+    clear();
+    try {
+      final data = await _request('login', body: {'email': email.trim(), 'password': password});
+      _token = data['token'] as String;
+      expiresAt = DateTime.parse(data['expiresAt'] as String);
+      if (!expiresAt!.isAfter(DateTime.now())) throw const AuthFailure('La sesión terminó.');
+      return await me();
+    } catch (_) { clear(); rethrow; }
+  }
+  Future<Map<String, dynamic>> me() async {
+    final data = await _request('me', get: true);
+    final user = data['user'] as Map<String, dynamic>;
+    if (!['paciente', 'profesional', 'administrador'].contains(user['role'])) {
+      clear();
+      throw const AuthFailure('La cuenta no tiene un rol autorizado.');
+    }
+    return user;
+  }
+  Future<void> register(String email, String password) async {
+    await _request('register', body: {'email': email.trim(), 'password': password});
+  }
+  Future<void> logout() async {
+    try { await _request('logout'); } finally { clear(); }
+  }
+}
+).hasMatch(request.url.path))) {
+      throw const AuthFailure('Solicitud de documento inválida.');
+    }
+    request.headers['Authorization'] = 'Bearer $token';
+    try {
+      final response = await (() async {
+        final streamed = await _client.send(request);
+        return http.Response.fromStream(streamed);
+      })().timeout(const Duration(seconds: 60));
+      // Una respuesta anterior no debe mostrarse después de cerrar o cambiar sesión.
+      if (_token != token) throw const AuthFailure('La sesión cambió. Ingresa nuevamente.', 401);
+      if (response.statusCode == 401) {
+        clear();
+        throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+      }
+      if (response.statusCode >= 400) {
+        final message = switch (response.statusCode) {
+          400 => 'Revisa el archivo y los datos del examen.',
+          403 => 'No tienes permiso para acceder a estos documentos.',
+          404 => 'Documento no disponible.',
+          413 => 'El archivo supera 10 MiB.',
+          503 => 'El servicio está ocupado. Intenta nuevamente.',
+          _ => 'No se pudo completar la solicitud.',
+        };
+        throw AuthFailure(message, response.statusCode);
+      }
+      return response;
+    } on AuthFailure { rethrow; }
+    on TimeoutException {
+      throw const AuthFailure('La solicitud tardó demasiado. Actualiza el historial '
+        'antes de repetir una carga.');
+    } catch (_) {
+      throw const AuthFailure('No se pudo conectar. Si estabas subiendo un archivo, '
+        'actualiza el historial antes de repetir.');
+    }
+  }
+
   Future<Map<String, dynamic>> _request(String path,
       {Map<String, String>? body, bool get = false}) async {
     final headers = <String, String>{
