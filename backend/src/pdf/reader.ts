@@ -1,4 +1,4 @@
-import { Worker } from 'node:worker_threads';
+import { fork } from 'node:child_process';
 import { join } from 'node:path';
 export type PdfReadResult = {
   status: 'text_ready' | 'needs_ocr' | 'rejected';
@@ -12,16 +12,32 @@ export async function readPdfText(input: Uint8Array): Promise<PdfReadResult> {
   if (!(input instanceof Uint8Array) || input.byteLength === 0 || input.byteLength > PDF_LIMITS.bytes) return reject('invalid_size','PDF vacío o mayor de 10 MiB.');
   if (Buffer.from(input.subarray(0,5)).toString('ascii') !== '%PDF-') return reject('invalid_signature','El contenido no comienza con la firma PDF.');
   return new Promise(resolve => {
-    const worker = new Worker(join(__dirname,'reader-worker.js'), {workerData:{data:new Uint8Array(input)},resourceLimits:{maxOldGenerationSizeMb:128}});
+    // Proceso separado: un fallo nativo del parser no comparte memoria con el padre.
+    const child = fork(join(__dirname,'reader-worker.js'), [], {
+      serialization: 'advanced', stdio: ['ignore','ignore','ignore','ipc'],
+      execArgv: ['--max-old-space-size=128'],
+    });
     let settled=false;
-    const finish=(result:PdfReadResult)=>{
-      if(settled) return;
-      settled=true;clearTimeout(timer);
-      void worker.terminate();resolve(result);
+    let result:PdfReadResult|null=null;
+    const finish=(value:PdfReadResult)=>{
+      if(settled)return;
+      settled=true;clearTimeout(timer);resolve(value);
     };
-    const timer=setTimeout(()=>finish(reject('read_timeout','La lectura excedió 15 segundos.')),PDF_LIMITS.timeoutMs);
-    worker.once('message',finish);
-    worker.once('error',()=>finish(reject('reader_error','No se pudo leer el PDF.')));
-    worker.once('exit',()=>{if(!settled)finish(reject('reader_error','El lector terminó sin resultado.'));});
+    const timer=setTimeout(()=>{
+      child.kill();
+      finish(reject('read_timeout','La lectura excedió 15 segundos.'));
+    },PDF_LIMITS.timeoutMs);
+    child.once('message',(message:PdfReadResult)=>{result=message;});
+    child.once('error',()=>{
+      child.kill();
+      finish(reject('reader_error','No se pudo iniciar o comunicar con el lector PDF.'));
+    });
+    // Esperar el cierre limpio; una respuesta previa no oculta un cierre anormal.
+    child.once('close',(code,signal)=>{
+      finish(code===0 && !signal && result ? result : reject('reader_error','El proceso lector terminó de forma anormal.'));
+    });
+    child.send({data:new Uint8Array(input)},error=>{
+      if(error){child.kill();finish(reject('reader_error','No se pudo enviar el PDF al lector.'));}
+    });
   });
 }

@@ -1,9 +1,8 @@
-import { parentPort, workerData } from 'node:worker_threads';
 import { PDFParse } from 'pdf-parse';
 import { PDF_LIMITS, type PdfReadResult } from './reader';
-async function parse():Promise<PdfReadResult>{
+async function parse(data:Uint8Array):Promise<PdfReadResult>{
   // Uint8Array copiado evita transferir directamente el Buffer recibido.
-  const parser=new PDFParse({data:new Uint8Array(workerData.data),stopAtErrors:true,isEvalSupported:false});
+  const parser=new PDFParse({data:new Uint8Array(data),stopAtErrors:true,isEvalSupported:false});
   let pageCount:number|null=null;
   try {
     const info=await parser.getInfo();pageCount=info.total;
@@ -25,4 +24,15 @@ async function parse():Promise<PdfReadResult>{
     return {status:'rejected',text:null,pageCount,incidents:[{code:protectedPdf?'password_required':'invalid_pdf',message:protectedPdf?'PDF protegido; no se intenta desbloquear.':'PDF dañado o no legible.'}]};
   }finally{await parser.destroy().catch(()=>undefined);}
 }
-parse().then(result=>parentPort?.postMessage(result)).catch(()=>parentPort?.postMessage({status:'rejected',text:null,pageCount:null,incidents:[{code:'reader_error',message:'No se pudo iniciar el lector PDF.'}]}));
+process.once('message',async(message:{data:Uint8Array})=>{
+  const result=await parse(message.data).catch(()=>({
+    status:'rejected',text:null,pageCount:null,
+    incidents:[{code:'reader_error',message:'No se pudo iniciar el lector PDF.'}],
+  }));
+  if(process.send){
+    process.send(result,(error:Error|null)=>{
+      if(process.connected)process.disconnect();
+      if(error)process.exitCode=1;
+    });
+  }
+});

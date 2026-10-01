@@ -30,3 +30,32 @@ test('más de diez páginas se rechazan antes de extraer',async()=>{
  const result=await readPdfText(data('muchas_paginas'));
  expect(result.pageCount).toBe(11);expect(result.text).toBeNull();expect(result.incidents[0].code).toBe('page_limit');
 });
+
+test('cierre anormal del lector se devuelve como incidencia sin cerrar el padre',async()=>{
+ const {EventEmitter}=require('node:events');
+ const childProcess=require('node:child_process');
+ const child=new EventEmitter();
+ child.kill=jest.fn();
+ child.send=jest.fn(()=>queueMicrotask(()=>child.emit('close',3221225477,null)));
+ const spy=jest.spyOn(childProcess,'fork').mockReturnValue(child);
+ try{
+  const result=await readPdfText(data('texto'));
+  expect(result.status).toBe('rejected');
+  expect(result.incidents[0].code).toBe('reader_error');
+ }finally{spy.mockRestore();}
+});
+test('lector bloqueado se termina al exceder el límite de tiempo',async()=>{
+ const {EventEmitter}=require('node:events');
+ const childProcess=require('node:child_process');
+ const child=new EventEmitter();
+ child.kill=jest.fn();child.send=jest.fn();
+ const spy=jest.spyOn(childProcess,'fork').mockReturnValue(child);
+ jest.useFakeTimers();
+ try{
+  const pending=readPdfText(data('texto'));
+  jest.advanceTimersByTime(PDF_LIMITS.timeoutMs);
+  const result=await pending;
+  expect(child.kill).toHaveBeenCalled();
+  expect(result.incidents[0].code).toBe('read_timeout');
+ }finally{jest.useRealTimers();spy.mockRestore();}
+});

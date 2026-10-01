@@ -1,6 +1,6 @@
 # Lector aislado de PDF con texto
 
-Lee bytes de un PDF local con pdf-parse 2.4.5 (basado en PDF.js), en un worker separado. No consulta S3, PostgreSQL ni Ollama; no añade rutas a la aplicación. La dependencia extrae texto y no hace OCR. Los documentos de prueba son ficticios y se incluyen codificados en backend/test/pdf-fixtures.json.
+Lee bytes de un PDF local con pdf-parse 2.4.5 (basado en PDF.js), en un proceso Node separado. No consulta S3, PostgreSQL ni Ollama; no añade rutas a la aplicación. La dependencia extrae texto y no hace OCR. Los documentos de prueba son ficticios y se incluyen codificados en backend/test/pdf-fixtures.json.
 
 ## Windows
 Desde la raíz, entrar al backend y actualizar dependencias:
@@ -20,7 +20,7 @@ No requiere Ollama, servidor, emulador ni .env. El comando final lee tres PDFs f
 Compartir la salida completa. No añadir argumentos ni archivos médicos reales a esta comprobación.
 
 ## Contrato y límites
-readPdfText recibe Uint8Array y devuelve status, text, pageCount e incidents. Firma %PDF- y tamaño hasta 10 MiB; máximo diez páginas; texto hasta 12000 bytes. Sin truncar la salida para hacerla caber. El worker se termina si excede quince segundos. Su heap de JavaScript se limita a 128 MiB; esto no limita toda la memoria nativa y no constituye aislamiento de seguridad para archivos hostiles.
+readPdfText recibe Uint8Array y devuelve status, text, pageCount e incidents. Firma %PDF- y tamaño hasta 10 MiB; máximo diez páginas; texto hasta 12000 bytes. Sin truncar la salida para hacerla caber. El proceso lector se termina si excede quince segundos. Su heap de JavaScript se limita a 128 MiB; esto no limita toda la memoria nativa y no constituye aislamiento de seguridad para archivos hostiles. Un cierre anormal se informa como reader_error sin aprobar la lectura.
 
 Si alguna página carece de letras o números extraíbles, el resultado completo es needs_ocr y text es null: no se entrega una extracción parcial como si cubriera el documento. Una página en blanco también requiere comprobación; este estado no demuestra que exista una imagen escaneada. El OCR está pendiente.
 
@@ -32,3 +32,17 @@ El módulo consume bytes y nunca recibe URL como entrada. pdf-parse declara sopo
 
 ## Referencia
 https://github.com/mehmet-kozan/pdf-parse
+
+## Corrección de cierre en Windows
+El usuario obtuvo código -1073741819 (0xC0000005) durante Jest. Existe un reporte de PDF.js con ese mismo fallo al cargar versiones 5.x en worker_threads de Windows. Es una causa probable, no una confirmación mediante diagnóstico nativo en este equipo. El lector ahora usa un proceso separado y espera su cierre correcto. No cambia la dependencia ni los criterios de lectura.
+
+Para comprobar, desde backend:
+```powershell
+npm test -- --runTestsByPath test/pdf-reader.test.cjs test/ai-extraction.test.cjs
+$LASTEXITCODE
+node dist/pdf/check.js
+$LASTEXITCODE
+```
+Se esperan 18 pruebas aprobadas y código 0 en ambos comandos.
+
+Referencia del reporte: https://github.com/mozilla/pdf.js/issues/21934
