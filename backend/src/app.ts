@@ -1,6 +1,7 @@
 import express, { type ErrorRequestHandler } from 'express';
+import { createAuthRouter, type AuthServices } from './auth/router';
 
-export function createApp() {
+export function createApp(auth?: AuthServices) {
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '32kb' }));
@@ -9,6 +10,8 @@ export function createApp() {
   app.get('/api/health', (_req, res) => {
     res.status(200).json({ status: 'ok', service: 'vitalia-api' });
   });
+
+  if (auth) app.use('/api/auth', createAuthRouter(auth));
 
   app.use((_req, res) => {
     res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Recurso no disponible.' } });
