@@ -1,3 +1,4 @@
+import { localWebCors } from './http/local-web-cors';
 import express, { type ErrorRequestHandler } from 'express';
 import { createAuthRouter, type AuthServices } from './auth/router';
 import { createRegistrationRouter } from './auth/registration-router';
@@ -6,6 +7,7 @@ import { type PatientRegistrar } from './auth/registration';
 export function createApp(auth?: AuthServices, register?: PatientRegistrar) {
   const app = express();
   app.disable('x-powered-by');
+  app.use(localWebCors);
   app.use(express.json({ limit: '32kb' }));
 
   // Solo disponibilidad del proceso; no implica conexión a datos ni servicios.
