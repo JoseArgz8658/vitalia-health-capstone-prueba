@@ -120,6 +120,54 @@ class AuthApi {
     }
   }
 
+  Uri professionalUri(String patientId, {String? documentId, String? action,
+      Map<String, String>? query}) {
+    final identifier = RegExp(r'^[a-f0-9-]{36}$');
+    if (!identifier.hasMatch(patientId) ||
+        (documentId != null && (!identifier.hasMatch(documentId) ||
+          !['file', 'extraction'].contains(action))) ||
+        (documentId == null && action != null)) {
+      throw const AuthFailure('Solicitud profesional inválida.');
+    }
+    return _base.resolve('/api/professional/patients/$patientId/documents'
+      '${documentId == null ? '' : '/$documentId/$action'}').replace(queryParameters: query);
+  }
+
+  Future<http.Response> sendProfessionalRequest(http.Request request) async {
+    final token = _token;
+    if (token == null || expiresAt == null || !expiresAt!.isAfter(DateTime.now())) {
+      clear();
+      throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+    }
+    if (request.url.origin != _base.origin || request.method != 'GET' ||
+        !RegExp(r'^/api/professional/patients/[a-f0-9-]{36}/documents(?:/[a-f0-9-]{36}/(?:file|extraction))?$')
+          .hasMatch(request.url.path)) {
+      throw const AuthFailure('Solicitud profesional inválida.');
+    }
+    request.headers['Authorization'] = 'Bearer $token';
+    try {
+      final response = await (() async {
+        return http.Response.fromStream(await _client.send(request));
+      })().timeout(const Duration(seconds: 60));
+      if (_token != token) throw const AuthFailure('La sesión cambió. Ingresa nuevamente.', 401);
+      if (response.statusCode == 401) {
+        clear();
+        throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+      }
+      if (response.statusCode >= 400) {
+        throw AuthFailure(switch (response.statusCode) {
+          403 => 'No tienes permiso para consultar estos exámenes.',
+          404 => 'Paciente o documento no disponible. Comprueba tus asignaciones.',
+          503 => 'Las descargas están ocupadas. Intenta nuevamente.',
+          _ => 'No se pudo consultar el documento.',
+        }, response.statusCode);
+      }
+      return response;
+    } on AuthFailure { rethrow; }
+    on TimeoutException { throw const AuthFailure('La consulta tardó demasiado. Intenta nuevamente.'); }
+    catch (_) { throw const AuthFailure('No se pudo conectar con el servidor.'); }
+  }
+
   Future<Map<String, dynamic>> _request(String path,
       {Map<String, String>? body, bool get = false}) async {
     final headers = <String, String>{

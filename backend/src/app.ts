@@ -1,3 +1,5 @@
+import {createProfessionalRouter} from './professional/router';
+import {type ProfessionalServices} from './professional/service';
 import {createAssignmentRouter} from './assignments/router';
 import {type AssignmentServices} from './assignments/service';
 import {createProcessingRouter} from './processing/router';
@@ -10,7 +12,7 @@ import { createAuthRouter, type AuthServices } from './auth/router';
 import { createRegistrationRouter } from './auth/registration-router';
 import { type PatientRegistrar } from './auth/registration';
 
-export function createApp(auth?: AuthServices, register?: PatientRegistrar, documents?: DocumentServices, processing?: ProcessingServices, assignments?: AssignmentServices) {
+export function createApp(auth?: AuthServices, register?: PatientRegistrar, documents?: DocumentServices, processing?: ProcessingServices, assignments?: AssignmentServices, professional?: ProfessionalServices) {
   const app = express();
   app.disable('x-powered-by');
   app.use(localWebCors);
@@ -20,6 +22,8 @@ export function createApp(auth?: AuthServices, register?: PatientRegistrar, docu
   app.get('/api/health', (_req, res) => {
     res.status(200).json({ status: 'ok', service: 'vitalia-api' });
   });
+
+  if (auth && professional) app.use('/api/professional', createProfessionalRouter(auth, professional));
 
   if (auth && assignments) app.use('/api/assignments', createAssignmentRouter(auth, assignments));
 

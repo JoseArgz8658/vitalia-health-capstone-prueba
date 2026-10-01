@@ -1,3 +1,4 @@
+import {createProfessionalService} from './professional/service';
 import {createAssignmentService} from './assignments/service';
 import {createProcessingService} from './processing/service';
 import { type S3Client } from '@aws-sdk/client-s3';
@@ -52,7 +53,8 @@ async function main(): Promise<void> {
        AND to_regclass('public.vitalia_document_audit') IS NOT NULL
        AND to_regclass('public.vitalia_document_processing') IS NOT NULL
        AND to_regclass('public.vitalia_patient_assignments') IS NOT NULL
-       AND to_regclass('public.vitalia_assignment_audit') IS NOT NULL AS ready`,
+       AND to_regclass('public.vitalia_assignment_audit') IS NOT NULL
+       AND to_regclass('public.vitalia_professional_access_audit') IS NOT NULL AS ready`,
     );
     if (schema.rows[0]?.ready !== true) throw new Error('Faltan migraciones de acceso.');
     const storageConfig = readStorageConfig(process.env);
@@ -66,7 +68,7 @@ async function main(): Promise<void> {
       issue: id => issueSession(database, id),
       find: token => findSessionAccount(database, token),
       revoke: token => revokeSession(database, token),
-    }, register, documents, createProcessingService(database), createAssignmentService(documentDatabase(database))).listen(config.PORT, config.HOST);
+    }, register, documents, createProcessingService(database), createAssignmentService(documentDatabase(database)), createProfessionalService(documentDatabase(database), s3DocumentStorage(storage, storageConfig))).listen(config.PORT, config.HOST);
     server.on('listening', () => console.info('Vitalia API iniciada en el entorno local.'));
     server.on('error', () => {
       console.error('No se pudo iniciar el servidor. Revisa el puerto y la dirección configurados.');

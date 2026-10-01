@@ -1,3 +1,4 @@
+import '../profesional/profesional_documentos_page.dart';
 import 'package:flutter/material.dart';
 import '../../core/auth_api.dart';
 import 'asignaciones_api.dart';
@@ -20,6 +21,7 @@ class _AsignacionesPageState extends State<AsignacionesPage> {
   final _professional = TextEditingController();
   List<Asignacion> _assignments = [];
   List<PacienteAsignado> _patients = [];
+  PacienteAsignado? _selectedPatient;
   bool _busy = false;
   String? _error;
   int _offset = 0;
@@ -63,7 +65,15 @@ class _AsignacionesPageState extends State<AsignacionesPage> {
     finally { if (mounted) setState(() => _busy = false); }
   }
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) {
+    final selected = _selectedPatient;
+    if (!_admin && selected != null) {
+      return ProfesionalDocumentosPage(key: ValueKey(selected.id), auth: widget.auth,
+        patientId: selected.id, patientEmail: selected.email,
+        onExpired: widget.onExpired, onLogout: widget.onLogout, sessionBusy: widget.sessionBusy,
+        onBack: () { setState(() => _selectedPatient = null); _load(_offset); });
+    }
+    return Scaffold(
     appBar: AppBar(title: Text(_admin ? 'Asignaciones de pacientes' : 'Mis pacientes'), actions: [
       TextButton(onPressed: widget.sessionBusy || _busy ? null : widget.onLogout,
         child: const Text('Cerrar sesión')),
@@ -86,7 +96,7 @@ class _AsignacionesPageState extends State<AsignacionesPage> {
             FilledButton(onPressed: _busy ? null : () => _change(() => _api.asignar(_patient.text, _professional.text)),
               child: const Text('Asignar paciente')),
           ] else
-            const Text('Solo se muestran tus pacientes con asignación activa. La revisión de exámenes estará disponible en una etapa posterior.'),
+            const Text('Solo se muestran tus pacientes con asignación activa. Puedes consultar documentos y extracciones pendientes; la aprobación estará disponible en una etapa posterior.'),
           TextButton(onPressed: _busy ? null : () => _load(_offset), child: const Text('Actualizar lista')),
           if (_busy) const Center(child: CircularProgressIndicator()),
           if (_error != null) Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
@@ -103,7 +113,12 @@ class _AsignacionesPageState extends State<AsignacionesPage> {
                   child: Text(item.active ? 'Desactivar asignación' : 'Reactivar asignación')),
               ]))))
           else
-            ..._patients.map((item) => Card(child: Padding(padding: const EdgeInsets.all(16), child: Text(item.email)))),
+            ..._patients.map((item) => Card(child: Padding(padding: const EdgeInsets.all(16),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(item.email),
+                TextButton(onPressed: _busy ? null : () => setState(() => _selectedPatient = item),
+                  child: const Text('Ver exámenes')),
+              ])))),
           Wrap(spacing: 12, crossAxisAlignment: WrapCrossAlignment.center, children: [
             Text('Página ${_offset ~/ 20 + 1}'),
             TextButton(onPressed: _busy || _offset == 0 ? null : () => _load(_offset - 20), child: const Text('Anterior')),
@@ -113,4 +128,5 @@ class _AsignacionesPageState extends State<AsignacionesPage> {
       )),
     )),
   );
+  }
 }
