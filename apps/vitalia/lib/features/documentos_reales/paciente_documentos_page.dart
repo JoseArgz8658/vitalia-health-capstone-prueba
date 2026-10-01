@@ -1,3 +1,4 @@
+import 'procesamiento_panel.dart';
 import 'package:flutter/material.dart';
 import '../../core/auth_api.dart';
 import 'documento.dart';
@@ -115,6 +116,8 @@ class _PacienteDocumentosPageState extends State<PacienteDocumentosPage> {
                     onPressed: _downloading != null || !descargaDisponible ? null : () => _download(item),
                     icon: const Icon(Icons.download_outlined),
                     label: Text(_downloading == item.id ? 'Descargando…' : 'Descargar')),
+                  ProcesamientoPanel(key: ValueKey('processing-${item.id}'),
+                    auth: widget.api, documentId: item.id, onExpired: widget.onExpired),
                   if (!descargaDisponible)
                     const Text('La descarga en este dispositivo aún está pendiente.'),
                 ])))),
@@ -132,3 +135,4 @@ class _PacienteDocumentosPageState extends State<PacienteDocumentosPage> {
     )),
   );
 }
+

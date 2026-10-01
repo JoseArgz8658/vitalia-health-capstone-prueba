@@ -22,7 +22,7 @@ class AuthApi {
   void close() { clear(); _client.close(); }
 
   Uri documentUri([String suffix = '', Map<String, String>? query]) {
-    if (suffix.isNotEmpty && !RegExp(r'^[a-f0-9-]{36}/file$').hasMatch(suffix)) {
+    if (suffix.isNotEmpty && !RegExp(r'^[a-f0-9-]{36}/(file|processing)$').hasMatch(suffix)) {
       throw const AuthFailure('Documento inválido.');
     }
     return _base.resolve('/api/documents${suffix.isEmpty ? '' : '/$suffix'}')
@@ -37,7 +37,7 @@ class AuthApi {
     }
     if (request.url.origin != _base.origin ||
         !(request.url.path == '/api/documents' ||
-          RegExp(r'^/api/documents/[a-f0-9-]{36}/file$').hasMatch(request.url.path))) {
+          RegExp(r'^/api/documents/[a-f0-9-]{36}/(file|processing)$').hasMatch(request.url.path))) {
       throw const AuthFailure('Solicitud de documento inválida.');
     }
     request.headers['Authorization'] = 'Bearer $token';
@@ -130,3 +130,4 @@ class AuthApi {
     try { await _request('logout'); } finally { clear(); }
   }
 }
+

@@ -1,3 +1,5 @@
+import {createProcessingRouter} from './processing/router';
+import {type ProcessingServices} from './processing/service';
 import { createDocumentRouter } from './documents/router';
 import { type DocumentServices } from './documents/service';
 import { localWebCors } from './http/local-web-cors';
@@ -6,7 +8,7 @@ import { createAuthRouter, type AuthServices } from './auth/router';
 import { createRegistrationRouter } from './auth/registration-router';
 import { type PatientRegistrar } from './auth/registration';
 
-export function createApp(auth?: AuthServices, register?: PatientRegistrar, documents?: DocumentServices) {
+export function createApp(auth?: AuthServices, register?: PatientRegistrar, documents?: DocumentServices, processing?: ProcessingServices) {
   const app = express();
   app.disable('x-powered-by');
   app.use(localWebCors);
@@ -16,6 +18,8 @@ export function createApp(auth?: AuthServices, register?: PatientRegistrar, docu
   app.get('/api/health', (_req, res) => {
     res.status(200).json({ status: 'ok', service: 'vitalia-api' });
   });
+
+  if (auth && processing) app.use('/api/documents', createProcessingRouter(auth, processing));
 
   if (auth && documents) app.use('/api/documents', createDocumentRouter(auth, documents));
 
