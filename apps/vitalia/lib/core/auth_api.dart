@@ -73,6 +73,53 @@ class AuthApi {
     }
   }
 
+  Uri assignmentUri([String suffix = '', Map<String, String>? query]) {
+    if (suffix.isNotEmpty && !RegExp(r'^[a-f0-9-]{36}/deactivate$').hasMatch(suffix)) {
+      throw const AuthFailure('Asignación inválida.');
+    }
+    return _base.resolve('/api/assignments${suffix.isEmpty ? '' : '/$suffix'}')
+      .replace(queryParameters: query);
+  }
+
+  Future<http.Response> sendAssignmentRequest(http.Request request) async {
+    final token = _token;
+    if (token == null || expiresAt == null || !expiresAt!.isAfter(DateTime.now())) {
+      clear();
+      throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+    }
+    if (request.url.origin != _base.origin ||
+        !['GET', 'POST'].contains(request.method) ||
+        !(request.url.path == '/api/assignments' ||
+          RegExp(r'^/api/assignments/[a-f0-9-]{36}/deactivate$').hasMatch(request.url.path))) {
+      throw const AuthFailure('Solicitud de asignación inválida.');
+    }
+    request.headers['Authorization'] = 'Bearer $token';
+    try {
+      final response = await (() async {
+        return http.Response.fromStream(await _client.send(request));
+      })().timeout(const Duration(seconds: 15));
+      if (_token != token) throw const AuthFailure('La sesión cambió. Ingresa nuevamente.', 401);
+      if (response.statusCode == 401) {
+        clear();
+        throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+      }
+      if (response.statusCode >= 400) {
+        throw AuthFailure(switch (response.statusCode) {
+          400 => 'Revisa los correos y la solicitud.',
+          403 => 'No tienes permiso para gestionar estas asignaciones.',
+          404 => 'Cuenta o asignación no disponible. Comprueba los correos y sus roles.',
+          _ => 'No se pudo completar la solicitud.',
+        }, response.statusCode);
+      }
+      return response;
+    } on AuthFailure { rethrow; }
+    on TimeoutException {
+      throw const AuthFailure('La solicitud tardó demasiado. Actualiza la lista antes de repetir.');
+    } catch (_) {
+      throw const AuthFailure('No se pudo conectar. Actualiza la lista antes de repetir.');
+    }
+  }
+
   Future<Map<String, dynamic>> _request(String path,
       {Map<String, String>? body, bool get = false}) async {
     final headers = <String, String>{

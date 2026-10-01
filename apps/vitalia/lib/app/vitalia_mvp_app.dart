@@ -1,3 +1,4 @@
+import '../features/asignaciones/asignaciones_page.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../core/tema_vitalia.dart';
@@ -79,24 +80,9 @@ class _VitaliaMvpAppState extends State<VitaliaMvpApp> with WidgetsBindingObserv
         ? PacienteDocumentosPage(key: ValueKey(_user!['id']), api: _api,
             email: _user!['email'] as String, onExpired: _expired,
             onLogout: _logout, sessionBusy: _busy)
-        : Scaffold(appBar: AppBar(title: const Text('Vitalia Health')),
-          body: SafeArea(child: Center(child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.verified_user_outlined, size: 64),
-              const Text('Sesión iniciada'),
-              Text(_user!['email'] as String),
-              Text('Cuenta: ${_user!['role']}'),
-              const SizedBox(height: 16),
-              const Text('El registro y el acceso están conectados. '
-                'La gestión de exámenes todavía está en desarrollo.',
-                textAlign: TextAlign.center),
-              if (_message != null) Text(_message!),
-              TextButton(onPressed: _busy ? null : _refresh,
-                child: const Text('Comprobar sesión')),
-              FilledButton(onPressed: _busy ? null : _logout,
-                child: const Text('Cerrar sesión')),
-            ]),
-          )))),
+        : AsignacionesPage(key: ValueKey(_user!['id']), auth: _api,
+            email: _user!['email'] as String, role: _user!['role'] as String,
+            onExpired: _expired, onLogout: _logout, sessionBusy: _busy, notice: _message),
   );
 }
+
