@@ -11,8 +11,12 @@ export function createProcessingService(db:Pick<Pool,'query'>){
  }
  async function state(account:AccountSummary,id:string){
   const job=await findPatientProcessingStatus(db,account,id);
+  const reviewed=job?.status==='requires_review'?await db.query<{created_at:Date}>(
+   'SELECT created_at FROM public.vitalia_professional_reviews WHERE processing_id=$1 AND document_id=$2 AND patient_id=$3',
+   [job.id,id,account.id]):null;
+  const review=reviewed?.rows[0];
   // Solo estado y tiempos: no exponer extracción, texto, modelo o claves S3.
-  return {status:job?.status??'not_requested',approved:false,
+  return {status:job?.status??'not_requested',approved:false,reviewStatus:review?'approved':'not_reviewed',reviewedAt:review?.created_at??null,
    createdAt:job?.created_at??null,startedAt:job?.started_at??null,finishedAt:job?.finished_at??null};
  }
  return {

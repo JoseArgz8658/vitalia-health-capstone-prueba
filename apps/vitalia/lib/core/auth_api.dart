@@ -168,6 +168,51 @@ class AuthApi {
     catch (_) { throw const AuthFailure('No se pudo conectar con el servidor.'); }
   }
 
+  Uri reviewUri(String patientId, String documentId) {
+    final identifier = RegExp(r'^[a-f0-9-]{36}$');
+    if (!identifier.hasMatch(patientId) || !identifier.hasMatch(documentId)) {
+      throw const AuthFailure('Revisión inválida.');
+    }
+    return _base.resolve('/api/professional/patients/$patientId/documents/$documentId/review');
+  }
+
+  Future<http.Response> sendReviewRequest(http.Request request) async {
+    final token = _token;
+    if (token == null || expiresAt == null || !expiresAt!.isAfter(DateTime.now())) {
+      clear();
+      throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+    }
+    if (request.url.origin != _base.origin || !['GET', 'POST'].contains(request.method) ||
+        !RegExp(r'^/api/professional/patients/[a-f0-9-]{36}/documents/[a-f0-9-]{36}/review$')
+          .hasMatch(request.url.path)) {
+      throw const AuthFailure('Solicitud de revisión inválida.');
+    }
+    request.headers['Authorization'] = 'Bearer $token';
+    try {
+      final response = await (() async {
+        return http.Response.fromStream(await _client.send(request));
+      })().timeout(const Duration(seconds: 15));
+      if (_token != token) throw const AuthFailure('La sesión cambió. Ingresa nuevamente.', 401);
+      if (response.statusCode == 401) {
+        clear();
+        throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+      }
+      if (response.statusCode >= 400) {
+        throw AuthFailure(switch (response.statusCode) {
+          400 => 'Revisa la fecha, los resultados, las observaciones y la confirmación.',
+          403 => 'No tienes permiso para revisar este documento.',
+          404 => 'Paciente o documento no disponible. Comprueba tus asignaciones.',
+          409 => 'Ya existe una revisión o cambió el procesamiento. Actualiza la revisión.',
+          413 => 'La revisión supera el tamaño permitido.',
+          _ => 'No se pudo guardar o consultar la revisión. Actualiza antes de repetir.',
+        }, response.statusCode);
+      }
+      return response;
+    } on AuthFailure { rethrow; }
+    on TimeoutException { throw const AuthFailure('La solicitud tardó demasiado. Actualiza la revisión antes de repetir.'); }
+    catch (_) { throw const AuthFailure('No se pudo conectar. Actualiza la revisión antes de repetir.'); }
+  }
+
   Future<Map<String, dynamic>> _request(String path,
       {Map<String, String>? body, bool get = false}) async {
     final headers = <String, String>{

@@ -8,6 +8,7 @@ function setup(user=account){
  const query=jest.fn(async(sql,args)=>{
   if(sql.startsWith('SELECT id FROM'))return {rows:args[0]===id&&args[1]===account.id?[{id}]:[]};
   if(sql.startsWith('INSERT INTO')){if(job)return {rows:[]};job={id:args[0],status:'queued',created_at:new Date(),started_at:null,finished_at:null};return {rows:[{id:job.id}]};}
+  if(sql.startsWith('SELECT created_at FROM public.vitalia_professional_reviews'))return {rows:[]};
   if(sql.startsWith('SELECT p.id'))return {rows:job?[job]:[]};
   throw new Error('unexpected SQL');
  });
@@ -39,7 +40,7 @@ test('solicitudes concurrentes crean un único trabajo',async()=>{
 test.each(['processing','requires_review','rejected','failed'])('estado %s no se reinicia ni expone contenido',async status=>{
  const x=setup();x.setJob({id,status,created_at:new Date(),started_at:null,finished_at:null,result:{raw:'secreto'},model:'modelo'});
  const r=await api(x.app,'post').send({});expect(r.status).toBe(200);expect(r.body.processing.status).toBe(status);
- expect(Object.keys(r.body.processing).sort()).toEqual(['approved','createdAt','finishedAt','startedAt','status']);expect(r.body.processing.approved).toBe(false);
+ expect(Object.keys(r.body.processing).sort()).toEqual(['approved','createdAt','finishedAt','reviewStatus','reviewedAt','startedAt','status']);expect(r.body.processing.approved).toBe(false);
 });
 test.each([{patientId:account.id},{model:'evil'},{approved:true}])('rechaza campos del servidor %j',async body=>{
  const x=setup();expect((await api(x.app,'post').send(body)).status).toBe(400);expect(x.query).not.toHaveBeenCalled();

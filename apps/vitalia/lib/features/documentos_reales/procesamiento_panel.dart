@@ -40,6 +40,7 @@ class _ProcesamientoPanelState extends State<ProcesamientoPanel> {
     'not_requested' => 'Procesamiento no solicitado',
     'queued' => 'Procesamiento pendiente',
     'processing' => 'Documento en procesamiento',
+    'professionally_reviewed' => 'Revisión profesional registrada',
     'requires_review' => 'Extracción pendiente de revisión profesional',
     'rejected' => 'No se pudo extraer información de este documento',
     'failed' => 'El procesamiento no se pudo completar',
@@ -52,6 +53,8 @@ class _ProcesamientoPanelState extends State<ProcesamientoPanel> {
       Text(_label),
       if (_status == 'queued')
         const Text('La solicitud quedó registrada y espera ejecución.'),
+      if (_status == 'professionally_reviewed')
+        const Text('La revisión fue aprobada por un profesional. La presentación de los datos revisados estará disponible en una etapa posterior.'),
       if (_status == 'requires_review')
         const Text('Los datos extraídos aún no están aprobados.'),
       if (_error != null) Text(_error!,

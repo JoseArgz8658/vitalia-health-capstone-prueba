@@ -23,6 +23,13 @@ class ProcesamientoApi {
       ].contains(status)) {
         throw const FormatException();
       }
+      final reviewStatus = processing['reviewStatus'] ?? 'not_reviewed';
+      if (!['approved', 'not_reviewed'].contains(reviewStatus)) throw const FormatException();
+      if (reviewStatus == 'approved') {
+        if (status != 'requires_review' || processing['reviewedAt'] is! String ||
+            DateTime.tryParse(processing['reviewedAt'] as String) == null) throw const FormatException();
+        return 'professionally_reviewed';
+      }
       return status;
     } catch (_) {
       throw const AuthFailure('El servidor devolvió un estado inválido.');
