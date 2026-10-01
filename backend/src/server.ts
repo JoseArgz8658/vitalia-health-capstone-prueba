@@ -7,6 +7,7 @@ import { createDatabasePool } from './database/pool';
 import { checkDatabaseAvailability } from './database/availability';
 import { createCredentialAuthenticator } from './auth/credentials';
 import { issueSession, findSessionAccount, revokeSession } from './auth/sessions';
+import { createPatientRegistrar } from './auth/registration';
 
 async function main(): Promise<void> {
   let pool: Pool | undefined;
@@ -41,12 +42,13 @@ async function main(): Promise<void> {
     );
     if (schema.rows[0]?.ready !== true) throw new Error('Faltan migraciones de acceso.');
     const authenticate = await createCredentialAuthenticator(database);
+    const register = createPatientRegistrar(database);
     server = createApp({
       authenticate,
       issue: id => issueSession(database, id),
       find: token => findSessionAccount(database, token),
       revoke: token => revokeSession(database, token),
-    }).listen(config.PORT, config.HOST);
+    }, register).listen(config.PORT, config.HOST);
     server.on('listening', () => console.info('Vitalia API iniciada en el entorno local.'));
     server.on('error', () => {
       console.error('No se pudo iniciar el servidor. Revisa el puerto y la dirección configurados.');
