@@ -94,6 +94,16 @@ export function compare(actual, expected, path = '') {
   }
   return [`${path}: esperado ${JSON.stringify(expected)}, recibido ${JSON.stringify(actual)}`];
 }
+export function assess(actual, expected) {
+  const validationErrors = validate(actual);
+  // Comparar incluso cuando la validación detecta una fecha u otro campo inválido.
+  const errors = [...validationErrors, ...compare(actual, expected)];
+  return {
+    errors,
+    datos_faltantes: validationErrors.length === 0 ? missing(actual) : null,
+    passed: errors.length === 0,
+  };
+}
 export async function request(document, { model, fetchImpl = fetch } = {}) {
   const response = await fetchImpl('http://127.0.0.1:11434/api/chat', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -131,12 +141,7 @@ async function main() {
       result.raw = answer.raw;
       result.ollamaDurationMs = answer.ollamaDurationMs;
       result.actual = JSON.parse(answer.raw);
-      result.errors = validate(result.actual);
-      if (!result.errors.length) {
-        result.datos_faltantes = missing(result.actual);
-        result.errors = compare(result.actual, item.expected);
-      }
-      result.passed = result.errors.length === 0;
+      Object.assign(result, assess(result.actual, item.expected));
     } catch (error) { result.errors = [error.message]; }
     result.elapsedMs = Math.round(performance.now() - started);
     results.push(result);

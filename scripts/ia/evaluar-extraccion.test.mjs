@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { validate, missing, compare, request } from './evaluar-extraccion.mjs';
+import { validate, missing, compare, request, assess } from './evaluar-extraccion.mjs';
 const cases = JSON.parse(await readFile(new URL('./casos-extraccion.json', import.meta.url)));
 test('referencias de los ocho casos son válidas', () => {
   assert.equal(cases.length, 8);
@@ -46,4 +46,29 @@ test('solicita esquema, sin streaming y únicamente al servidor local', async ()
 test('fallos HTTP y respuestas incompletas no se aceptan', async () => {
   await assert.rejects(request('x', {fetchImpl: async () => ({ok:false,status:404,text:async()=> 'modelo ausente'})}), /HTTP 404/);
   await assert.rejects(request('x', {fetchImpl: async () => ({ok:true,json:async()=>({done:true,done_reason:'length'})})}), /incompleta/);
+});
+
+test('fecha inválida no oculta unidad o valor discrepantes', () => {
+  const expected = cases[3].expected;
+  const actual = structuredClone(expected);
+  actual.fecha = '31-02-2026';
+  actual.resultados[0].unidad = null;
+  actual.resultados[0].valor = '99,9';
+  const result = assess(actual, expected);
+  assert.equal(result.passed, false);
+  assert.equal(result.datos_faltantes, null);
+  assert.ok(result.errors.includes('fecha: inválida'));
+  assert.ok(result.errors.some(e => e.startsWith('fecha: esperado')));
+  assert.ok(result.errors.some(e => e.startsWith('resultados[0].unidad')));
+  assert.ok(result.errors.some(e => e.startsWith('resultados[0].valor')));
+  assert.equal(actual.fecha, '31-02-2026');
+});
+test('evaluación informa estructura inválida sin lanzar y conserva aprobación exacta', () => {
+  for (const actual of [null, {}, {examen: 'x', fecha: null, resultados: null}]) {
+    const result = assess(actual, cases[0].expected);
+    assert.equal(result.passed, false);
+    assert.ok(result.errors.length);
+  }
+  const result = assess(cases[0].expected, cases[0].expected);
+  assert.deepEqual(result, {errors: [], datos_faltantes: [], passed: true});
 });
