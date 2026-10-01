@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../roles/seleccion_roles_page.dart';
 
 /// Maqueta de acceso: valida formato, pero no autentica ni envía credenciales.
 class AccesoPage extends StatefulWidget {
@@ -25,8 +24,8 @@ class _AccesoPageState extends State<AccesoPage> {
     // No persiste ni transmite los campos. Evita aparentar autenticación.
     _clave.clear();
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Formato válido. Inicio de sesión pendiente del backend. '
-        'Usa Explorar demostración para revisar las pantallas.')));
+      content: Text('Formato válido. El servicio de autenticación aún no está disponible. '
+        'No se ha iniciado una sesión.')));
   }
 
   void _aviso(String titulo, String mensaje) {
@@ -102,16 +101,6 @@ class _AccesoPageState extends State<AccesoPage> {
               FilledButton(onPressed: _validar,
                 child: const Text('Validar formulario de acceso')),
               const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () {
-                  _correo.clear();
-                  _clave.clear();
-                  Navigator.of(context).push(MaterialPageRoute<void>(
-                    builder: (_) => const SeleccionRolesPage()));
-                },
-                icon: const Icon(Icons.preview_outlined),
-                label: const Text('Explorar demostración'),
-              ),
               const SizedBox(height: 16),
               const Text('La autenticación y los permisos se integrarán más adelante. '
                 'Esta pantalla no crea sesiones.', textAlign: TextAlign.center),
