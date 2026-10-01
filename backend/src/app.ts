@@ -1,7 +1,9 @@
 import express, { type ErrorRequestHandler } from 'express';
 import { createAuthRouter, type AuthServices } from './auth/router';
+import { createRegistrationRouter } from './auth/registration-router';
+import { type PatientRegistrar } from './auth/registration';
 
-export function createApp(auth?: AuthServices) {
+export function createApp(auth?: AuthServices, register?: PatientRegistrar) {
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '32kb' }));
@@ -11,6 +13,7 @@ export function createApp(auth?: AuthServices) {
     res.status(200).json({ status: 'ok', service: 'vitalia-api' });
   });
 
+  if (register) app.use('/api/auth', createRegistrationRouter(register));
   if (auth) app.use('/api/auth', createAuthRouter(auth));
 
   app.use((_req, res) => {
