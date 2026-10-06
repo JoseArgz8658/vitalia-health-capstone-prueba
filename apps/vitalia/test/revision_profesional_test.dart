@@ -8,6 +8,10 @@ import 'package:vitalia_health/features/profesional/revision_panel.dart';
 import 'package:vitalia_health/features/profesional/revision_api.dart';
 import 'package:vitalia_health/features/documentos_reales/procesamiento_panel.dart';
 
+// Las respuestas JSON reales de Express declaran UTF-8.
+http.Response jsonResponse(String body, int status) => http.Response(
+  body, status, headers: {'content-type': 'application/json; charset=utf-8'});
+
 const patientId = '22222222-2222-4222-8222-222222222222';
 const docId = '33333333-3333-4333-8333-333333333333';
 const processingId = '44444444-4444-4444-8444-444444444444';
@@ -19,9 +23,9 @@ Map<String, dynamic> saved(Map<String, dynamic> data) => {'id': docId, 'processi
 Future<AuthApi> session(Future<http.Response> Function(http.Request) work) async {
   final token = List.filled(64, 'a').join();
   final auth = AuthApi(client: MockClient((req) async {
-    if (req.url.path.endsWith('/login')) return http.Response(jsonEncode({'token': token,
+    if (req.url.path.endsWith('/login')) return jsonResponse(jsonEncode({'token': token,
       'expiresAt': DateTime.now().add(const Duration(minutes: 30)).toIso8601String()}), 200);
-    if (req.url.path.endsWith('/me')) return http.Response('{"user":{"role":"profesional"}}', 200);
+    if (req.url.path.endsWith('/me')) return jsonResponse('{"user":{"role":"profesional"}}', 200);
     expect(req.headers['Authorization'], 'Bearer $token');
     return work(req);
   }));
@@ -46,7 +50,7 @@ void main() {
       final body = jsonDecode(req.body) as Map<String, dynamic>;
       expect(body.keys.toSet(), {'processingId', 'extraction', 'observations', 'confirmedOriginal'});
       expect(body['confirmedOriginal'], isTrue);
-      return http.Response(jsonEncode({'review': saved(body['extraction'] as Map<String, dynamic>)}), 201);
+      return jsonResponse(jsonEncode({'review': saved(body['extraction'] as Map<String, dynamic>)}), 201);
     });
     expect((await RevisionApi(auth).aprobar(patientId, docId, processingId: processingId,
       extraction: extraction(), observations: 'Unidad cotejada.', confirmedOriginal: true))['approved'], isTrue);
@@ -54,7 +58,7 @@ void main() {
   });
   test('revisión no envía credenciales fuera del origen ni a otra ruta', () async {
     var calls = 0;
-    final auth = await session((_) async { calls++; return http.Response('{}', 200); });
+    final auth = await session((_) async { calls++; return jsonResponse('{}', 200); });
     await expectLater(auth.sendReviewRequest(http.Request('POST', Uri.parse('https://example.com/api/professional/patients/$patientId/documents/$docId/review'))), throwsA(isA<AuthFailure>()));
     await expectLater(auth.sendReviewRequest(http.Request('POST', auth.professionalUri(patientId, documentId: docId, action: 'file'))), throwsA(isA<AuthFailure>()));
     expect(calls, 0);
@@ -65,14 +69,14 @@ void main() {
     var posts = 0;
     final busy = <bool>[];
     final auth = await session((req) async {
-      if (req.method == 'GET') return http.Response(jsonEncode({'processingId': processingId,
+      if (req.method == 'GET') return jsonResponse(jsonEncode({'processingId': processingId,
         'originalExtraction': extraction(), 'canReview': review == null, 'review': review}), 200);
       posts++;
       final body = jsonDecode(req.body) as Map<String, dynamic>;
       expect(body['extraction']['resultados'][0]['unidad'], 'g/dL');
       expect(body['observations'], 'Unidad cotejada.');
       review = saved(body['extraction'] as Map<String, dynamic>);
-      return http.Response(jsonEncode({'review': review}), 201);
+      return jsonResponse(jsonEncode({'review': review}), 201);
     });
     await tester.pumpWidget(panel(auth, saving: busy.add));
     await tester.pumpAndSettle();
@@ -96,8 +100,8 @@ void main() {
   testWidgets('conflicto exige actualizar y no permite sobrescribir', (tester) async {
     var approved = false;
     final auth = await session((req) async {
-      if (req.method == 'POST') { approved = true; return http.Response('', 409); }
-      return http.Response(jsonEncode({'processingId': processingId, 'originalExtraction': extraction(),
+      if (req.method == 'POST') { approved = true; return jsonResponse('', 409); }
+      return jsonResponse(jsonEncode({'processingId': processingId, 'originalExtraction': extraction(),
         'canReview': !approved, 'review': approved ? saved(extraction()) : null}), 200);
     });
     await tester.pumpWidget(panel(auth));
@@ -112,7 +116,7 @@ void main() {
   });
   testWidgets('revocación llama al contenedor sin mostrar datos', (tester) async {
     var denied = 0;
-    final auth = await session((_) async => http.Response('', 404));
+    final auth = await session((_) async => jsonResponse('', 404));
     await tester.pumpWidget(panel(auth, failure: (error) { expect(error.status, 404); denied++; }));
     await tester.pumpAndSettle();
     expect(denied, 1);
@@ -121,7 +125,7 @@ void main() {
     auth.close();
   });
   testWidgets('paciente ve estado de revisión sin recibir la extracción', (tester) async {
-    final auth = await session((_) async => http.Response(jsonEncode({'processing': {'status': 'requires_review',
+    final auth = await session((_) async => jsonResponse(jsonEncode({'processing': {'status': 'requires_review',
       'approved': false, 'reviewStatus': 'approved', 'reviewedAt': '2026-10-01T18:00:00Z'}}), 200));
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: ProcesamientoPanel(auth: auth, documentId: docId, onExpired: () {}))));
     await tester.pumpAndSettle();
