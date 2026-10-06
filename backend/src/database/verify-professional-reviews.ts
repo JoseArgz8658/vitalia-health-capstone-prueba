@@ -33,7 +33,9 @@ async function main(){
   await completeDocumentProcessing(client,processingId,{status:'requires_review',source:'pdf',method:'direct',reading:{status:'text_ready',text,pageCount:1,incidents:[]},ocr:null,inputText:text,
    ai:{status:'requires_review',raw:JSON.stringify(extraction),extraction,incidents:[],approved:false,model:'qwen3:4b-instruct',promptVersion:3,elapsedMs:1},approved:false});
   const before=await findProcessingForWorker(client,processingId);
-  const service=createReviewService(db);const reviewed=structuredClone(extraction);reviewed.resultados[0].unidad='g/dL';
+  const service=createReviewService(db);
+  if((await service.getPatient(patient,doc.id)).review!==null)throw new Error('Revisión pendiente expuesta.');
+  const reviewed=structuredClone(extraction);reviewed.resultados[0].unidad='g/dL';
   const input={processingId,extraction:reviewed,observations:'Espacio inicial de unidad corregido tras cotejar el original ficticio.',confirmedOriginal:true};
   const saved=await service.approve(professional,patient.id,doc.id,input);
   if(!saved.approved||saved.reviewerId!==professional.id||saved.extraction.resultados[0].unidad!=='g/dL')throw new Error();
@@ -52,10 +54,16 @@ async function main(){
   const stored=await client.query<{original_extraction:unknown}>(`SELECT original_extraction FROM public.vitalia_professional_reviews WHERE id=$1`,[saved.id]);
   if(!isDeepStrictEqual(stored.rows[0]?.original_extraction,extraction))throw new Error('Proveniencia inválida.');
   if((await createProcessingService(db).get(patient,doc.id)).reviewStatus!=='approved')throw new Error('Estado de paciente inválido.');
+  const patientCopy=await service.getPatient(patient,doc.id);
+  if(!patientCopy.review?.approved||!isDeepStrictEqual(patientCopy.review.extraction,reviewed)||
+   Object.keys(patientCopy.review).sort().join(',')!=='approved,extraction,observations,reviewedAt')throw new Error('Copia de paciente inválida.');
+  const otherPatient=await insertPatientAccount(client,randomUUID()+'@example.invalid',await hashPassword(password));
+  await denied(()=>service.getPatient(otherPatient,doc.id),ReviewNotFoundError);
   await assignments.deactivate(admin,relation.assignment.id);
   await denied(()=>service.get(professional,patient.id,doc.id),ReviewNotFoundError);
+  if(!(await service.getPatient(patient,doc.id)).review?.approved)throw new Error('Historial del paciente perdido.');
   await client.query('ROLLBACK');started=false;
-  console.info('Revisión, conservación del original, permisos e inmutabilidad correctos. Datos sintéticos revertidos.');
+  console.info('Revisión, consulta del paciente, aislamiento e inmutabilidad correctos. Datos sintéticos revertidos.');
  }catch{failed=true;process.exitCode=1;console.error('No se pudo verificar la revisión. Revisa PostgreSQL y migración 009.');}
  finally{
   if(started&&client)try{await client.query('ROLLBACK');}catch{failed=true;}

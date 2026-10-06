@@ -39,6 +39,21 @@ async function findReview(tx:Database,documentId:string){
 }
 export function createReviewService(db:DocumentDatabase){
  return {
+  async getPatient(account:AccountSummary,documentId:string){
+   if(account.role!=='paciente')throw new ReviewForbiddenError();
+   if(!z.uuid().safeParse(documentId).success)throw new ReviewNotFoundError();
+   return db.transaction(async tx=>{
+    const owned=await tx.query<{id:string}>(`SELECT id FROM public.vitalia_documents
+     WHERE id=$1 AND patient_id=$2 AND status='stored' FOR SHARE`,[documentId,account.id]);
+    if(owned.rows.length!==1)throw new ReviewNotFoundError();
+    const found=await tx.query<ReviewRow>(`SELECT v.id,v.processing_id,v.reviewed_extraction,v.observations,v.created_at
+     FROM public.vitalia_professional_reviews v
+     WHERE v.document_id=$1 AND v.patient_id=$2 AND v.approved=true`,[documentId,account.id]);
+    const row=found.rows[0];
+    return {review:row?{extraction:extractionSchema.parse(row.reviewed_extraction),
+     observations:row.observations,reviewedAt:row.created_at,approved:true}:null};
+   });
+  },
   async get(account:AccountSummary,patientId:string,documentId:string){
    identity(account,patientId,documentId);
    return db.transaction(async tx=>{

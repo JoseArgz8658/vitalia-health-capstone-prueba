@@ -1,3 +1,4 @@
+import {createPatientReviewRouter} from './reviews/patient-router';
 import {createReviewRouter} from './reviews/router';
 import {type ReviewServices} from './reviews/service';
 import {createProfessionalRouter} from './professional/router';
@@ -24,6 +25,8 @@ export function createApp(auth?: AuthServices, register?: PatientRegistrar, docu
   app.get('/api/health', (_req, res) => {
     res.status(200).json({ status: 'ok', service: 'vitalia-api' });
   });
+
+  if (auth && reviews) app.use('/api/documents', createPatientReviewRouter(auth, reviews));
 
   if (auth && reviews) app.use('/api/professional', createReviewRouter(auth, reviews));
 

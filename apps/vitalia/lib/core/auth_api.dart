@@ -22,7 +22,7 @@ class AuthApi {
   void close() { clear(); _client.close(); }
 
   Uri documentUri([String suffix = '', Map<String, String>? query]) {
-    if (suffix.isNotEmpty && !RegExp(r'^[a-f0-9-]{36}/(file|processing)$').hasMatch(suffix)) {
+    if (suffix.isNotEmpty && !RegExp(r'^[a-f0-9-]{36}/(file|processing|review)$').hasMatch(suffix)) {
       throw const AuthFailure('Documento inválido.');
     }
     return _base.resolve('/api/documents${suffix.isEmpty ? '' : '/$suffix'}')
@@ -37,8 +37,11 @@ class AuthApi {
     }
     if (request.url.origin != _base.origin ||
         !(request.url.path == '/api/documents' ||
-          RegExp(r'^/api/documents/[a-f0-9-]{36}/(file|processing)$').hasMatch(request.url.path))) {
+          RegExp(r'^/api/documents/[a-f0-9-]{36}/(file|processing|review)$').hasMatch(request.url.path))) {
       throw const AuthFailure('Solicitud de documento inválida.');
+    }
+    if (request.url.path.endsWith('/review') && request.method != 'GET') {
+      throw const AuthFailure('La revisión del paciente es solo de consulta.');
     }
     request.headers['Authorization'] = 'Bearer $token';
     try {

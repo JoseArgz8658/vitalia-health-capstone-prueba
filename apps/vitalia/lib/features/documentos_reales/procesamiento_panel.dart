@@ -1,3 +1,4 @@
+import 'revision_paciente_panel.dart';
 import 'package:flutter/material.dart';
 import '../../core/auth_api.dart';
 import 'procesamiento_api.dart';
@@ -20,7 +21,7 @@ class _ProcesamientoPanelState extends State<ProcesamientoPanel> {
   void initState() { super.initState(); _run(false); }
   Future<void> _run(bool request) async {
     if (_busy) return;
-    setState(() { _busy = true; _error = null; });
+    setState(() { _busy = true; _error = null; _status = null; });
     try {
       final api = ProcesamientoApi(widget.auth);
       final status = request ? await api.solicitar(widget.documentId)
@@ -54,11 +55,14 @@ class _ProcesamientoPanelState extends State<ProcesamientoPanel> {
       if (_status == 'queued')
         const Text('La solicitud quedó registrada y espera ejecución.'),
       if (_status == 'professionally_reviewed')
-        const Text('La revisión fue aprobada por un profesional. La presentación de los datos revisados estará disponible en una etapa posterior.'),
+        const Text('La revisión fue aprobada por un profesional. Puedes consultar sus resultados.'),
       if (_status == 'requires_review')
         const Text('Los datos extraídos aún no están aprobados.'),
       if (_error != null) Text(_error!,
         style: TextStyle(color: Theme.of(context).colorScheme.error)),
+      if (!_busy && _error == null && _status != null)
+        RevisionPacientePanel(key: ValueKey('${widget.documentId}:$_status'), auth: widget.auth,
+          documentId: widget.documentId, onExpired: widget.onExpired),
       Wrap(spacing: 8, children: [
         if (_status == 'not_requested' && _error == null)
           OutlinedButton(onPressed: _busy ? null : () => _run(true),
