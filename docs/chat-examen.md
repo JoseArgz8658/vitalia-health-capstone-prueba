@@ -84,3 +84,6 @@ El esquema de generación depende del modo: definitions vacío en chat y una ent
 
 ## Prompt revisión 6 y reformulación
 Se permite una reformulación tras rechazo de contenido, sin reenviar la prosa rechazada. Las dos solicitudes comparten un máximo total de 120 segundos; se informa generationAttempts en evaluación. El filtro permanece sin cambios. El seguimiento debe explicar finalidad si esa es la pregunta, y la batería adicional incorpora un criterio heurístico para ello. Una respuesta libre puede seguir siendo imprecisa pese a superar estos controles.
+
+## Definiciones y finalidad estables (revisión 7)
+Las cinco notas verificadas aportan las definiciones de sus filas en explicación, y la finalidad cuando se pregunta por una sola medición cubierta. No dependen de que el modelo declare known=true. La respuesta libre de otros conceptos conserva su incertidumbre y no recibe una cita por coincidir solo el nombre. La evaluación expone verifiedNoteIndices; estos metadatos de diagnóstico no se guardan como columnas nuevas. La explicación muestra source solo si su definición coincide exactamente con la nota verificada. Las fuentes no equivalen a aprobación profesional. Las respuestas listas anteriores no se regeneran.

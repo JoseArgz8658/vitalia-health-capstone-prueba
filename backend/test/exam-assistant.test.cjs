@@ -262,3 +262,20 @@ test('las dos generaciones comparten el límite total de tiempo',async()=>{
   await jest.advanceTimersByTimeAsync(50000);await rejected;expect(fetchImpl).toHaveBeenCalledTimes(2);
  }finally{jest.useRealTimers();}
 });
+
+test('notas verificadas completan explicación sin atribuir el conocimiento al modelo',()=>{
+ const {applyEducationalNotes}=require('../dist/exam-assistant/knowledge');
+ const review={...extraction,resultados:[{nombre:'Creatinina',valor:null,unidad:null,rango_referencia:null},{nombre:'Analito Omega',valor:null,unidad:null,rango_referencia:null}]};
+ const grounded=applyEducationalNotes(review,fixed('insufficient'),'explanation','Explica',[]);
+ const reply=validateReply(grounded.reply,review,'explanation');
+ expect(reply.definitions.map(row=>row.known)).toEqual([true,false]);expect(grounded.noteIndices).toEqual([0]);
+ expect(explanationView(review,reply).items[0].source).toContain('medlineplus.gov');
+ expect(explanationView(review,reply).items[1].source).toBeNull();
+});
+test('finalidad procede de nota correspondiente y no reemplaza respuestas restringidas',()=>{
+ const {applyEducationalNotes}=require('../dist/exam-assistant/knowledge');
+ const grounded=applyEducationalNotes(extraction,educational(),'chat','¿Para qué se mide?',[{question:'¿Qué es hemoglobina?',response:educational()}]);
+ expect(grounded.reply.answer).toContain('cantidad de hemoglobina');expect(grounded.noteIndices).toEqual([0]);
+ expect(applyEducationalNotes(extraction,fixed('restricted'),'chat','¿Para qué se mide?',[]).reply.kind).toBe('restricted');
+ expect(applyEducationalNotes(extraction,educational(),'chat','¿Qué es hemoglobina?',[]).noteIndices).toEqual([]);
+});

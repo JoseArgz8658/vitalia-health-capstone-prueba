@@ -28,3 +28,21 @@ export function questionIndices(question:string,extraction:Extraction,history:Hi
  }
  return null;
 }
+
+export function applyEducationalNotes(extraction:Extraction,reply:import('./contract').Reply,mode:import('./contract').Mode,question:string,history:History){
+ const evidence=educationalEvidence(extraction);
+ if(!['education','insufficient'].includes(reply.kind))return {reply,noteIndices:[] as number[]};
+ if(mode==='explanation'&&evidence.length){
+  const definitions=extraction.resultados.map((_,index)=>{
+   const note=evidence.find(item=>item.index===index);
+   return note?{index,text:note.definition,known:true}:reply.definitions.find(item=>item.index===index)??{index,text:'No hay información suficiente para explicar este indicador sin inventar su significado.',known:false};
+  });
+  return {reply:{kind:'education' as const,answer:'Estos son los conceptos presentes en el examen.',indices:definitions.map(item=>item.index),definitions},noteIndices:evidence.map(item=>item.index)};
+ }
+ const targets=questionIndices(question,extraction,history);
+ if(mode==='chat'&&targets?.length===1&&/para que.*(?:mide|medir|prueba|sirve)|finalidad|que mide/.test(normalize(question))){
+  const note=evidence.find(item=>item.index===targets[0]);
+  if(note)return {reply:{kind:'education' as const,answer:note.purpose,indices:targets,definitions:[]},noteIndices:targets};
+ }
+ return {reply,noteIndices:[] as number[]};
+}

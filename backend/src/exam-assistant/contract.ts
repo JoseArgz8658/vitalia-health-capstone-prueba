@@ -1,4 +1,4 @@
-import {questionIndices} from './knowledge';
+import {questionIndices,educationalEvidence} from './knowledge';
 import {z} from 'zod';
 import {type Extraction} from '../ai/contract';
 export const ASSISTANT_VERSION=2;
@@ -67,7 +67,8 @@ export function validateReply(value:unknown,extraction:Extraction,mode:Mode):Rep
 export function explanationView(extraction:Extraction,reply:Reply){
  return {exam:extraction.examen,date:extraction.fecha,approved:false,notice,
   items:extraction.resultados.map((row,index)=>{
-   const item=reply.definitions[index];return {index,name:row.nombre,value:row.valor,unit:row.unidad,reference:row.rango_referencia,
-    concept:item?.known?'medical_general':'desconocido',explanation:item?.text??'No hay información suficiente para explicar este indicador sin inventar su significado.',source:null};
+   const item=reply.definitions[index];
+   const note=educationalEvidence(extraction).find(entry=>entry.index===index&&entry.definition===item?.text&&item.known);return {index,name:row.nombre,value:row.valor,unit:row.unidad,reference:row.rango_referencia,
+    concept:item?.known?'medical_general':'desconocido',explanation:item?.text??'No hay información suficiente para explicar este indicador sin inventar su significado.',source:note?.source??null};
   })};
 }

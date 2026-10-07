@@ -1,7 +1,7 @@
-import {educationalEvidence,questionIndices,KNOWLEDGE_VERSION} from './knowledge';
+import {educationalEvidence,applyEducationalNotes,questionIndices,KNOWLEDGE_VERSION} from './knowledge';
 import {extractionSchema,type Extraction} from '../ai/contract';
 import {type Mode,type Reply,type History,ContentPolicyError,gate,synthetic,fixed,validateReply,ASSISTANT_VERSION} from './contract';
-export const ASSISTANT_PROMPT_REVISION=6;
+export const ASSISTANT_PROMPT_REVISION=7;
 export type AssistantFailure='configuration'|'input'|'http'|'transport'|'timeout'|'response_limit'|'invalid_json'|'incomplete'|'invalid_reply'|'invalid_references'|'unsafe_content'|'chat_format'|'partial_explanation'|'invalid_definition';
 export class AssistantModelError extends Error {
  constructor(public readonly reason:AssistantFailure='transport',public readonly detail?:ContentPolicyError['category']){super('El asistente local no produjo una respuesta aceptable.');}
@@ -52,10 +52,12 @@ export function createExamAssistant(options:{model?:string;fetchImpl?:typeof fet
     throw new AssistantModelError(error instanceof Error?reasons[error.message]??'invalid_reply':'invalid_reply',error instanceof ContentPolicyError?error.category:undefined);
    }
    if(reply.kind==='education'&&targetIndices&&reply.indices.some(index=>!targetIndices.includes(index)))throw new AssistantModelError('invalid_references');
-   return {reply,model,promptVersion:ASSISTANT_VERSION,elapsedMs:Math.round(performance.now()-started)};
+   const grounded=applyEducationalNotes(extraction,reply,input.mode,input.question,input.history);
+   reply=validateReply(grounded.reply,extraction,input.mode);
+   return {reply,verifiedNoteIndices:grounded.noteIndices,knowledgeVersion:KNOWLEDGE_VERSION,model,promptVersion:ASSISTANT_VERSION,elapsedMs:Math.round(performance.now()-started)};
   }catch(error){if(error instanceof AssistantModelError)throw error;throw new AssistantModelError(controller.signal.aborted?'timeout':'transport');}finally{clearTimeout(timer);}
  };
- return async(input:Input):Promise<{reply:Reply;model:string;promptVersion:number;elapsedMs:number;generationAttempts?:number}>=>{
+ return async(input:Input):Promise<{reply:Reply;model:string;promptVersion:number;elapsedMs:number;generationAttempts?:number;verifiedNoteIndices?:number[];knowledgeVersion?:number}>=>{
   const started=performance.now(),deadline=started+120000;
   try{return {...await generate(input,deadline),generationAttempts:1};}
   catch(error){
