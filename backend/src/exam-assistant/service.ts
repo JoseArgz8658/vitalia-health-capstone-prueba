@@ -109,7 +109,9 @@ export function createExamAssistantService(db:DocumentDatabase,model:ExamAssista
    if(error instanceof AssistantAccessError)throw error;
    const reason=error instanceof AssistantModelError?error.reason:'internal';
    // No registra preguntas, documentos, respuestas, credenciales ni mensajes de excepción.
-   console.warn(JSON.stringify({event:'exam_assistant_failure',mode,reason,elapsedMs:Date.now()-attemptStarted}));
+   const details=['numeric_text','external_link','classification_term','clinical_or_instruction_term'];
+   const detail=error instanceof AssistantModelError&&error.detail&&details.includes(error.detail)?error.detail:undefined;
+   console.warn(JSON.stringify({event:'exam_assistant_failure',mode,reason,...(detail?{detail}:{}),elapsedMs:Date.now()-attemptStarted}));
    const rejected=error instanceof AssistantModelError&&!['configuration','http','transport','timeout'].includes(error.reason);
    const code=reason==='timeout'?'ASSISTANT_TIMEOUT':reason==='transport'||reason==='http'?'ASSISTANT_MODEL_UNAVAILABLE':
     reason==='configuration'?'ASSISTANT_CONFIGURATION':rejected?'ASSISTANT_RESPONSE_REJECTED':'ASSISTANT_UNAVAILABLE';

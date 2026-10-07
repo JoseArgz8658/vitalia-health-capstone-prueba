@@ -85,3 +85,14 @@ test('diagnóstico de extracción distingue fallos sin registrar el documento',a
   }
  } finally {warn.mockRestore();}
 });
+test.each(['¿Quién me hizo el examen?', 'quien realizó el estudio?'])('pregunta ambigua pide aclaración sin inventar responsable: %s',async question=>{
+ const fetchImpl=jest.fn();const value=extraction();
+ const result=await createExamAssistant({fetchImpl})({extraction:value,question,mode:'chat',history:[]});
+ expect(result.reply.answer).toContain('¿Te refieres');expect(result.reply.answer).toContain('solicitó');expect(fetchImpl).not.toHaveBeenCalled();
+ expect(validateReply(result.reply,value,'chat')).toEqual(result.reply);
+ expect(()=>validateReply({...result.reply,answer:result.reply.answer+' Toma hierro.'},value,'chat')).toThrow();
+});
+test.each(['¿Cuál es la fecha que me subieron el examen?', '¿Cuando subí mi examen?', '¿Cuál es la fecha de carga?'])('fecha de carga no se sustituye por emisión: %s',async question=>{
+ const fetchImpl=jest.fn();const result=await createExamAssistant({fetchImpl})({extraction:extraction(),question,mode:'chat',history:[]});
+ expect(result.reply.answer).toContain('fecha de carga');expect(result.reply.answer).not.toContain('06-10-2026');expect(fetchImpl).not.toHaveBeenCalled();
+});
