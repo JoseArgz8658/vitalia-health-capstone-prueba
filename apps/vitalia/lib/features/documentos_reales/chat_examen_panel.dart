@@ -28,20 +28,49 @@ class _ChatExamenPanelState extends State<ChatExamenPanel> {
   }
   Future<void> _load() async {
     if (_busy) return;
-    setState(() { _busy = true; _turns = []; _error = null; _available = false; });
+    setState(() { _busy = true; _error = null; });
     try {
       final data = await ChatExamenApi(widget.auth).consultar(widget.documentId);
       final turns = (data['turns'] as List).cast<Map<String, dynamic>>();
       _validateReferences(turns);
-      if (mounted) setState(() { _turns = turns; _opened = true; _available = data['status'] == 'available'; });
+      if (mounted) setState(() { _available = data['status'] == 'available'; _turns = _available ? turns : []; _opened = true; });
     } on AuthFailure catch (error) { _failure(error); }
-    catch (_) { if (mounted) setState(() => _error = 'No se pudo consultar esta conversación.'); }
+    catch (_) { if (mounted) setState(() { _available = false; _error = 'No se pudo consultar esta conversación.'; }); }
     finally { if (mounted) setState(() => _busy = false); }
   }
   void _failure(AuthFailure error) {
     if (!mounted) return;
-    if (error.status == 401) { widget.onExpired(); }
-    else { setState(() { _turns = []; _available = false; _error = error.message; }); }
+    if (error.status == 401) {
+      setState(() { _turns = []; _available = false; });
+      widget.onExpired();
+    } else {
+      setState(() {
+        if (error.status == 403 || error.status == 404) { _turns = []; _available = false; }
+        else if (error.status != 503) { _available = false; }
+        _error = error.message;
+      });
+    }
+  }
+  Future<void> _recoverAfterFailure() async {
+    // Solo consultar: nunca repetir la generación automáticamente.
+    try {
+      final data = await ChatExamenApi(widget.auth).consultar(widget.documentId);
+      final turns = (data['turns'] as List).cast<Map<String, dynamic>>();
+      _validateReferences(turns);
+      if (!mounted) return;
+      setState(() {
+        _available = data['status'] == 'available';
+        _turns = _available ? turns : [];
+        final completed = turns.where((turn) => turn['id'] == _lastId && turn['status'] != 'pending');
+        if (completed.isNotEmpty) {
+          _error = completed.first['status'] == 'failed'
+            ? 'No se obtuvo una respuesta aceptable. La conversación sigue abierta; puedes reformular tu pregunta.' : null;
+          _lastId = null; _lastQuestion = null;
+        }
+        if (!_available) _error = null;
+      });
+    } on AuthFailure catch (error) { _failure(error); }
+    catch (_) { if (mounted) setState(() { _available = false; _error = 'No se pudo validar la conversación. Actualiza antes de continuar.'; }); }
   }
   Future<void> _send() async {
     final question = _question.text.trim();
@@ -58,8 +87,11 @@ class _ChatExamenPanelState extends State<ChatExamenPanel> {
         _turns = [..._turns.where((t) => t['id'] != turn['id']), turn];
         if (turn['status'] != 'pending') { _lastId = null; _lastQuestion = null; _question.clear(); }
       });
-    } on AuthFailure catch (error) { _failure(error); }
-    catch (_) { if (mounted) setState(() { _turns = []; _available = false; _error = 'No se pudo aceptar la respuesta. Actualiza la conversación.'; }); }
+    } on AuthFailure catch (error) {
+      _failure(error);
+      if (error.status == 503) await _recoverAfterFailure();
+    }
+    catch (_) { if (mounted) setState(() { _available = false; _error = 'No se pudo aceptar la respuesta. Actualiza la conversación.'; }); }
     finally { if (mounted) setState(() => _busy = false); }
   }
   @override
@@ -71,7 +103,10 @@ class _ChatExamenPanelState extends State<ChatExamenPanel> {
       const Text('La IA puede equivocarse. Usa solo los datos revisados de este documento; no diagnostica ni recomienda tratamientos. Las respuestas no están aprobadas por un profesional.'),
       TextButton(onPressed: _busy ? null : _load,
         child: Text(_opened ? 'Actualizar conversación' : 'Abrir conversación')),
-      if (_busy) const Text('El asistente está trabajando. Puede tardar hasta dos minutos.'),
+      if (_busy) ...[
+        const LinearProgressIndicator(),
+        const Text('El asistente está trabajando. Puede tardar hasta dos minutos.'),
+      ],
       if (_error != null) Text(_error!),
       if (_opened && !_available && _error == null) const Text('Se requiere una revisión profesional aprobada.'),
       for (final turn in _turns) Card(child: Padding(padding: const EdgeInsets.all(12), child: Column(

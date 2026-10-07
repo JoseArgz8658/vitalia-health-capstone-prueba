@@ -96,3 +96,17 @@ test.each(['¿Cuál es la fecha que me subieron el examen?', '¿Cuando subí mi 
  const fetchImpl=jest.fn();const result=await createExamAssistant({fetchImpl})({extraction:extraction(),question,mode:'chat',history:[]});
  expect(result.reply.answer).toContain('fecha de carga');expect(result.reply.answer).not.toContain('06-10-2026');expect(fetchImpl).not.toHaveBeenCalled();
 });
+test.each([
+ ['y el profesional que me valido el informe?', 'Profesional que validó el informe', 'Validadora ficticia'],
+ ['y sobre el laboratorio que lo hizo?', 'Laboratorio', 'Laboratorio ficticio'],
+ ['¿Quién me validó el informe?', 'Profesional que validó el informe', 'Validadora ficticia'],
+])('seguimiento identifica campo revisado sin modelo: %s', async(question,label,expected)=>{
+ const value=extraction();value.informe.profesional_validante='Validadora ficticia';value.informe.laboratorio='Laboratorio ficticio';
+ const fetchImpl=jest.fn();const result=await createExamAssistant({fetchImpl})({extraction:value,question,mode:'chat',history:[]});
+ expect(result.reply.answer).toContain(label);expect(result.reply.answer).toContain(expected);expect(fetchImpl).not.toHaveBeenCalled();
+ expect(validateReply(result.reply,value,'chat')).toEqual(result.reply);
+});
+test('laboratorio ausente se informa sin deducirlo del nombre del médico',async()=>{
+ const fetchImpl=jest.fn();const result=await createExamAssistant({fetchImpl})({extraction:extraction(),question:'y sobre el laboratorio que lo hizo?',mode:'chat',history:[]});
+ expect(result.reply.answer).toContain('no está disponible');expect(fetchImpl).not.toHaveBeenCalled();
+});
