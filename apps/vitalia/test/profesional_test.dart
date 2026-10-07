@@ -33,6 +33,39 @@ Future<AuthApi> session(Future<http.Response> Function(http.Request) work) async
   return auth;
 }
 void main() {
+  testWidgets('actualiza procesamiento, habilita revisión al finalizar y deja de consultar', (tester) async {
+    var extractionCalls = 0;
+    final auth = await session((req) async {
+      if (req.url.path.endsWith('/review')) {
+        return jsonResponse(jsonEncode({'processingId': docId,
+          'originalExtraction': extractionCalls >= 2 ? processing()['extraction'] : null,
+          'canReview': extractionCalls >= 2, 'review': null}), 200);
+      }
+      if (req.url.path.endsWith('/extraction')) {
+        extractionCalls++;
+        return jsonResponse(jsonEncode({'processing': extractionCalls >= 2
+          ? processing() : {...processing(), 'status': 'processing', 'extraction': null}}), 200);
+      }
+      return jsonResponse(jsonEncode({'documents': [doc()]}), 200);
+    });
+    await tester.pumpWidget(MaterialApp(home: ProfesionalDocumentosPage(auth: auth,
+      patientId: patientId, patientEmail: 'p@example.com', onExpired: () {}, onBack: () {}, onLogout: () {})));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Consultar extracción'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    expect(find.text('Extracción pendiente de revisión profesional'), findsOneWidget);
+    expect(find.text('Aprobar y guardar revisión'), findsOneWidget);
+    expect(extractionCalls, 2);
+    await tester.pump(const Duration(seconds: 15));
+    expect(extractionCalls, 2);
+    await tester.pumpWidget(const SizedBox.shrink());
+    auth.close();
+  });
+
   test('API consulta historial, extracción y archivo con sesión', () async {
     final auth = await session((req) async {
       expect(req.method, 'GET');

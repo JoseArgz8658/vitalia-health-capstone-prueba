@@ -1,5 +1,6 @@
+import {extractReportBlocks,ReportBlockError} from './report-blocks';
 import {ollamaUrl} from '../runtime/local-services';
-import {reportExtractionPrompt,reportExtractionSchema} from './report-prompt';
+import {reportExtractionPrompt} from './report-prompt';
 import { extractionPrompt, schema } from './prompt';
 import { reviewExtraction, type ExtractionReview } from './contract';
 export type ExtractionFailureReason = 'configuration'|'input'|'http'|'transport'|'timeout'|'response_limit'|'invalid_json'|'incomplete';
@@ -41,26 +42,42 @@ export function createLocalExtractor(options: { model?: string; fetchImpl?: type
     }
     const started = performance.now();
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 120000);
+    const timer = setTimeout(() => controller.abort(), version===4?360000:120000);
     try {
+      const generate = async (format: object, input: string, instruction = ''): Promise<string> => {
+      const blockController = new AbortController();
+      const abort = () => blockController.abort();
+      controller.signal.addEventListener('abort', abort, {once:true});
+      if (controller.signal.aborted) abort();
+      const blockTimer = setTimeout(abort,120000);
+      try {
       const response = await fetchImpl(ollamaUrl('chat'), {
-        method: 'POST', redirect: 'error', signal: controller.signal,
+        method: 'POST', redirect: 'error', signal: blockController.signal,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, stream: false, format: version===4?reportExtractionSchema:schema,
+        body: JSON.stringify({ model, stream: false, format,
           options: { temperature: 0, seed: 42, num_ctx: version===4?8192:4096, num_predict: version===4?3600:1600 },
-          messages: [{ role: 'system', content: version===4?reportExtractionPrompt:extractionPrompt }, { role: 'user', content: `DOCUMENTO FICTICIO:\n${text}` }],
+          messages: [{ role: 'system', content: (version===4?reportExtractionPrompt:extractionPrompt)+instruction }, { role: 'user', content: `${version===3?'DOCUMENTO FICTICIO':'DOCUMENTO'}:\n${input}` }],
         }),
       });
       if (!response.ok) throw new ExtractionServiceError(`Ollama respondió HTTP ${response.status}.`, 'http');
-      const body = JSON.parse(await readBounded(response));
+      const responseText = await readBounded(response);
+      let body;
+      try { body = JSON.parse(responseText); } catch { throw new ExtractionServiceError('Formato de transporte inválido.', 'invalid_json'); }
       if (body.done !== true || body.done_reason === 'length' || typeof body.message?.content !== 'string') {
         throw new ExtractionServiceError('Respuesta de Ollama incompleta o inválida.', 'incomplete');
       }
-      return { ...reviewExtraction(body.message.content,version===4), model, promptVersion: version, elapsedMs: Math.round(performance.now() - started) };
+      return body.message.content;
+      } catch(error) {
+        if(blockController.signal.aborted)throw new ExtractionServiceError('Límite de tiempo de extracción.', 'timeout');
+        throw error;
+      } finally {clearTimeout(blockTimer);controller.signal.removeEventListener('abort',abort);}
+      };
+      const raw = version===4 ? await extractReportBlocks(text,generate) : await generate(schema,text);
+      return { ...reviewExtraction(raw,version===4), model, promptVersion: version, elapsedMs: Math.round(performance.now() - started) };
     } catch (error) {
       const failure = error instanceof ExtractionServiceError ? error : new ExtractionServiceError(
         'No se pudo obtener una respuesta válida de Ollama local.',
-        controller.signal.aborted ? 'timeout' : error instanceof SyntaxError ? 'invalid_json' : 'transport');
+        controller.signal.aborted ? 'timeout' : error instanceof SyntaxError ? 'invalid_json' : error instanceof ReportBlockError ? 'incomplete' : 'transport');
       console.warn(JSON.stringify({event: 'document_extraction_failure', reason: failure.reason, promptVersion: version, elapsedMs: Math.round(performance.now() - started)}));
       throw failure;
     } finally { clearTimeout(timer); }

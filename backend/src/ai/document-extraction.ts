@@ -43,7 +43,7 @@ export function createDocumentExtraction(options:{
    return result;
   }catch(error){
    const reason=error instanceof ExtractionServiceError?error.reason:null;
-   const message=reason==='timeout'?'La extracción superó el límite de dos minutos; no se guardaron datos parciales.':
+   const message=reason==='timeout'?'Un bloque superó dos minutos o el informe superó seis minutos; no se guardaron datos parciales.':
     reason==='incomplete'?'Ollama devolvió una extracción incompleta; no se acepta como resultado.':
     reason==='http'||reason==='transport'?'No se pudo comunicarse correctamente con Ollama local.':
     reason==='invalid_json'?'Ollama devolvió una respuesta con formato inválido.':

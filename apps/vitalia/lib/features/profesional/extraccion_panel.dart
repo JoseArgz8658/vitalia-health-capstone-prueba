@@ -30,7 +30,7 @@ class ExtraccionPanel extends StatelessWidget {
         Text(value.status == 'queued'
           ? 'Documento en espera del procesador automático. Mantén el worker iniciado.'
           : 'La lectura y extracción están en curso. Los datos todavía no están disponibles para revisar.'),
-        const Text('Usa Actualizar extracción para consultar el avance. La barra indica espera; no representa un porcentaje.'),
+        const Text('El estado se consulta automáticamente cada cinco segundos durante diez minutos. También puedes usar Actualizar extracción. La barra indica espera; no representa un porcentaje.'),
         const SizedBox(height: 12),
       ],
       if (extraction != null) ...[

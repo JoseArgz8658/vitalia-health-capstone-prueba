@@ -12,12 +12,15 @@ test('esquema ampliado conserva datos, estado literal y compatibilidad',()=>{
  expect(reviewExtraction(JSON.stringify({...value,informe:{...value.informe,fecha_muestra:'31-11-2026'}})).incidents).toContainEqual(expect.objectContaining({code:'invalid_date',path:'informe.fecha_muestra'}));
  expect(()=>extractionSchema.parse({...value,informe:{...value.informe,token:'inventado'}})).toThrow();
 });
-test('extracción v4 exige informe y conserva prompt v3 anterior',async()=>{
+test('extracción v4 separa datos generales y resultados, conservando contrato',async()=>{
  const fetchImpl=jest.fn(async(_url,options)=>{
-  const body=JSON.parse(options.body);expect(body.format.required).toContain('informe');expect(body.format.properties.informe.required).toEqual(REPORT_FIELDS);
-  return new Response(JSON.stringify({done:true,message:{content:JSON.stringify(extraction())}}));
+  const body=JSON.parse(options.body),value=extraction();
+  const content=body.format.required.includes('informe') ? {examen:value.examen,fecha:value.fecha,informe:value.informe} : {resultados:value.resultados};
+  if(body.format.required.includes('informe'))expect(body.format.properties.informe.required).toEqual(REPORT_FIELDS);
+  return new Response(JSON.stringify({done:true,message:{content:JSON.stringify(content)}}));
  });
  const result=await createLocalExtractor({fetchImpl,promptVersion:4})('Texto ficticio');
+ expect(fetchImpl).toHaveBeenCalledTimes(2);
  expect(result.promptVersion).toBe(4);expect(result.extraction.informe.nombre_paciente).toBe('Paciente de prueba');expect(result.approved).toBe(false);
 });
 test.each([['¿Cuál es el nombre completo?','Paciente de prueba'],['¿Quién solicitó el examen?','Profesional de prueba'],['¿Cuál es la fecha de toma de muestra?','05-10-2026'],['¿Cuál es la fecha de emisión?','06-10-2026']])('dato confirmado del informe: %s',async(question,expected)=>{

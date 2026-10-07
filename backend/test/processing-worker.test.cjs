@@ -83,8 +83,9 @@ test('worker ejecuta extracción ampliada para trabajos v4 y conserva versión a
  const informe=Object.fromEntries(REPORT_FIELDS.map(key=>[key,null]));informe.nombre_paciente='Paciente ficticio';
  const extraction={examen:'Informe de prueba',fecha:null,informe,resultados:[{nombre:'Hemoglobina',valor:'14,2',unidad:'g/dL',rango_referencia:null,estado_documento:null}]};
  const fetchSpy=jest.spyOn(global,'fetch').mockImplementation(async(_url,options)=>{
-  const request=JSON.parse(options.body);expect(request.format.required).toContain('informe');
-  return new Response(JSON.stringify({done:true,message:{content:JSON.stringify(extraction)}}));
+  const request=JSON.parse(options.body);
+  const content=request.format.required.includes('informe') ? {examen:extraction.examen,fecha:extraction.fecha,informe} : {resultados:extraction.resultados};
+  return new Response(JSON.stringify({done:true,message:{content:JSON.stringify(content)}}));
  });
  try {
   const db=dbMock({promptVersion:4});const outcome=await createProcessingWorker(db,{read:async()=>body})(id);
