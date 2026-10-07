@@ -1,0 +1,29 @@
+import {type Extraction} from '../ai/contract';
+import {type History,normalize} from './contract';
+export const KNOWLEDGE_VERSION=1;
+const entries=[
+ {aliases:['hemoglobina','hb','hgb'],definition:'Proteína de los glóbulos rojos que transporta oxígeno.',purpose:'La prueba mide la cantidad de hemoglobina en sangre; no mide directamente la cantidad de oxígeno.',source:'https://medlineplus.gov/spanish/ency/article/003645.htm'},
+ {aliases:['plaquetas','recuento de plaquetas'],definition:'Componentes de la sangre que participan en la coagulación y ayudan a detener el sangrado.',purpose:'El recuento mide la cantidad de plaquetas en sangre.',source:'https://medlineplus.gov/spanish/pruebas-de-laboratorio/conteo-sanguineo-completo/'},
+ {aliases:['creatinina','creatinina en sangre','creatinina serica'],definition:'Producto de desecho relacionado con la creatina y la actividad muscular, que los riñones eliminan.',purpose:'La prueba mide creatinina en sangre u orina y aporta información sobre la función de los riñones; no atribuye una enfermedad al paciente.',source:'https://medlineplus.gov/spanish/ency/article/003610.htm'},
+ {aliases:['leucocitos','globulos blancos','recuento de leucocitos'],definition:'Células que forman parte del sistema inmunitario y de las defensas del organismo.',purpose:'La prueba cuenta los glóbulos blancos en sangre.',source:'https://medlineplus.gov/spanish/pruebas-de-laboratorio/conteo-de-globulos-blancos/'},
+ {aliases:['glucosa','glucosa en sangre','glucemia'],definition:'Azúcar presente en sangre que el cuerpo utiliza como fuente de energía.',purpose:'La prueba mide la cantidad de glucosa en sangre.',source:'https://medlineplus.gov/spanish/bloodglucose.html'},
+];
+function entryFor(name:string|null){const key=normalize(name??'').trim();return entries.find(entry=>entry.aliases.includes(key));}
+// Se aportan únicamente conceptos que ya existen en el examen abierto.
+export function educationalEvidence(extraction:Extraction){
+ return extraction.resultados.flatMap((row,index)=>{const entry=entryFor(row.nombre);return entry?[{index,definition:entry.definition,purpose:entry.purpose,source:entry.source}]:[];});
+}
+export function questionIndices(question:string,extraction:Extraction,history:History):number[]|null{
+ const q=normalize(question);
+ const matches=extraction.resultados.flatMap((row,index)=>{
+  const names=[row.nombre,...(entryFor(row.nombre)?.aliases??[])].filter((x):x is string=>Boolean(x));
+  return names.some(name=>{const key=normalize(name).trim();return key.length>1&&new RegExp(`(?:^|[^a-z0-9])${key.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}(?:$|[^a-z0-9])`).test(q);})?[index]:[];
+ });
+ if(matches.length)return matches;
+ const unitMatches=extraction.resultados.flatMap((row,index)=>{const unit=normalize(row.unidad??'').replace(/\s/g,'');return unit.length>1&&q.replace(/\s/g,'').includes(unit)?[index]:[];});
+ if(unitMatches.length)return unitMatches;
+ if(/^[¿¡\s]*(?:y |por que|para que|como|que significa|explica|eso|entonces|puedes aclarar)/.test(q)&&! /rango|referencia|examen|resultados|indicadores/.test(q)){
+  const prior=history.at(-1);if(prior?.response.kind==='education'&&prior.response.indices.length)return [...prior.response.indices];
+ }
+ return null;
+}

@@ -1,6 +1,7 @@
+import {educationalEvidence,questionIndices,KNOWLEDGE_VERSION} from './knowledge';
 import {extractionSchema,type Extraction} from '../ai/contract';
 import {type Mode,type History,gate,synthetic,fixed,validateReply,ASSISTANT_VERSION} from './contract';
-export const ASSISTANT_PROMPT_REVISION=3;
+export const ASSISTANT_PROMPT_REVISION=4;
 export type AssistantFailure='configuration'|'input'|'http'|'transport'|'timeout'|'response_limit'|'invalid_json'|'incomplete'|'invalid_reply'|'invalid_references'|'unsafe_content'|'chat_format'|'partial_explanation'|'invalid_definition';
 export class AssistantModelError extends Error {
  constructor(public readonly reason:AssistantFailure='transport'){super('El asistente local no produjo una respuesta aceptable.');}
@@ -21,6 +22,8 @@ export function createExamAssistant(options:{model?:string;fetchImpl?:typeof fet
   let extraction:Extraction;
   try{extraction=extractionSchema.parse(input.extraction);}catch{throw new AssistantModelError('input');}
   if(!extraction.resultados.length||extraction.resultados.length>20||Buffer.byteLength(JSON.stringify(extraction))>12000||input.question.length>500||input.history.length>6)throw new AssistantModelError('input');
+  const targetIndices=input.mode==='chat'?questionIndices(input.question,extraction,input.history):null;
+  const evidence=educationalEvidence(extraction);
   const started=performance.now();
   const blocked=input.mode==='chat'?gate(input.question,extraction,input.history):extraction.resultados.every(row=>synthetic(row.nombre))?fixed('insufficient',extraction.resultados.map((_,i)=>i)):null;
   if(blocked)return {reply:blocked,model:'backend-policy',promptVersion:ASSISTANT_VERSION,elapsedMs:0};
@@ -33,8 +36,8 @@ export function createExamAssistant(options:{model?:string;fetchImpl?:typeof fet
      kind:{type:'string',enum:['education','insufficient','out_of_scope','restricted']},answer:{type:'string'},
      indices:{type:'array',items:{type:'integer',minimum:0,maximum:extraction.resultados.length-1}},
      definitions:{type:'array',...(input.mode==='chat'?{maxItems:0}:{minItems:extraction.resultados.length,maxItems:extraction.resultados.length}),items:{type:'object',additionalProperties:false,required:['index','text','known'],properties:{index:{type:'integer'},text:{type:'string'},known:{type:'boolean'}}}}}},
-    messages:[{role:'system',content:prompt+'\n'+educationalGuidance},{role:'user',content:JSON.stringify({mode:input.mode,
-     review:extraction,history,question:input.question})}]};
+    messages:[{role:'system',content:prompt+'\n'+educationalGuidance+'\nLas notas educationalEvidence son definiciones generales verificadas, no datos clínicos del paciente. Úsalas como fundamento cuando correspondan. No contradigas su contenido ni declares desconocido un concepto que esas notas definen. Su cobertura es limitada: otros conceptos no están verificados. Si targetIndices está presente, responde solo sobre esas filas; en seguimiento conserva ese contexto. No copies las URLs a la prosa.'},{role:'user',content:JSON.stringify({mode:input.mode,
+     review:extraction,history,question:input.question,targetIndices,educationalEvidence:evidence,knowledgeVersion:KNOWLEDGE_VERSION})}]};
    const response=await fetchImpl('http://127.0.0.1:11434/api/chat',{method:'POST',redirect:'error',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
    if(!response.ok||!response.body)throw new AssistantModelError('http');
    const reader=response.body.getReader(),chunks:Uint8Array[]=[];let size=0;
@@ -46,6 +49,7 @@ export function createExamAssistant(options:{model?:string;fetchImpl?:typeof fet
     const reasons:Record<string,AssistantFailure>={'Referencias inválidas.':'invalid_references','Contenido no aceptable.':'unsafe_content','Formato de conversación inválido.':'chat_format','Explicación parcial.':'partial_explanation','Definición inválida.':'invalid_definition'};
     throw new AssistantModelError(error instanceof Error?reasons[error.message]??'invalid_reply':'invalid_reply');
    }
+   if(reply.kind==='education'&&targetIndices&&reply.indices.some(index=>!targetIndices.includes(index)))throw new AssistantModelError('invalid_references');
    return {reply,model,promptVersion:ASSISTANT_VERSION,elapsedMs:Math.round(performance.now()-started)};
   }catch(error){if(error instanceof AssistantModelError)throw error;throw new AssistantModelError(controller.signal.aborted?'timeout':'transport');}finally{clearTimeout(timer);}
  };

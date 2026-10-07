@@ -187,3 +187,27 @@ test.each(['chat','explanation'])('esquema de generación limita definitions par
  };
  await createExamAssistant({fetchImpl})({extraction,question:'¿Qué es hemoglobina?',mode,history:[]});
 });
+
+test('fundamento contiene únicamente conceptos del examen y conserva alias y orden',()=>{
+ const {educationalEvidence,questionIndices}=require('../dist/exam-assistant/knowledge');
+ const shuffled={...extraction,resultados:[{nombre:'Creatinina',valor:null,unidad:null,rango_referencia:null},extraction.resultados[0],{nombre:'Indicador Alfa',valor:null,unidad:null,rango_referencia:null}]};
+ expect(educationalEvidence(shuffled).map(row=>row.index)).toEqual([0,1]);
+ expect(educationalEvidence(shuffled).some(row=>row.definition.includes('Proteína'))).toBe(true);
+ expect(questionIndices('¿Qué es Hb?',shuffled,[])).toEqual([1]);
+ expect(questionIndices('¿Qué es creatinina?',shuffled,[])).toEqual([0]);
+ expect(questionIndices('¿Para qué se mide?',shuffled,[{question:'¿Qué es Hb?',response:{...educational(),indices:[1]}}])).toEqual([1]);
+ expect(questionIndices('¿Qué significa rango de referencia?',shuffled,[])).toBeNull();
+});
+test('modelo recibe evidencia verificada sin modificar cifras y rechaza referencias ajenas al seguimiento',async()=>{
+ const two={...extraction,resultados:[...extraction.resultados,{nombre:'Creatinina',valor:null,unidad:null,rango_referencia:null}]};
+ // Usar la revisión de dos filas para que ambas referencias sean estructuralmente válidas.
+ const fetchScoped=async(_,options)=>{
+  const data=JSON.parse(JSON.parse(options.body).messages[1].content);
+  expect(data.targetIndices).toEqual([0]);expect(data.educationalEvidence).toHaveLength(2);
+  return modelResponse({...educational(),indices:[0,1]});
+ };
+ await expect(createExamAssistant({fetchImpl:fetchScoped})({extraction:two,question:'¿Para qué se mide?',mode:'chat',history:[{question:'¿Qué es hemoglobina?',response:educational()}]})).rejects.toMatchObject({reason:'invalid_references'});
+ await createExamAssistant({fetchImpl:async(_,options)=>{
+  const data=JSON.parse(JSON.parse(options.body).messages[1].content);expect(data.educationalEvidence[0].source).toContain('medlineplus.gov');expect(data.review).toEqual(extraction);return modelResponse(educational());
+ }})({extraction,question:'¿Qué es hemoglobina?',mode:'chat',history:[]});
+});
