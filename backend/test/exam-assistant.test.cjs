@@ -230,3 +230,35 @@ test('generación restringe índices a la fila real de un seguimiento con orden 
 test('diagnóstico de contenido revela categoría acotada sin mostrar prosa rechazada',async()=>{
  await expect(createExamAssistant({fetchImpl:async()=>modelResponse({...educational(),answer:'El resultado es normal.'})})({extraction,question:'¿Qué es hemoglobina?',mode:'chat',history:[]})).rejects.toMatchObject({reason:'unsafe_content',detail:'classification_term'});
 });
+
+test('reformulación única no reenvía contenido rechazado y conserva las validaciones',async()=>{
+ const fetchImpl=jest.fn(async(_,options)=>{
+  const body=JSON.parse(options.body);expect(JSON.stringify(body)).not.toContain('Toma hierro.');
+  if(fetchImpl.mock.calls.length===1)return modelResponse({...educational(),answer:'Toma hierro.'});
+  expect(body.messages[0].content).toContain('Reformulación única');return modelResponse(educational());
+ });
+ const result=await createExamAssistant({fetchImpl})({extraction,question:'¿Qué es hemoglobina?',mode:'chat',history:[]});
+ expect(result.generationAttempts).toBe(2);expect(fetchImpl).toHaveBeenCalledTimes(2);expect(result.reply).toEqual(educational());
+});
+test('dos respuestas rechazadas terminan en error sin más llamadas ni contenido parcial',async()=>{
+ const fetchImpl=jest.fn(async()=>modelResponse({...educational(),answer:'Toma hierro.'}));
+ await expect(createExamAssistant({fetchImpl})({extraction,question:'¿Qué es hemoglobina?',mode:'chat',history:[]})).rejects.toMatchObject({reason:'unsafe_content'});
+ expect(fetchImpl).toHaveBeenCalledTimes(2);
+});
+test('fallos HTTP no activan reformulación',async()=>{
+ const fetchImpl=jest.fn(async()=>new Response('error',{status:500}));
+ await expect(createExamAssistant({fetchImpl})({extraction,question:'¿Qué es hemoglobina?',mode:'chat',history:[]})).rejects.toMatchObject({reason:'http'});expect(fetchImpl).toHaveBeenCalledTimes(1);
+});
+test('las dos generaciones comparten el límite total de tiempo',async()=>{
+ jest.useFakeTimers();
+ try{
+  const fetchImpl=jest.fn(async(_,options)=>{
+   if(fetchImpl.mock.calls.length===1){await new Promise(resolve=>setTimeout(resolve,70000));return modelResponse({...educational(),answer:'Toma hierro.'});}
+   return new Promise((_,reject)=>options.signal.addEventListener('abort',()=>reject(new Error('abort')),{once:true}));
+  });
+  const pending=createExamAssistant({fetchImpl})({extraction,question:'¿Qué es hemoglobina?',mode:'chat',history:[]});
+  const rejected=expect(pending).rejects.toMatchObject({reason:'timeout'});
+  await jest.advanceTimersByTimeAsync(70000);expect(fetchImpl).toHaveBeenCalledTimes(2);
+  await jest.advanceTimersByTimeAsync(50000);await rejected;expect(fetchImpl).toHaveBeenCalledTimes(2);
+ }finally{jest.useRealTimers();}
+});

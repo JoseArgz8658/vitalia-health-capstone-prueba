@@ -1,7 +1,7 @@
 import {educationalEvidence,questionIndices,KNOWLEDGE_VERSION} from './knowledge';
 import {extractionSchema,type Extraction} from '../ai/contract';
-import {type Mode,type History,ContentPolicyError,gate,synthetic,fixed,validateReply,ASSISTANT_VERSION} from './contract';
-export const ASSISTANT_PROMPT_REVISION=5;
+import {type Mode,type Reply,type History,ContentPolicyError,gate,synthetic,fixed,validateReply,ASSISTANT_VERSION} from './contract';
+export const ASSISTANT_PROMPT_REVISION=6;
 export type AssistantFailure='configuration'|'input'|'http'|'transport'|'timeout'|'response_limit'|'invalid_json'|'incomplete'|'invalid_reply'|'invalid_references'|'unsafe_content'|'chat_format'|'partial_explanation'|'invalid_definition';
 export class AssistantModelError extends Error {
  constructor(public readonly reason:AssistantFailure='transport',public readonly detail?:ContentPolicyError['category']){super('El asistente local no produjo una respuesta aceptable.');}
@@ -18,7 +18,8 @@ export function createExamAssistant(options:{model?:string;fetchImpl?:typeof fet
  const model=options.model??'qwen3:4b-instruct';
  if(!/^[a-zA-Z0-9_.:-]{1,100}$/.test(model)||model.toLowerCase().includes('cloud'))throw new AssistantModelError('configuration');
  const fetchImpl=options.fetchImpl??fetch;
- return async(input:{extraction:Extraction;question:string;mode:Mode;history:History})=>{
+ type Input={extraction:Extraction;question:string;mode:Mode;history:History};
+ const generate=async(input:Input,deadline:number,repair=false)=>{
   let extraction:Extraction;
   try{extraction=extractionSchema.parse(input.extraction);}catch{throw new AssistantModelError('input');}
   if(!extraction.resultados.length||extraction.resultados.length>20||Buffer.byteLength(JSON.stringify(extraction))>12000||input.question.length>500||input.history.length>6)throw new AssistantModelError('input');
@@ -29,14 +30,15 @@ export function createExamAssistant(options:{model?:string;fetchImpl?:typeof fet
   if(blocked)return {reply:blocked,model:'backend-policy',promptVersion:ASSISTANT_VERSION,elapsedMs:0};
   const history=input.history.map(x=>({question:x.question,answer:x.response.answer,indices:x.response.indices}));
   while(history.length&&Buffer.byteLength(JSON.stringify({review:extraction,history}))>20000)history.shift();
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),120000);
+  const remaining=deadline-performance.now();if(remaining<=0)throw new AssistantModelError('timeout');
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),remaining);
   try{
    const body={model,stream:false,options:{temperature:0,seed:42,num_ctx:8192,num_predict:2200},
     format:{type:'object',additionalProperties:false,required:['kind','answer','indices','definitions'],properties:{
      kind:{type:'string',enum:['education','insufficient','out_of_scope','restricted']},answer:{type:'string'},
      indices:{type:'array',items:{type:'integer',minimum:0,maximum:extraction.resultados.length-1,...(targetIndices?{enum:targetIndices}:{})}},
      definitions:{type:'array',...(input.mode==='chat'?{maxItems:0}:{minItems:extraction.resultados.length,maxItems:extraction.resultados.length}),items:{type:'object',additionalProperties:false,required:['index','text','known'],properties:{index:{type:'integer'},text:{type:'string'},known:{type:'boolean'}}}}}},
-    messages:[{role:'system',content:prompt+'\n'+educationalGuidance+'\nLas notas educationalEvidence son definiciones generales verificadas, no datos clínicos del paciente. Úsalas como fundamento cuando correspondan. No contradigas su contenido ni declares desconocido un concepto que esas notas definen. Su cobertura es limitada: otros conceptos no están verificados. Si targetIndices está presente, responde solo sobre esas filas; en seguimiento conserva ese contexto. No copies las URLs a la prosa.'},{role:'user',content:JSON.stringify({mode:input.mode,
+    messages:[{role:'system',content:prompt+'\n'+educationalGuidance+'\nLas notas educationalEvidence son definiciones generales verificadas, no datos clínicos del paciente. Úsalas como fundamento cuando correspondan. No contradigas su contenido ni declares desconocido un concepto que esas notas definen. Su cobertura es limitada: otros conceptos no están verificados. Si targetIndices está presente, responde solo sobre esas filas; en seguimiento conserva ese contexto. No copies las URLs a la prosa. Si preguntan para qué se mide, explica la finalidad de la medición según purpose; no repitas solo la definición. Responde con el concepto solicitado, incluso si falta la cifra; evita comentar qué diagnósticos se podrían o no hacer.'+(repair?'\nReformulación única: la respuesta anterior fue rechazada. Redacta una respuesta educativa breve, basada en las notas pertinentes, sin cifras, consejos, interpretaciones clínicas ni avisos. No se te entrega la respuesta anterior. Conserva el formato y los índices objetivo.':'')},{role:'user',content:JSON.stringify({mode:input.mode,
      review:extraction,history,question:input.question,targetIndices,targetRows:targetIndices?.map(index=>({index,...extraction.resultados[index]}))??null,educationalEvidence:evidence,knowledgeVersion:KNOWLEDGE_VERSION})}]};
    const response=await fetchImpl('http://127.0.0.1:11434/api/chat',{method:'POST',redirect:'error',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
    if(!response.ok||!response.body)throw new AssistantModelError('http');
@@ -52,6 +54,15 @@ export function createExamAssistant(options:{model?:string;fetchImpl?:typeof fet
    if(reply.kind==='education'&&targetIndices&&reply.indices.some(index=>!targetIndices.includes(index)))throw new AssistantModelError('invalid_references');
    return {reply,model,promptVersion:ASSISTANT_VERSION,elapsedMs:Math.round(performance.now()-started)};
   }catch(error){if(error instanceof AssistantModelError)throw error;throw new AssistantModelError(controller.signal.aborted?'timeout':'transport');}finally{clearTimeout(timer);}
+ };
+ return async(input:Input):Promise<{reply:Reply;model:string;promptVersion:number;elapsedMs:number;generationAttempts?:number}>=>{
+  const started=performance.now(),deadline=started+120000;
+  try{return {...await generate(input,deadline),generationAttempts:1};}
+  catch(error){
+   if(!(error instanceof AssistantModelError)||error.reason!=='unsafe_content')throw error;
+   const result=await generate(input,deadline,true);
+   return {...result,elapsedMs:Math.round(performance.now()-started),generationAttempts:2};
+  }
  };
 }
 export type ExamAssistant=ReturnType<typeof createExamAssistant>;

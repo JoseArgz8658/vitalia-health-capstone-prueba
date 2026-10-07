@@ -81,3 +81,6 @@ Esta evaluación necesita Ollama, no PostgreSQL. Ejecútala desde backend: `node
 
 ## Prompt revisión 3
 El esquema de generación depende del modo: definitions vacío en chat y una entrada por fila en explicación. El encabezado de explicación debe evitar repetir definiciones. La evaluación E01 exige identificar hemoglobina, plaquetas y creatinina, conservando desconocido el indicador ficticio. Los fallos unsafe_content siguen rechazados: un ejemplo más preciso de rango no modifica el filtro.
+
+## Prompt revisión 6 y reformulación
+Se permite una reformulación tras rechazo de contenido, sin reenviar la prosa rechazada. Las dos solicitudes comparten un máximo total de 120 segundos; se informa generationAttempts en evaluación. El filtro permanece sin cambios. El seguimiento debe explicar finalidad si esa es la pregunta, y la batería adicional incorpora un criterio heurístico para ello. Una respuesta libre puede seguir siendo imprecisa pese a superar estos controles.

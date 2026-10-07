@@ -20,7 +20,8 @@ async function main(){
  console.info(`Batería adicional de calidad. Prompt: ${ASSISTANT_PROMPT_REVISION}. No certifica veracidad médica.`);
  for(const item of cases){try{
   const result=await model({extraction:review,question:item.question,mode:'chat',history:item.history??[]});
-  const pass=result.reply.kind===item.kind&&JSON.stringify(result.reply.indices)===JSON.stringify(item.indices);if(pass)passed++;
+  const answersPurpose=item.id!=='Q05-seguimiento'||/mide|medicion|cantidad|concentracion/.test(result.reply.answer.toLowerCase());
+  const pass=answersPurpose&&result.reply.kind===item.kind&&JSON.stringify(result.reply.indices)===JSON.stringify(item.indices);if(pass)passed++;
   console.info(JSON.stringify({case:item.id,pass,expectedKind:item.kind,expectedIndices:item.indices,...result},null,2));
  }catch(error){console.info(JSON.stringify({case:item.id,pass:false,reason:error instanceof AssistantModelError?error.reason:'evaluation',detail:error instanceof AssistantModelError?error.detail:undefined}));}}
  console.info(`Calidad estructural y referencias: ${passed}/${cases.length}. Revisión semántica pendiente.`);
