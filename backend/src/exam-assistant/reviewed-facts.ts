@@ -21,7 +21,7 @@ function fieldReply(extraction:Extraction,index:number,field:'valor'|'unidad'):R
 }
 export function reviewedFactReply(question:string,extraction:Extraction,history:History):Reply|null{
  const q=question.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
- if(/como me llamo|(?:cual|que).{0,20}(?:mi nombre|nombre del paciente)|nombre (?:del paciente|en el examen)/.test(q))return {kind:'education',answer:noName,indices:[],definitions:[]};
+ if(/como me llamo|(?:cual|que).{0,20}(?:mi nombre|nombre del paciente)|nombre (?:del paciente|en el examen)|nombre completo/.test(q))return {kind:'education',answer:noName,indices:[],definitions:[]};
  // Solo consultas factuales; no intercepta definiciones ni interpretación clínica.
  const value=/cual.{0,25}(?:valor|resultado)|que (?:valor|resultado)|cuanto.{0,15}(?:dio|salio)|valor de medida/.test(q);
  const unit=/cual.{0,25}unidad|que unidad|unidad de medida/.test(q)&&!/significa|explica/.test(q);

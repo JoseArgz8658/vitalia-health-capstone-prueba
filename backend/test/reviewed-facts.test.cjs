@@ -38,3 +38,9 @@ test('cifras solo exactas del examen abierto y definición queda al modelo',()=>
  expect(gate('¿Qué significa g/dL?',extraction,[])).toBeNull();
  expect(gate('Dime el valor de otro examen',extraction,[]).kind).toBe('out_of_scope');
 });
+
+test.each(['en el examen, los datos del paciente ¿cual es el nombre completo?','¿Cuál es el nombre completo del paciente?','¿Qué nombre completo aparece en el examen?'])('nombre completo ausente: %s',async question=>{
+ const fetchImpl=jest.fn();const result=await createExamAssistant({fetchImpl})({extraction,question,mode:'chat',history:[]});
+ expect(result.reply.answer).toContain('no está incluido');expect(fetchImpl).not.toHaveBeenCalled();
+ expect(validateReply(result.reply,extraction,'chat')).toEqual(result.reply);
+});
