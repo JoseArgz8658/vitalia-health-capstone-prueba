@@ -52,7 +52,10 @@ class _ExplicacionPanelState extends State<ExplicacionPanel> {
       const Text('Esta explicación no está aprobada por un profesional. No diagnostica ni recomienda tratamientos.'),
       TextButton(onPressed: _busy ? null : () => _load(false),
         child: const Text('Consultar explicación')),
-      if (_busy) const Text('Consultando o generando explicación. Puede tardar hasta dos minutos.'),
+      if (_busy) ...[
+        const LinearProgressIndicator(),
+        const Text('Consultando o generando explicación. Puede tardar hasta dos minutos.'),
+      ],
       if (_error != null) Text(_error!),
       if (status == 'not_available') const Text('Se requiere una revisión profesional aprobada.'),
       if (status == 'not_requested') const Text('Todavía no se ha generado una explicación.'),
@@ -62,6 +65,8 @@ class _ExplicacionPanelState extends State<ExplicacionPanel> {
         OutlinedButton(onPressed: () => _load(true), child: const Text('Generar explicación')),
       if (explanation != null) ...[
         Text(explanation['notice'] as String),
+        if ((explanation['items'] as List).any((row) => row['concept'] == 'desconocido'))
+          const Text('Algunos indicadores no tienen una explicación disponible. Esto no significa que sus datos sean incorrectos.'),
         for (final row in explanation['items'] as List) Padding(
           padding: const EdgeInsets.symmetric(vertical: 8), child: Column(
             crossAxisAlignment: CrossAxisAlignment.start, children: [

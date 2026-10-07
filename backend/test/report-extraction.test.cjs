@@ -110,3 +110,19 @@ test('laboratorio ausente se informa sin deducirlo del nombre del médico',async
  const fetchImpl=jest.fn();const result=await createExamAssistant({fetchImpl})({extraction:extraction(),question:'y sobre el laboratorio que lo hizo?',mode:'chat',history:[]});
  expect(result.reply.answer).toContain('no está disponible');expect(fetchImpl).not.toHaveBeenCalled();
 });
+test('bloque educativo rechazado conserva definiciones aceptadas y marca filas no explicadas',async()=>{
+ const value=extraction();value.resultados=[value.resultados[0],...Array.from({length:4},(_,i)=>({nombre:`Sustancia ${i}`,valor:null,unidad:null,rango_referencia:null}))];
+ let calls=0;
+ const fetchImpl=async(_url,options)=>{
+  const input=JSON.parse(JSON.parse(options.body).messages[1].content);calls++;
+  const unsafe=calls<=2;
+  return new Response(JSON.stringify({done:true,message:{content:JSON.stringify({kind:'education',answer:'Conceptos.',indices:input.review.resultados.map((_,i)=>i),definitions:input.review.resultados.map((_,i)=>({index:i,known:true,text:unsafe?'Toma hierro.':'Componente del examen.'}))})}}));
+ };
+ const result=await createExamAssistant({fetchImpl})({extraction:value,question:'Explica.',mode:'explanation',history:[]});
+ expect(calls).toBe(3);expect(result.generationAttempts).toBe(3);
+ expect(result.reply.definitions[0].known).toBe(true);
+ expect(result.reply.definitions.slice(1,4).every(item=>item.known===false)).toBe(true);
+ expect(result.reply.definitions[4].known).toBe(true);
+ expect(JSON.stringify(result.reply)).not.toContain('Toma hierro');
+ expect(validateReply(result.reply,value,'explanation')).toEqual(result.reply);
+});
