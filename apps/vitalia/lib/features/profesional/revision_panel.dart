@@ -7,10 +7,11 @@ import 'extraccion_panel.dart';
 
 class RevisionPanel extends StatefulWidget {
   const RevisionPanel({super.key, required this.auth, required this.patientId,
-    required this.documentId, required this.onFailure, required this.onSaving});
+    required this.documentId, this.processingStatus, required this.onFailure, required this.onSaving});
   final AuthApi auth;
   final String patientId;
   final String documentId;
+  final String? processingStatus;
   final void Function(AuthFailure) onFailure;
   final void Function(bool) onSaving;
   @override
@@ -162,7 +163,9 @@ class _RevisionPanelState extends State<RevisionPanel> {
         FilledButton(onPressed: _busy || !_confirmed ? null : _save,
           child: const Text('Aprobar y guardar revisión')),
       ] else if (!_busy && _error == null)
-        const Text('Este documento todavía no tiene una extracción disponible para revisar.'),
+        Text(widget.processingStatus == 'failed'
+          ? 'La extracción falló y no hay datos para aprobar. Actualizar revisión solo consulta; no vuelve a procesar el documento.'
+          : 'Este documento todavía no tiene una extracción disponible para revisar.'),
     ]);
   }
 }

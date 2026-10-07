@@ -18,11 +18,21 @@ class ExtraccionPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final extraction = value.extraction;
+    final working = value.status == 'queued' || value.status == 'processing';
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Text(reviewed ? 'Datos revisados y aprobados por un profesional' : status, style: Theme.of(context).textTheme.titleMedium),
       Text(reviewed ? 'Copia de la revisión profesional. La extracción original de IA se conserva por separado.'
         : 'Extracción original de IA, conservada sin cambios. Compara cada dato con el documento original. La revisión profesional se guarda por separado.'),
       const SizedBox(height: 12),
+      if (working) ...[
+        const LinearProgressIndicator(),
+        const SizedBox(height: 8),
+        Text(value.status == 'queued'
+          ? 'Documento en espera del procesador automático. Mantén el worker iniciado.'
+          : 'La lectura y extracción están en curso. Los datos todavía no están disponibles para revisar.'),
+        const Text('Usa Actualizar extracción para consultar el avance. La barra indica espera; no representa un porcentaje.'),
+        const SizedBox(height: 12),
+      ],
       if (extraction != null) ...[
         SelectableText('Examen: ${visible(extraction['examen'])}'),
         SelectableText('${reviewed ? 'Fecha revisada' : 'Fecha extraída'}: ${visible(extraction['fecha'])}'),
@@ -41,7 +51,7 @@ class ExtraccionPanel extends StatelessWidget {
       ],
       const SizedBox(height: 12),
       if (!reviewed) const Text('Incidencias de lectura y extracción'),
-      if (!reviewed && value.incidents.isEmpty) const Text('Sin incidencias registradas. Esto no garantiza exactitud.'),
+      if (!reviewed && value.incidents.isEmpty && !working) const Text('Sin incidencias registradas. Esto no garantiza exactitud.'),
       ...value.incidents.map((issue) => SelectableText(issue)),
       if (value.sourceText != null) ...[
         const SizedBox(height: 12),

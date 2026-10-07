@@ -1,7 +1,7 @@
 import {readPdfText,type PdfReadResult} from '../pdf/reader';
 import {readOcr} from '../ocr/reader';
 import {type OcrResult} from '../ocr/contract';
-import {createLocalExtractor,type LocalExtractionResult} from './local-extractor';
+import {createLocalExtractor,ExtractionServiceError,type LocalExtractionResult} from './local-extractor';
 export type DocumentExtractionResult = {
  status:'requires_review'|'rejected'|'service_error';
  source:'pdf'|'png'|'jpeg'; method:'direct'|'ocr'|null;
@@ -41,8 +41,14 @@ export function createDocumentExtraction(options:{
    result.ai=await extract(result.inputText);
    result.status=result.ai.status;
    return result;
-  }catch{
-   return {...result,status:'service_error',error:{code:'extraction_unavailable',message:'No se pudo completar la extracción con Ollama local.'}};
+  }catch(error){
+   const reason=error instanceof ExtractionServiceError?error.reason:null;
+   const message=reason==='timeout'?'La extracción superó el límite de dos minutos; no se guardaron datos parciales.':
+    reason==='incomplete'?'Ollama devolvió una extracción incompleta; no se acepta como resultado.':
+    reason==='http'||reason==='transport'?'No se pudo comunicarse correctamente con Ollama local.':
+    reason==='invalid_json'?'Ollama devolvió una respuesta con formato inválido.':
+    'No se pudo completar la extracción con Ollama local.';
+   return {...result,status:'service_error',error:{code:'extraction_unavailable',message}};
   }
  };
 }

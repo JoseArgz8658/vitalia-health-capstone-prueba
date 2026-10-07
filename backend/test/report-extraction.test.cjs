@@ -70,3 +70,15 @@ test('todos los bloques comparten dos minutos, sin reiniciar el reloj',async()=>
   expect(calls).toBe(2);
  } finally {jest.useRealTimers();}
 });
+test('diagnóstico de extracción distingue fallos sin registrar el documento',async()=>{
+ const {createLocalExtractor}=require('../dist/ai/local-extractor');
+ const warn=jest.spyOn(console,'warn').mockImplementation(()=>{});
+ try {
+  for(const [response,reason] of [[new Response('secreto',{status:503}),'http'],[new Response('no json'),'invalid_json'],[new Response(JSON.stringify({done:false,message:{content:'privado'}})),'incomplete']]){
+   await expect(createLocalExtractor({promptVersion:4,fetchImpl:async()=>response})('NOMBRE CONFIDENCIAL')).rejects.toMatchObject({reason});
+   const log=JSON.parse(warn.mock.calls.at(-1)[0]);
+   expect(Object.keys(log).sort()).toEqual(['elapsedMs','event','promptVersion','reason']);
+   expect(log.reason).toBe(reason);expect(JSON.stringify(log)).not.toContain('CONFIDENCIAL');
+  }
+ } finally {warn.mockRestore();}
+});

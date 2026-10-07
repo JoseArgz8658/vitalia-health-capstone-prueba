@@ -63,6 +63,17 @@ class _ProfesionalDocumentosPageState extends State<ProfesionalDocumentosPage> {
     catch (_) { if (mounted) setState(() => _error = 'No se pudo consultar la extracción.'); }
     finally { if (mounted) setState(() => _busy = false); }
   }
+  Future<void> _refreshExtraction() async {
+    final id = _detailId;
+    if (_blocked || id == null) return;
+    setState(() { _busy = true; _error = null; });
+    try {
+      final detail = await _api.consultar(widget.patientId, id);
+      if (mounted) setState(() => _detail = detail);
+    } on AuthFailure catch (error) { _failure(error); }
+    catch (_) { if (mounted) setState(() => _error = 'No se pudo actualizar la extracción.'); }
+    finally { if (mounted) setState(() => _busy = false); }
+  }
   Future<void> _download(Documento item) async {
     if (_blocked) return;
     setState(() { _busy = true; _error = null; });
@@ -113,10 +124,12 @@ class _ProfesionalDocumentosPageState extends State<ProfesionalDocumentosPage> {
               Text(_detailName ?? ''),
               TextButton(onPressed: _blocked ? null : () => setState(() { _detail = null; _detailName = null; _detailId = null; }),
                 child: const Text('Cerrar consulta')),
+              TextButton(onPressed: _blocked ? null : _refreshExtraction,
+                child: const Text('Actualizar extracción')),
               ExtraccionPanel(value: _detail!),
               if (_detailId != null) RevisionPanel(key: ValueKey('review-$_detailId'),
                 auth: widget.auth, patientId: widget.patientId, documentId: _detailId!,
-                onFailure: _failure,
+                processingStatus: _detail!.status, onFailure: _failure,
                 onSaving: (saving) { if (mounted) setState(() => _reviewSaving = saving); }),
             ]))),
         ]),

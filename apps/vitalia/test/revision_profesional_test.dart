@@ -38,10 +38,15 @@ Widget panel(AuthApi auth, {void Function(AuthFailure)? failure, void Function(b
     child: RevisionPanel(auth: auth, patientId: patientId, documentId: docId,
       onFailure: failure ?? (_) {}, onSaving: saving ?? (_) {})))));
 Future<void> tap(WidgetTester tester, String label) async {
+  FocusManager.instance.primaryFocus?.unfocus();
+  tester.testTextInput.hide();
+  await tester.pumpAndSettle();
   final finder = find.text(label);
+  await Scrollable.ensureVisible(tester.element(finder), alignment: 0.5);
+  await tester.pumpAndSettle();
   await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
-  await tester.tap(finder);
+  await tester.tap(finder.hitTestable());
   await tester.pumpAndSettle();
 }
 void main() {
@@ -160,6 +165,7 @@ void main() {
     await tester.enterText(observation, 'Nombre cotejado.');
     await tap(tester, 'Confirmo que cotejé estos datos con el documento original.');
     await tap(tester, 'Aprobar y guardar revisión');
+    expect(posted, isNotNull, reason: 'La confirmación debe habilitar el envío de la revisión.');
     expect(posted!['extraction']['informe']['nombre_paciente'], 'Paciente cotejado');
     expect(posted!['extraction']['informe']['medico_solicitante'], 'Solicitante ficticio');
     expect(posted!['extraction']['resultados'][0]['estado_documento'], 'Etiqueta del original');
