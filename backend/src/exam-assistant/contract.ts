@@ -1,3 +1,4 @@
+import {reviewedDateReply,isReviewedDateReply} from './reviewed-facts';
 import {questionIndices,educationalEvidence} from './knowledge';
 import {z} from 'zod';
 import {type Extraction} from '../ai/contract';
@@ -24,6 +25,11 @@ export function gate(question:string,extraction:Extraction,history:History):Repl
  if(restricted.test(q)||injected.test(q))return fixed('restricted');
  if(/futbol|clima|pelicula|politica|videojuego|bolsa de valores|criptomoneda/.test(q))return fixed('out_of_scope');
  if(otherExam.test(q))return fixed('out_of_scope');
+ if(/fecha|cuando|que dia/.test(q)&&/examen|estudio|reporte|muestra|emision|fecha/.test(q)){
+  if(/muestra|emision|nacimiento|hora/.test(q))return fixed('insufficient');
+  if(/^(?:cual (?:es|fue|era) (?:la )?fecha|que fecha|cuando (?:fue|es|se hizo|se realizo)|(?:en )?que dia|fecha (?:del|de este|de mi))/.test(q))return reviewedDateReply(extraction)??fixed('insufficient');
+ }
+
  const relevant=extraction.resultados.map((row,index)=>({row,index})).filter(({row})=>row.nombre&&q.includes(normalize(row.nombre).trim()));
  if(relevant.length&&relevant.every(({row})=>synthetic(row.nombre))&&!/unidad|rango|referencia|valor|fecha/.test(q))return fixed('insufficient',relevant.map(x=>x.index));
  const exam=normalize(extraction.examen??'').trim();
@@ -50,6 +56,7 @@ export function validateReply(value:unknown,extraction:Extraction,mode:Mode):Rep
   const category=/\p{N}/u.test(value)?'numeric_text':/https?:|www\./.test(value)?'external_link':/normal|anormal|elevado|bajo|alto|fuera del rango/.test(value)?'classification_term':'clinical_or_instruction_term';
   throw new ContentPolicyError(category);
  };
+ if(mode==='chat'&&isReviewedDateReply(reply,extraction))return reply;
  if(!reply.indices.length)throw new Error('Referencias inválidas.');
  checkText(reply.answer);
  if(mode==='chat'&&reply.definitions.length)throw new Error('Formato de conversación inválido.');
