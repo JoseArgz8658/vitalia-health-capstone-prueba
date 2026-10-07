@@ -22,7 +22,7 @@ class AuthApi {
   void close() { clear(); _client.close(); }
 
   Uri documentUri([String suffix = '', Map<String, String>? query]) {
-    if (suffix.isNotEmpty && !RegExp(r'^[a-f0-9-]{36}/(file|processing|review)$').hasMatch(suffix)) {
+    if (suffix.isNotEmpty && !RegExp(r'^[a-f0-9-]{36}/(file|processing|review|explanation)$').hasMatch(suffix)) {
       throw const AuthFailure('Documento inválido.');
     }
     return _base.resolve('/api/documents${suffix.isEmpty ? '' : '/$suffix'}')
@@ -37,18 +37,21 @@ class AuthApi {
     }
     if (request.url.origin != _base.origin ||
         !(request.url.path == '/api/documents' ||
-          RegExp(r'^/api/documents/[a-f0-9-]{36}/(file|processing|review)$').hasMatch(request.url.path))) {
+          RegExp(r'^/api/documents/[a-f0-9-]{36}/(file|processing|review|explanation)$').hasMatch(request.url.path))) {
       throw const AuthFailure('Solicitud de documento inválida.');
     }
     if (request.url.path.endsWith('/review') && request.method != 'GET') {
       throw const AuthFailure('La revisión del paciente es solo de consulta.');
+    }
+    if (request.url.path.endsWith('/explanation') && !['GET', 'POST'].contains(request.method)) {
+      throw const AuthFailure('Solicitud de explicación inválida.');
     }
     request.headers['Authorization'] = 'Bearer $token';
     try {
       final response = await (() async {
         final streamed = await _client.send(request);
         return http.Response.fromStream(streamed);
-      })().timeout(const Duration(seconds: 60));
+      })().timeout(Duration(seconds: request.url.path.endsWith('/explanation') ? 150 : 60));
       if (_token != token) throw const AuthFailure('La sesión cambió. Ingresa nuevamente.', 401);
       if (response.statusCode == 401) {
         clear();
@@ -59,6 +62,7 @@ class AuthApi {
           400 => 'Revisa el archivo y los datos del examen.',
           403 => 'No tienes permiso para acceder a estos documentos.',
           404 => 'Documento no disponible.',
+          409 => 'Primero se requiere una revisión profesional aprobada.',
           413 => 'El archivo supera 10 MiB.',
           503 => 'El servicio está ocupado. Intenta nuevamente.',
           _ => 'No se pudo completar la solicitud.',

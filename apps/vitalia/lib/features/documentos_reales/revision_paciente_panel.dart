@@ -1,3 +1,4 @@
+import 'explicacion_panel.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -80,6 +81,9 @@ class _RevisionPacientePanelState extends State<RevisionPacientePanel> {
             SelectableText((review['observations'] as String).isEmpty
               ? 'Sin observaciones registradas.' : review['observations'] as String),
             Text('Revisión registrada: ${_date(review['reviewedAt'] as String)}'),
+            ExplicacionPanel(key: ValueKey('${widget.documentId}:${review['reviewedAt']}'),
+              auth: widget.auth, documentId: widget.documentId, reviewedExtraction: extraction,
+              onExpired: widget.onExpired),
           ]))),
     ]);
   }
