@@ -6,7 +6,9 @@
     "build": "tsc",
     "check": "tsc --noEmit",
     "start": "node --env-file-if-exists=.env dist/server.js",
-    "test": "npm run build && jest --runInBand"
+    "test": "npm run build && jest --runInBand",
+    "worker": "node --env-file-if-exists=.env dist/database/run-processing.js",
+    "migrate": "node --env-file-if-exists=.env dist/database/migrate-all.js"
   },
   "engines": {
     "node": ">=20.19.0"

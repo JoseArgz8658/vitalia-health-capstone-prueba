@@ -1,3 +1,4 @@
+import {ollamaUrl} from '../runtime/local-services';
 import { extractionPrompt, schema } from './prompt';
 import { reviewExtraction, type ExtractionReview } from './contract';
 export class ExtractionServiceError extends Error {
@@ -38,7 +39,7 @@ export function createLocalExtractor(options: { model?: string; fetchImpl?: type
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 120000);
     try {
-      const response = await fetchImpl('http://127.0.0.1:11434/api/chat', {
+      const response = await fetchImpl(ollamaUrl('chat'), {
         method: 'POST', redirect: 'error', signal: controller.signal,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model, stream: false, format: schema,

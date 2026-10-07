@@ -1,3 +1,4 @@
+import {ollamaUrl} from '../runtime/local-services';
 import {extractionSchema,type Extraction} from '../ai/contract';
 import {catalog,renderExplanation,CATALOG_VERSION,PROMPT_VERSION} from './catalog';
 export class ExplanationGenerationError extends Error {}
@@ -13,7 +14,7 @@ export function createExplanationGenerator(options:{fetchImpl?:typeof fetch;mode
   const started=performance.now(),controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),120000);
   try{
-   const response=await fetchImpl('http://127.0.0.1:11434/api/chat',{method:'POST',redirect:'error',signal:controller.signal,
+   const response=await fetchImpl(ollamaUrl('chat'),{method:'POST',redirect:'error',signal:controller.signal,
     headers:{'Content-Type':'application/json'},body:JSON.stringify({model,stream:false,
      options:{temperature:0,seed:42,num_ctx:4096,num_predict:1600},
      format:{type:'object',additionalProperties:false,required:['items'],properties:{items:{type:'array',minItems:names.length,maxItems:names.length,

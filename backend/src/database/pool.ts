@@ -10,7 +10,7 @@ export function createDatabasePool(config: DatabaseConfig): Pool {
     idleTimeoutMillis: 10000,
     query_timeout: 5000,
     statement_timeout: 5000,
-    ssl: false, // Solo loopback; el despliegue remoto requerirá TLS.
+    ssl: false, // Loopback o red interna Docker; un despliegue remoto requiere TLS.
   });
   pool.on('error', () => {
     console.error('Se perdió una conexión inactiva con PostgreSQL.');
