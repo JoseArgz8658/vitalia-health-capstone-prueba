@@ -7,7 +7,7 @@ test.each(['¿Cuándo fue la fecha del examen?','¿Cuál es la fecha del examen?
 });
 test('no inventa fecha ausente, imposible ni evento',()=>{
  for(const fecha of [null,'31-11-2026'])expect(gate('¿Cuál es la fecha del examen?',{...extraction,fecha},[]).kind).toBe('insufficient');
- for(const question of ['¿Cuál es la fecha de toma de muestra?','¿Cuál es la fecha de emisión del reporte?','¿Cuál es la fecha de nacimiento?'])expect(gate(question,extraction,[]).kind).toBe('insufficient');
+ for(const question of ['¿Cuál es la fecha de toma de muestra?','¿Cuál es la fecha de emisión del reporte?','¿Cuál es la fecha de nacimiento?'])expect(gate(question,extraction,[]).answer).toContain('no está disponible');
 });
 test('no permite cifras modificadas ni texto añadido',()=>{
  const reply=gate('¿Cuál es la fecha del examen?',extraction,[]);

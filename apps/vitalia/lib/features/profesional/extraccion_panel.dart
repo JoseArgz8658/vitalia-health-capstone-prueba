@@ -1,3 +1,4 @@
+import '../documentos_reales/informe_fields.dart';
 import 'package:flutter/material.dart';
 import 'profesional_api.dart';
 
@@ -25,6 +26,7 @@ class ExtraccionPanel extends StatelessWidget {
       if (extraction != null) ...[
         SelectableText('Examen: ${visible(extraction['examen'])}'),
         SelectableText('${reviewed ? 'Fecha revisada' : 'Fecha extraída'}: ${visible(extraction['fecha'])}'),
+        InformeFields(value: extraction['informe']),
         ...((extraction['resultados'] as List?) ?? []).map((item) {
           final row = item as Map<String, dynamic>;
           return Card(child: Padding(padding: const EdgeInsets.all(12), child: Column(
@@ -33,6 +35,7 @@ class ExtraccionPanel extends StatelessWidget {
               SelectableText('Valor: ${visible(row['valor'])}'),
               SelectableText('Unidad: ${visible(row['unidad'])}'),
               SelectableText('Referencia: ${visible(row['rango_referencia'])}'),
+              if (row.containsKey('estado_documento')) SelectableText('Estado transcrito del documento: ${visible(row['estado_documento'])}'),
             ])));
         }),
       ],

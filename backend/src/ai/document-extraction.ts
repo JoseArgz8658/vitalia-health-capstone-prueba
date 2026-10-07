@@ -10,12 +10,12 @@ export type DocumentExtractionResult = {
  error?:{code:'reading_unavailable'|'extraction_unavailable';message:string};
 };
 export function createDocumentExtraction(options:{
- model?:string; read?:typeof readPdfText; ocr?:typeof readOcr;
+ model?:string; promptVersion?:3|4; read?:typeof readPdfText; ocr?:typeof readOcr;
  extract?:(text:string)=>Promise<LocalExtractionResult>;
 }={}){
  const read=options.read??readPdfText;
  const ocr=options.ocr??readOcr;
- const extract=options.extract??createLocalExtractor({model:options.model});
+ const extract=options.extract??createLocalExtractor({model:options.model,promptVersion:options.promptVersion});
  return async function processDocument(data:Uint8Array,source:DocumentExtractionResult['source']):Promise<DocumentExtractionResult>{
   if(!['pdf','png','jpeg'].includes(source))throw new Error('Formato de documento no admitido.');
   const result:DocumentExtractionResult={status:'rejected',source,method:null,reading:null,ocr:null,inputText:null,ai:null,approved:false};

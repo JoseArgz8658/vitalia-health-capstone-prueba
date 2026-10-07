@@ -1,3 +1,4 @@
+import 'informe_fields.dart';
 import 'chat_examen_panel.dart';
 import 'explicacion_panel.dart';
 import 'dart:convert';
@@ -37,6 +38,7 @@ class _RevisionPacientePanelState extends State<RevisionPacientePanel> {
             DateTime.tryParse(review['reviewedAt'] as String) == null ||
             review['extraction'] is! Map<String, dynamic>) throw const FormatException();
         final extraction = review['extraction'] as Map<String, dynamic>;
+        if (!informeValido(extraction['informe'])) throw const FormatException();
         final rows = extraction['resultados'];
         if (rows is! List || rows.isEmpty || rows.length > 100 ||
             ![extraction['examen'], extraction['fecha']].every((v) => v == null || v is String) ||
@@ -70,6 +72,7 @@ class _RevisionPacientePanelState extends State<RevisionPacientePanel> {
             const Text('Estos datos fueron cotejados con el documento original. No constituyen un diagnóstico ni una recomendación de tratamiento.'),
             SelectableText('Examen: ${visible(extraction['examen'])}'),
             SelectableText('Fecha del examen: ${visible(extraction['fecha'])}'),
+            InformeFields(value: extraction['informe']),
             for (final row in extraction['resultados'] as List) Padding(
               padding: const EdgeInsets.symmetric(vertical: 8), child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -77,6 +80,7 @@ class _RevisionPacientePanelState extends State<RevisionPacientePanel> {
                   SelectableText('Valor: ${visible(row['valor'])}'),
                   SelectableText('Unidad: ${visible(row['unidad'])}'),
                   SelectableText('Rango de referencia: ${visible(row['rango_referencia'])}'),
+                  if (row.containsKey('estado_documento')) SelectableText('Estado transcrito del documento: ${visible(row['estado_documento'])}'),
                 ])),
             const Text('Observaciones del profesional'),
             SelectableText((review['observations'] as String).isEmpty
