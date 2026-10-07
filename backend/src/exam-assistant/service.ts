@@ -54,7 +54,7 @@ export function createExamAssistantService(db:DocumentDatabase,model:ExamAssista
   if(preview.turn&&(preview.turn.status==='ready'||(preview.turn.status==='pending'&&Date.now()-preview.turn.started_at.getTime()<180000)||mode==='chat'&&preview.turn.status==='failed')){
    return mode==='chat'?{turn:publicTurn(preview.turn,preview.review.reviewed_extraction)}:explanationState(preview.turn,preview.review);
   }
-  if(busy)throw new AssistantAccessError(503,'ASSISTANT_BUSY');busy=true;const attempt=randomUUID();let claimed:Turn|null=null;let threadId:string|null=null;
+  if(busy)throw new AssistantAccessError(503,'ASSISTANT_BUSY');busy=true;const attemptStarted=Date.now();const attempt=randomUUID();let claimed:Turn|null=null;let threadId:string|null=null;
   try{
    const reserved=await db.transaction(async tx=>{
     const review=await authorize(tx,account,doc);if(!review||review.id!==preview.review.id)throw new AssistantAccessError(409);
@@ -107,8 +107,13 @@ export function createExamAssistantService(db:DocumentDatabase,model:ExamAssista
     if(changed.rows.length)await audit(tx,account,doc,'failed');
    });
    if(error instanceof AssistantAccessError)throw error;
+   const reason=error instanceof AssistantModelError?error.reason:'internal';
+   // No registra preguntas, documentos, respuestas, credenciales ni mensajes de excepción.
+   console.warn(JSON.stringify({event:'exam_assistant_failure',mode,reason,elapsedMs:Date.now()-attemptStarted}));
    const rejected=error instanceof AssistantModelError&&!['configuration','http','transport','timeout'].includes(error.reason);
-   throw new AssistantAccessError(503,rejected?'ASSISTANT_RESPONSE_REJECTED':'ASSISTANT_UNAVAILABLE');
+   const code=reason==='timeout'?'ASSISTANT_TIMEOUT':reason==='transport'||reason==='http'?'ASSISTANT_MODEL_UNAVAILABLE':
+    reason==='configuration'?'ASSISTANT_CONFIGURATION':rejected?'ASSISTANT_RESPONSE_REJECTED':'ASSISTANT_UNAVAILABLE';
+   throw new AssistantAccessError(503,code);
   }finally{busy=false;}
  }
  return {
