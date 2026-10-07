@@ -151,3 +151,29 @@ test('otra instancia también respeta pending y un intento vencido no sobreescri
  expect(explanationView(unknown,reply).items[0].concept).toBe('desconocido');
  expect(validateReply(educational(),unknown,'chat').definitions).toEqual([]);
  });
+
+test('prompt separa conceptos educativos de interpretación y limita incertidumbre a su fila',async()=>{
+ const mixed={...extraction,resultados:[...extraction.resultados,{nombre:'Indicador Alfa',valor:null,unidad:null,rango_referencia:null}]};
+ const reply={kind:'education',answer:'Estos son los conceptos presentes en el examen.',indices:[0,1],definitions:[{index:0,text:'La hemoglobina transporta oxígeno en la sangre.',known:true},{index:1,text:'No se identifica con certeza el significado de este indicador.',known:false}]};
+ const fetchImpl=jest.fn(async(_,options)=>{
+  const system=JSON.parse(options.body).messages[0].content;
+  expect(system).toContain('Un indicador desconocido solo afecta esa fila');
+  expect(system).toContain('aunque falten valores');
+  expect(system).toContain('gramos por decilitro');
+  return modelResponse(reply);
+ });
+ const result=await createExamAssistant({fetchImpl})({extraction:mixed,question:'Explica los indicadores.',mode:'explanation',history:[]});
+ expect(result.reply.kind).toBe('education');expect(result.reply.definitions[0].known).toBe(true);expect(result.reply.definitions[1].known).toBe(false);
+});
+test.each([
+ [()=>new Response('bad'),'invalid_json'],
+ [()=>new Response('oops',{status:500}),'http'],
+ [()=>modelResponse(educational(),{done:false}),'incomplete'],
+ [()=>modelResponse({...educational(),answer:'Toma hierro.'}),'unsafe_content'],
+ [()=>modelResponse({...educational(),indices:[1]}),'invalid_references'],
+ [()=>modelResponse({...educational(),definitions:definitions().definitions}),'chat_format'],
+ [()=>modelResponse({...educational(),answer:42}),'invalid_reply'],
+])('diagnóstico seguro clasifica el rechazo sin exponer la respuesta: %s',async(respond,reason)=>{
+ const pending=createExamAssistant({fetchImpl:async()=>respond()})({extraction,question:'¿Qué es hemoglobina?',mode:'chat',history:[]});
+ await expect(pending).rejects.toMatchObject({reason,message:'El asistente local no produjo una respuesta aceptable.'});
+});
