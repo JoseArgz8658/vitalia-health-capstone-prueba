@@ -143,3 +143,11 @@ test('otra instancia también respeta pending y un intento vencido no sobreescri
  const rejected=expect(first).rejects.toMatchObject({status:503});release();await rejected;
  expect(x.turns.get(firstInput.requestId).status).toBe('failed');expect(recovered.turn.response.answer).toBe(educational().answer);
 });
+
+ test('explicación de indicador desconocido requiere definiciones aunque el chat no las incluya',()=>{
+ const unknown={...extraction,resultados:[{...extraction.resultados[0],nombre:'Alfa'}]};
+ expect(()=>validateReply(educational(),unknown,'explanation')).toThrow();
+ const reply=validateReply({...educational(),definitions:[{index:0,text:'No se identifica con certeza el significado de este indicador.',known:false}]},unknown,'explanation');
+ expect(explanationView(unknown,reply).items[0].concept).toBe('desconocido');
+ expect(validateReply(educational(),unknown,'chat').definitions).toEqual([]);
+ });

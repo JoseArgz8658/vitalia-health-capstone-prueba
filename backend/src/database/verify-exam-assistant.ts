@@ -81,8 +81,11 @@ async function main(){
   const approvedReview=await service.getPatient(patient,doc.id);
   if(!isDeepStrictEqual(approvedReview.review?.extraction,reviewed))throw new Error('Revisión modificada por explicación.');
   let assistantCalls=0;
-  const assistant=createExamAssistantService(db,async()=>{
-   assistantCalls++;return {reply:{kind:'education',answer:'La unidad describe cómo se expresa el dato del examen.',indices:[0],definitions:[]},model:'synthetic-local-test',promptVersion:2,elapsedMs:1};
+  const assistant=createExamAssistantService(db,async({mode,extraction})=>{
+   assistantCalls++;
+   const definitions=mode==='explanation'?extraction.resultados.map((_,index)=>({index,text:'No se identifica con certeza el significado de este indicador.',known:false})):[];
+   const indices=mode==='explanation'?extraction.resultados.map((_,index)=>index):[0];
+   return {reply:{kind:'education',answer:'La unidad describe cómo se expresa el dato del examen.',indices,definitions},model:'synthetic-local-test',promptVersion:2,elapsedMs:1};
   });
   const inputChat={requestId:randomUUID(),question:'¿Qué significa g/dL?'};
   const response=await assistant.request(patient,doc.id,inputChat);
@@ -90,8 +93,10 @@ async function main(){
   await assistant.request(patient,doc.id,inputChat);if(assistantCalls!==1)throw new Error('Chat duplicado.');
   const explanationV2=await assistant.explain(patient,doc.id,{});
   if(!('explanation' in explanationV2)||explanationV2.explanation?.items[0].concept!=='desconocido')throw new Error('Indicador ficticio inventado.');
+  const callsBeforeDenied=assistantCalls;
+  await assistant.explain(patient,doc.id,{});if(assistantCalls!==callsBeforeDenied)throw new Error('Explicación duplicada.');
   const deniedChat=await assistant.request(patient,doc.id,{requestId:randomUUID(),question:'Consulta otro examen'});
-  if(!('turn' in deniedChat)||deniedChat.turn.response?.kind!=='out_of_scope'||assistantCalls!==1)throw new Error('Cambio de contexto permitido.');
+  if(!('turn' in deniedChat)||deniedChat.turn.response?.kind!=='out_of_scope'||assistantCalls!==callsBeforeDenied)throw new Error('Cambio de contexto permitido.');
   let blockedChat=false;try{await assistant.get(otherPatient,doc.id);}catch(error){if(error instanceof AssistantAccessError&&error.status===404)blockedChat=true;else throw error;}
   if(!blockedChat)throw new Error('Chat expuesto.');
   const history=await assistant.get(patient,doc.id);if(history.turns.length!==2)throw new Error('Conversación no persistida.');
