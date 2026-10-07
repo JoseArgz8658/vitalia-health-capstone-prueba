@@ -1,3 +1,4 @@
+import 'chat_examen_panel.dart';
 import 'explicacion_panel.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -82,6 +83,9 @@ class _RevisionPacientePanelState extends State<RevisionPacientePanel> {
               ? 'Sin observaciones registradas.' : review['observations'] as String),
             Text('Revisión registrada: ${_date(review['reviewedAt'] as String)}'),
             ExplicacionPanel(key: ValueKey('${widget.documentId}:${review['reviewedAt']}'),
+              auth: widget.auth, documentId: widget.documentId, reviewedExtraction: extraction,
+              onExpired: widget.onExpired),
+            ChatExamenPanel(key: ValueKey('chat:${widget.documentId}:${review['reviewedAt']}'),
               auth: widget.auth, documentId: widget.documentId, reviewedExtraction: extraction,
               onExpired: widget.onExpired),
           ]))),

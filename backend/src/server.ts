@@ -1,3 +1,5 @@
+import {createExamAssistantService} from './exam-assistant/service';
+import {createExamAssistant} from './exam-assistant/local-model';
 import {createExplanationService} from './explanations/service';
 import {createExplanationGenerator} from './explanations/local-generator';
 import {createReviewService} from './reviews/service';
@@ -60,7 +62,10 @@ async function main(): Promise<void> {
        AND to_regclass('public.vitalia_professional_access_audit') IS NOT NULL
        AND to_regclass('public.vitalia_professional_reviews') IS NOT NULL
        AND to_regclass('public.vitalia_exam_explanations') IS NOT NULL
-       AND to_regclass('public.vitalia_explanation_audit') IS NOT NULL AS ready`,
+       AND to_regclass('public.vitalia_explanation_audit') IS NOT NULL
+       AND to_regclass('public.vitalia_exam_assistant_threads') IS NOT NULL
+       AND to_regclass('public.vitalia_exam_assistant_turns') IS NOT NULL
+       AND to_regclass('public.vitalia_exam_assistant_audit') IS NOT NULL AS ready`,
     );
     if (schema.rows[0]?.ready !== true) throw new Error('Faltan migraciones de acceso.');
     const storageConfig = readStorageConfig(process.env);
@@ -74,7 +79,7 @@ async function main(): Promise<void> {
       issue: id => issueSession(database, id),
       find: token => findSessionAccount(database, token),
       revoke: token => revokeSession(database, token),
-    }, register, documents, createProcessingService(database), createAssignmentService(documentDatabase(database)), createProfessionalService(documentDatabase(database), s3DocumentStorage(storage, storageConfig)), createReviewService(documentDatabase(database)), createExplanationService(documentDatabase(database), createExplanationGenerator())).listen(config.PORT, config.HOST);
+    }, register, documents, createProcessingService(database), createAssignmentService(documentDatabase(database)), createProfessionalService(documentDatabase(database), s3DocumentStorage(storage, storageConfig)), createReviewService(documentDatabase(database)), createExplanationService(documentDatabase(database), createExplanationGenerator()), createExamAssistantService(documentDatabase(database), createExamAssistant())).listen(config.PORT, config.HOST);
     server.on('listening', () => console.info('Vitalia API iniciada en el entorno local.'));
     server.on('error', () => {
       console.error('No se pudo iniciar el servidor. Revisa el puerto y la dirección configurados.');

@@ -8,7 +8,7 @@ class ExplicacionApi {
   Future<Map<String, dynamic>> consultar(String id) => _send(id, false);
   Future<Map<String, dynamic>> generar(String id) => _send(id, true);
   Future<Map<String, dynamic>> _send(String id, bool generate) async {
-    final request = http.Request(generate ? 'POST' : 'GET', auth.documentUri('$id/explanation'));
+    final request = http.Request(generate ? 'POST' : 'GET', auth.documentUri('$id/assistant/explanation'));
     if (generate) { request.headers['Content-Type'] = 'application/json'; request.body = '{}'; }
     final response = await auth.sendDocumentRequest(request);
     try {
@@ -23,7 +23,7 @@ class ExplicacionApi {
         for (var index = 0; index < items.length; index++) {
           final row = items[index] as Map<String, dynamic>;
           if (row['index'] != index || row['explanation'] is! String ||
-              !['hemoglobina', 'plaquetas', 'leucocitos', 'glucosa', 'desconocido'].contains(row['concept']) ||
+              !['medical_general', 'desconocido'].contains(row['concept']) ||
               !['name', 'value', 'unit', 'reference'].every((key) => row.containsKey(key) && (row[key] == null || row[key] is String)) ||
               (row['source'] != null && row['source'] is! String)) throw const FormatException();
         }

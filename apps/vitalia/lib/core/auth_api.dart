@@ -22,7 +22,7 @@ class AuthApi {
   void close() { clear(); _client.close(); }
 
   Uri documentUri([String suffix = '', Map<String, String>? query]) {
-    if (suffix.isNotEmpty && !RegExp(r'^[a-f0-9-]{36}/(file|processing|review|explanation)$').hasMatch(suffix)) {
+    if (suffix.isNotEmpty && !RegExp(r'^[a-f0-9-]{36}/(file|processing|review|explanation|assistant(?:/explanation)?)$').hasMatch(suffix)) {
       throw const AuthFailure('Documento inválido.');
     }
     return _base.resolve('/api/documents${suffix.isEmpty ? '' : '/$suffix'}')
@@ -37,13 +37,13 @@ class AuthApi {
     }
     if (request.url.origin != _base.origin ||
         !(request.url.path == '/api/documents' ||
-          RegExp(r'^/api/documents/[a-f0-9-]{36}/(file|processing|review|explanation)$').hasMatch(request.url.path))) {
+          RegExp(r'^/api/documents/[a-f0-9-]{36}/(file|processing|review|explanation|assistant(?:/explanation)?)$').hasMatch(request.url.path))) {
       throw const AuthFailure('Solicitud de documento inválida.');
     }
     if (request.url.path.endsWith('/review') && request.method != 'GET') {
       throw const AuthFailure('La revisión del paciente es solo de consulta.');
     }
-    if (request.url.path.endsWith('/explanation') && !['GET', 'POST'].contains(request.method)) {
+    if ((request.url.path.endsWith('/explanation') || request.url.path.endsWith('/assistant')) && !['GET', 'POST'].contains(request.method)) {
       throw const AuthFailure('Solicitud de explicación inválida.');
     }
     request.headers['Authorization'] = 'Bearer $token';
@@ -51,7 +51,7 @@ class AuthApi {
       final response = await (() async {
         final streamed = await _client.send(request);
         return http.Response.fromStream(streamed);
-      })().timeout(Duration(seconds: request.url.path.endsWith('/explanation') ? 150 : 60));
+      })().timeout(Duration(seconds: (request.url.path.endsWith('/explanation') || request.url.path.endsWith('/assistant')) ? 150 : 60));
       if (_token != token) throw const AuthFailure('La sesión cambió. Ingresa nuevamente.', 401);
       if (response.statusCode == 401) {
         clear();
@@ -59,12 +59,12 @@ class AuthApi {
       }
       if (response.statusCode >= 400) {
         final message = switch (response.statusCode) {
-          400 => 'Revisa el archivo y los datos del examen.',
+          400 => request.url.path.contains('/assistant') ? 'Pregunta o examen fuera de los límites del asistente.' : 'Revisa el archivo y los datos del examen.',
           403 => 'No tienes permiso para acceder a estos documentos.',
           404 => 'Documento no disponible.',
-          409 => 'Primero se requiere una revisión profesional aprobada.',
+          409 => request.url.path.contains('/assistant') ? 'Comprueba la revisión aprobada y el límite de treinta preguntas. Actualiza antes de repetir.' : 'Primero se requiere una revisión profesional aprobada.',
           413 => 'El archivo supera 10 MiB.',
-          503 => 'El servicio está ocupado. Intenta nuevamente.',
+          503 => request.url.path.contains('/assistant') ? 'El asistente está ocupado o la respuesta no fue aceptada. Actualiza antes de repetir.' : 'El servicio está ocupado. Intenta nuevamente.',
           _ => 'No se pudo completar la solicitud.',
         };
         throw AuthFailure(message, response.statusCode);
@@ -72,11 +72,13 @@ class AuthApi {
       return response;
     } on AuthFailure { rethrow; }
     on TimeoutException {
-      throw const AuthFailure('La solicitud tardó demasiado. Actualiza el historial '
-        'antes de repetir una carga.');
+      throw AuthFailure(request.url.path.contains('/assistant')
+        ? 'El asistente tardó demasiado. Actualiza la conversación antes de repetir.'
+        : 'La solicitud tardó demasiado. Actualiza el historial antes de repetir una carga.');
     } catch (_) {
-      throw const AuthFailure('No se pudo conectar. Si estabas subiendo un archivo, '
-        'actualiza el historial antes de repetir.');
+      throw AuthFailure(request.url.path.contains('/assistant')
+        ? 'No se pudo conectar con el asistente. Actualiza la conversación antes de repetir.'
+        : 'No se pudo conectar. Si estabas subiendo un archivo, actualiza el historial antes de repetir.');
     }
   }
 

@@ -28,11 +28,11 @@ Future<void> tap(WidgetTester tester,String label)async{
 void main(){
  test('API usa GET/POST vacío con sesión, rechaza aprobación y origen ajeno',()async{
   var calls=0;final auth=await session((req)async{
-   calls++;expect(req.url.path,'/api/documents/$id/explanation');if(req.method=='POST')expect(jsonDecode(req.body),{});return response(ready());
+   calls++;expect(req.url.path,'/api/documents/$id/assistant/explanation');if(req.method=='POST')expect(jsonDecode(req.body),{});return response(ready());
   });
   final api=ExplicacionApi(auth);expect((await api.consultar(id))['status'],'ready');await api.generar(id);
-  await expectLater(auth.sendDocumentRequest(http.Request('POST',Uri.parse('https://example.com/api/documents/$id/explanation'))),throwsA(isA<AuthFailure>()));
-  await expectLater(auth.sendDocumentRequest(http.Request('DELETE',auth.documentUri('$id/explanation'))),throwsA(isA<AuthFailure>()));
+  await expectLater(auth.sendDocumentRequest(http.Request('POST',Uri.parse('https://example.com/api/documents/$id/assistant/explanation'))),throwsA(isA<AuthFailure>()));
+  await expectLater(auth.sendDocumentRequest(http.Request('DELETE',auth.documentUri('$id/assistant/explanation'))),throwsA(isA<AuthFailure>()));
   expect(calls,2);auth.close();
  });
  testWidgets('consulta y generación explícitas; distingue explicación de aprobación', (tester)async{
