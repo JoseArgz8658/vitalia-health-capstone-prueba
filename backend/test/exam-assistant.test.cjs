@@ -279,3 +279,13 @@ test('finalidad procede de nota correspondiente y no reemplaza respuestas restri
  expect(applyEducationalNotes(extraction,fixed('restricted'),'chat','¿Para qué se mide?',[]).reply.kind).toBe('restricted');
  expect(applyEducationalNotes(extraction,educational(),'chat','¿Qué es hemoglobina?',[]).noteIndices).toEqual([]);
 });
+test.each([['unsafe_content','ASSISTANT_RESPONSE_REJECTED'],['http','ASSISTANT_UNAVAILABLE'],['timeout','ASSISTANT_UNAVAILABLE']])('error del modelo %s usa código acotado',async(reason,code)=>{
+ const x=setup({model:async()=>{throw new AssistantModelError(reason);}});
+ await expect(x.service.request(account,doc,question())).rejects.toMatchObject({status:503,code});
+ expect((await x.service.get(account,doc)).turns[0].response).toBeNull();
+});
+test('consulta de valor persiste y puede volver a consultarse sin modelo',async()=>{
+ const x=setup(),input=question(randomUUID(),'¿Cuál es el valor de Hemoglobina?');
+ const result=await x.service.request(account,doc,input);expect(result.turn.response.answer).toContain('14,2');
+ expect((await x.service.get(account,doc)).turns[0].response).toEqual(result.turn.response);expect(x.generator).not.toHaveBeenCalled();
+});
