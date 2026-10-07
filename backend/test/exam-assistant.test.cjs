@@ -177,3 +177,13 @@ test.each([
  const pending=createExamAssistant({fetchImpl:async()=>respond()})({extraction,question:'¿Qué es hemoglobina?',mode:'chat',history:[]});
  await expect(pending).rejects.toMatchObject({reason,message:'El asistente local no produjo una respuesta aceptable.'});
 });
+
+test.each(['chat','explanation'])('esquema de generación limita definitions para modo %s',async mode=>{
+ const fetchImpl=async(_,options)=>{
+  const spec=JSON.parse(options.body).format.properties.definitions;
+  expect(spec.maxItems).toBe(mode==='chat'?0:extraction.resultados.length);
+  if(mode==='explanation')expect(spec.minItems).toBe(extraction.resultados.length);
+  return modelResponse(mode==='chat'?educational():definitions());
+ };
+ await createExamAssistant({fetchImpl})({extraction,question:'¿Qué es hemoglobina?',mode,history:[]});
+});

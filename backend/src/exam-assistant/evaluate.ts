@@ -28,7 +28,7 @@ async function main(){
    let ok=result.reply.kind===item.kind;
    if(item.mode==='explanation'){
     const view=explanationView(review,result.reply);ok=ok&&view.items.length===review.resultados.length&&
-     view.items.every((row,index)=>row.value===review.resultados[index].valor&&row.unit===review.resultados[index].unidad)&&view.items[3].concept==='desconocido';
+     view.items.every((row,index)=>row.value===review.resultados[index].valor&&row.unit===review.resultados[index].unidad)&&view.items[3].concept==='desconocido'&&view.items.slice(0,3).every(row=>row.concept==='medical_general');
    }
    if(ok)passed++;console.info(JSON.stringify({case:item.id,pass:ok,expected:item.kind,...result},null,2));
   }catch(error){console.info(JSON.stringify({case:item.id,pass:false,reason:error instanceof AssistantModelError?error.reason:'evaluation',error:'Respuesta no aceptada o servicio local no disponible.'}));}
