@@ -1,5 +1,6 @@
 import {type Extraction} from '../ai/contract';
-import {type History,normalize} from './contract';
+import {type History} from './contract';
+function normalize(value:string){return value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\p{Cf}/gu,'').toLowerCase();}
 export const KNOWLEDGE_VERSION=1;
 const entries=[
  {aliases:['hemoglobina','hb','hgb'],definition:'Proteína de los glóbulos rojos que transporta oxígeno.',purpose:'La prueba mide la cantidad de hemoglobina en sangre; no mide directamente la cantidad de oxígeno.',source:'https://medlineplus.gov/spanish/ency/article/003645.htm'},

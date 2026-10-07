@@ -32,7 +32,7 @@ async function main(){
      view.items.every((row,index)=>row.value===review.resultados[index].valor&&row.unit===review.resultados[index].unidad)&&view.items[3].concept==='desconocido'&&view.items.slice(0,3).every(row=>row.concept==='medical_general');
    }
    if(ok)passed++;console.info(JSON.stringify({case:item.id,pass:ok,expected:item.kind,...result},null,2));
-  }catch(error){console.info(JSON.stringify({case:item.id,pass:false,reason:error instanceof AssistantModelError?error.reason:'evaluation',error:'Respuesta no aceptada o servicio local no disponible.'}));}
+  }catch(error){console.info(JSON.stringify({case:item.id,pass:false,reason:error instanceof AssistantModelError?error.reason:'evaluation',detail:error instanceof AssistantModelError?error.detail:undefined,error:'Respuesta no aceptada o servicio local no disponible.'}));}
  }
  console.info(`Comprobaciones automáticas: ${passed}/${cases.length}. No equivalen a veracidad médica ni aprobación clínica. Revisa manualmente las definiciones y respuestas educativas.`);
  if(passed!==cases.length)process.exitCode=1;

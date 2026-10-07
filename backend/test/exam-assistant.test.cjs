@@ -211,3 +211,22 @@ test('modelo recibe evidencia verificada sin modificar cifras y rechaza referenc
   const data=JSON.parse(JSON.parse(options.body).messages[1].content);expect(data.educationalEvidence[0].source).toContain('medlineplus.gov');expect(data.review).toEqual(extraction);return modelResponse(educational());
  }})({extraction,question:'¿Qué es hemoglobina?',mode:'chat',history:[]});
 });
+
+test('política inicial reconoce alias del examen y rechaza indicador ficticio Omega',()=>{
+ const mixed={...extraction,resultados:[{...extraction.resultados[0],nombre:'Hemoglobina'},{nombre:'Analito Omega',valor:null,unidad:null,rango_referencia:null}]};
+ expect(gate('¿Qué significa Hb?',mixed,[])).toBeNull();
+ expect(gate('¿Qué significa Analito Omega?',mixed,[])).toMatchObject({kind:'insufficient',indices:[1]});
+ expect(gate('¿Qué significa Hb?',{...mixed,resultados:[mixed.resultados[1]]},[])).toMatchObject({kind:'out_of_scope'});
+});
+test('generación restringe índices a la fila real de un seguimiento con orden distinto',async()=>{
+ const mixed={...extraction,resultados:[{nombre:'Creatinina',valor:null,unidad:null,rango_referencia:null},extraction.resultados[0]]};
+ const fetchImpl=async(_,options)=>{const body=JSON.parse(options.body),data=JSON.parse(body.messages[1].content);
+  expect(body.format.properties.indices.items.enum).toEqual([1]);expect(data.targetRows[0].index).toBe(1);expect(data.targetRows[0].nombre).toBe('Hemoglobina');
+  return modelResponse({...educational(),indices:[1]});};
+ const result=await createExamAssistant({fetchImpl})({extraction:mixed,question:'¿Para qué se mide?',mode:'chat',history:[{question:'¿Qué es hemoglobina?',response:{...educational(),indices:[1]}}]});
+ expect(result.reply.indices).toEqual([1]);
+});
+
+test('diagnóstico de contenido revela categoría acotada sin mostrar prosa rechazada',async()=>{
+ await expect(createExamAssistant({fetchImpl:async()=>modelResponse({...educational(),answer:'El resultado es normal.'})})({extraction,question:'¿Qué es hemoglobina?',mode:'chat',history:[]})).rejects.toMatchObject({reason:'unsafe_content',detail:'classification_term'});
+});

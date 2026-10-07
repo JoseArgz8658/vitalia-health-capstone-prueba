@@ -22,7 +22,7 @@ async function main(){
   const result=await model({extraction:review,question:item.question,mode:'chat',history:item.history??[]});
   const pass=result.reply.kind===item.kind&&JSON.stringify(result.reply.indices)===JSON.stringify(item.indices);if(pass)passed++;
   console.info(JSON.stringify({case:item.id,pass,expectedKind:item.kind,expectedIndices:item.indices,...result},null,2));
- }catch(error){console.info(JSON.stringify({case:item.id,pass:false,reason:error instanceof AssistantModelError?error.reason:'evaluation'}));}}
+ }catch(error){console.info(JSON.stringify({case:item.id,pass:false,reason:error instanceof AssistantModelError?error.reason:'evaluation',detail:error instanceof AssistantModelError?error.detail:undefined}));}}
  console.info(`Calidad estructural y referencias: ${passed}/${cases.length}. Revisión semántica pendiente.`);
  if(passed!==cases.length)process.exitCode=1;
 }
