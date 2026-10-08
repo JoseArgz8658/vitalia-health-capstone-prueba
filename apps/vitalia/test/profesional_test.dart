@@ -126,6 +126,11 @@ void main() {
     var active = true;
     final auth = await session((req) async {
       if (!active) return jsonResponse('', 404);
+      if (req.url.path.endsWith('/review')) {
+        return jsonResponse(jsonEncode({'processingId': docId,
+          'originalExtraction': processing()['extraction'],
+          'canReview': true, 'review': null}), 200);
+      }
       return jsonResponse(jsonEncode(req.url.path.endsWith('/extraction')
         ? {'processing': processing()} : {'documents': [doc()]}), 200);
     });
@@ -134,11 +139,18 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Consultar extracción'));
     await tester.pumpAndSettle();
+    expect(find.text('Valor: 15,2'), findsOneWidget);
+    expect(find.text('Consulta y revisión del examen'), findsOneWidget);
     active = false;
-    await tester.tap(find.text('Actualizar historial'));
+    await tester.ensureVisible(find.text('Actualizar extracción'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Actualizar extracción'));
     await tester.pumpAndSettle();
     expect(find.text('Valor: 15,2'), findsNothing);
     expect(find.text('Consultar extracción'), findsNothing);
+    expect(find.text('Texto ficticio original'), findsNothing);
+    expect(find.text('Aprobar y guardar revisión'), findsNothing);
+    expect(find.text('Consulta y revisión del examen'), findsNothing);
     expect(find.textContaining('Paciente o documento no disponible'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
     auth.close();
