@@ -129,9 +129,17 @@ class _RevisionPacientePanelState extends State<RevisionPacientePanel> {
             const SizedBox(height: 20),
             const Divider(),
             const SizedBox(height: 16),
-            ChatExamenPanel(key: ValueKey('chat:${widget.documentId}:${review['reviewedAt']}'),
-              auth: widget.auth, documentId: widget.documentId, reviewedExtraction: extraction,
-              onExpired: widget.onExpired),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => ChatExamenPage(auth: widget.auth,
+                  documentId: widget.documentId, reviewedExtraction: extraction,
+                  onExpired: () {
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                    widget.onExpired();
+                  }))),
+              icon: const Icon(Icons.auto_awesome_outlined),
+              label: const Text('Preguntar a la IA'),
+            ),
           ]))),
     ]);
   }

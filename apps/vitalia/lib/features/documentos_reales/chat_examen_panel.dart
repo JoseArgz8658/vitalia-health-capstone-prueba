@@ -4,7 +4,8 @@ import 'chat_examen_api.dart';
 
 class ChatExamenPanel extends StatefulWidget {
   const ChatExamenPanel({super.key, required this.auth, required this.documentId,
-    required this.reviewedExtraction, required this.onExpired});
+    required this.reviewedExtraction, required this.onExpired, this.autoOpen = false});
+  final bool autoOpen;
   final AuthApi auth;
   final String documentId;
   final Map<String, dynamic> reviewedExtraction;
@@ -17,6 +18,13 @@ class _ChatExamenPanelState extends State<ChatExamenPanel> {
   List<Map<String, dynamic>> _turns = [];
   String? _error, _lastId, _lastQuestion;
   bool _busy = false, _opened = false, _available = false;
+  @override
+  void initState() {
+    super.initState();
+    if (widget.autoOpen) WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _load();
+    });
+  }
   @override
   void dispose() { _question.dispose(); super.dispose(); }
   void _validateReferences(List<Map<String, dynamic>> turns) {
@@ -109,24 +117,85 @@ class _ChatExamenPanelState extends State<ChatExamenPanel> {
       ],
       if (_error != null) Text(_error!),
       if (_opened && !_available && _error == null) const Text('Se requiere una revisión profesional aprobada.'),
-      for (final turn in _turns) Card(child: Padding(padding: const EdgeInsets.all(12), child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Tu pregunta'), SelectableText(turn['question'] as String),
-          const SizedBox(height: 8), const Text('Respuesta de IA, sin aprobación profesional'),
-          if (turn['status'] == 'pending') const Text('Respuesta pendiente. Actualiza la conversación antes de repetir.'),
-          if (turn['status'] == 'failed') const Text('No se obtuvo una respuesta aceptable. Puedes enviar una nueva solicitud.'),
-          if (turn['response'] != null) ...[
-            SelectableText(turn['response']['answer'] as String),
-            for (final index in turn['response']['indices'] as List) SelectableText(
-              'Dato revisado: ${rows[index]['nombre'] ?? 'Sin nombre'} — ${rows[index]['valor'] ?? 'No disponible'} ${rows[index]['unidad'] ?? ''}'),
-          ],
-        ]))),
+      for (final turn in _turns) ...[
+        Align(alignment: Alignment.centerRight, child: Container(
+          constraints: const BoxConstraints(maxWidth: 600),
+          margin: const EdgeInsets.only(top: 16, bottom: 8),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(18),
+          ), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Tu pregunta', style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(height: 8), SelectableText(turn['question'] as String),
+          ]),
+        )),
+        Align(alignment: Alignment.centerLeft, child: Container(
+          constraints: const BoxConstraints(maxWidth: 600),
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            border: Border.all(color: Theme.of(context).colorScheme.outline),
+            borderRadius: BorderRadius.circular(18),
+          ), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Icon(Icons.auto_awesome_outlined),
+            const SizedBox(height: 8),
+            const Text('Respuesta de IA, sin aprobación profesional'),
+            const SizedBox(height: 8),
+            if (turn['status'] == 'pending') const Text('Respuesta pendiente. Actualiza la conversación antes de repetir.'),
+            if (turn['status'] == 'failed') const Text('No se obtuvo una respuesta aceptable. Puedes enviar una nueva solicitud.'),
+            if (turn['response'] != null) ...[
+              SelectableText(turn['response']['answer'] as String),
+              const SizedBox(height: 12),
+              for (final index in turn['response']['indices'] as List) SelectableText(
+                'Dato revisado: ${rows[index]['nombre'] ?? 'Sin nombre'} — ${rows[index]['valor'] ?? 'No disponible'} ${rows[index]['unidad'] ?? ''}'),
+            ],
+          ]),
+        )),
+      ],
       if (_available) ...[
+        const SizedBox(height: 16),
+        if (_turns.isEmpty) Wrap(spacing: 8, runSpacing: 8, children: [
+          for (final suggestion in ['¿Qué significa rango de referencia?', '¿Cuál es la fecha del examen?'])
+            ActionChip(label: Text(suggestion), onPressed: _busy ? null : () {
+              setState(() => _question.text = suggestion);
+            }),
+        ]),
+        const SizedBox(height: 16),
         const Text('Hasta treinta preguntas por examen; solo las últimas seis respuestas educativas se usan como contexto.'),
         TextField(controller: _question, enabled: !_busy, maxLength: 500, minLines: 1, maxLines: 4,
           decoration: const InputDecoration(labelText: 'Pregunta sobre este examen')),
-        FilledButton(onPressed: _busy ? null : _send, child: const Text('Enviar pregunta')),
+        FilledButton.icon(onPressed: _busy ? null : _send,
+          icon: const Icon(Icons.send_outlined), label: const Text('Enviar pregunta')),
       ],
     ]);
   }
+}
+
+class ChatExamenPage extends StatelessWidget {
+  const ChatExamenPage({super.key, required this.auth, required this.documentId,
+    required this.reviewedExtraction, required this.onExpired});
+  final AuthApi auth;
+  final String documentId;
+  final Map<String, dynamic> reviewedExtraction;
+  final VoidCallback onExpired;
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Asistente de Vitalia')),
+    body: SafeArea(child: SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Center(child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(reviewedExtraction['examen'] as String? ?? 'Examen abierto',
+            style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          const Text('Esta conversación corresponde únicamente a este examen.'),
+          ChatExamenPanel(auth: auth, documentId: documentId,
+            reviewedExtraction: reviewedExtraction, onExpired: onExpired, autoOpen: true),
+        ]),
+      ))),
+    ),
+  );
 }
