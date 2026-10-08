@@ -15,6 +15,18 @@ class ChatExamenPanel extends StatefulWidget {
 }
 class _ChatExamenPanelState extends State<ChatExamenPanel> {
   final _question = TextEditingController();
+  final _composer = GlobalKey();
+  bool _sending = false;
+  void _showLatest() {
+    if (!widget.autoOpen) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = _composer.currentContext;
+      if (mounted && target != null) {
+        Scrollable.ensureVisible(target, alignment: 1,
+          duration: const Duration(milliseconds: 250));
+      }
+    });
+  }
   List<Map<String, dynamic>> _turns = [];
   String? _error, _lastId, _lastQuestion;
   bool _busy = false, _opened = false, _available = false;
@@ -85,7 +97,9 @@ class _ChatExamenPanelState extends State<ChatExamenPanel> {
     if (_busy || question.isEmpty) return;
     final requestId = _lastQuestion == question && _lastId != null ? _lastId! : nuevaSolicitudChat();
     _lastQuestion = question; _lastId = requestId;
-    setState(() { _busy = true; _error = null; });
+    setState(() { _busy = true; _sending = true; _error = null; });
+    FocusManager.instance.primaryFocus?.unfocus();
+    _showLatest();
     try {
       final api = ChatExamenApi(widget.auth);
       final turn = await api.preguntar(widget.documentId, requestId, question);
@@ -100,7 +114,12 @@ class _ChatExamenPanelState extends State<ChatExamenPanel> {
       if (error.status == 503) await _recoverAfterFailure();
     }
     catch (_) { if (mounted) setState(() { _available = false; _error = 'No se pudo aceptar la respuesta. Actualiza la conversación.'; }); }
-    finally { if (mounted) setState(() => _busy = false); }
+    finally {
+      if (mounted) {
+        setState(() { _busy = false; _sending = false; });
+        _showLatest();
+      }
+    }
   }
   @override
   Widget build(BuildContext context) {
@@ -111,11 +130,11 @@ class _ChatExamenPanelState extends State<ChatExamenPanel> {
       const Text('La IA puede equivocarse. Usa solo los datos revisados de este documento; no diagnostica ni recomienda tratamientos. Las respuestas no están aprobadas por un profesional.'),
       TextButton(onPressed: _busy ? null : _load,
         child: Text(_opened ? 'Actualizar conversación' : 'Abrir conversación')),
-      if (_busy) ...[
+      if (_busy && !_sending) ...[
         const LinearProgressIndicator(),
-        const Text('El asistente está trabajando. Puede tardar hasta dos minutos.'),
+        const Text('Cargando la conversación de este examen…'),
       ],
-      if (_error != null) Text(_error!),
+      if (_error != null) Semantics(liveRegion: true, child: Text(_error!)),
       if (_opened && !_available && _error == null) const Text('Se requiere una revisión profesional aprobada.'),
       for (final turn in _turns) ...[
         Align(alignment: Alignment.centerRight, child: Container(
@@ -155,6 +174,23 @@ class _ChatExamenPanelState extends State<ChatExamenPanel> {
         )),
       ],
       if (_available) ...[
+        if (_sending) Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(top: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(18)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Tu pregunta enviada'),
+            const SizedBox(height: 8),
+            Text(_lastQuestion ?? ''),
+            const SizedBox(height: 16),
+            const LinearProgressIndicator(),
+            const SizedBox(height: 12),
+            const Text('Vitalia está preparando una respuesta sobre este examen. Puede tardar hasta dos minutos.'),
+          ]),
+        ),
         const SizedBox(height: 16),
         if (_turns.isEmpty) Wrap(spacing: 8, runSpacing: 8, children: [
           for (final suggestion in ['¿Qué significa rango de referencia?', '¿Cuál es la fecha del examen?'])
@@ -164,8 +200,11 @@ class _ChatExamenPanelState extends State<ChatExamenPanel> {
         ]),
         const SizedBox(height: 16),
         const Text('Hasta treinta preguntas por examen; solo las últimas seis respuestas educativas se usan como contexto.'),
-        TextField(controller: _question, enabled: !_busy, maxLength: 500, minLines: 1, maxLines: 4,
-          decoration: const InputDecoration(labelText: 'Pregunta sobre este examen')),
+        const SizedBox(height: 12),
+        TextField(key: _composer, controller: _question, enabled: !_busy, maxLength: 500, minLines: 1, maxLines: 4,
+          decoration: const InputDecoration(labelText: 'Pregunta sobre este examen',
+            hintText: 'Escribe aquí tu duda', prefixIcon: Icon(Icons.chat_bubble_outline))),
+        const SizedBox(height: 12),
         FilledButton.icon(onPressed: _busy ? null : _send,
           icon: const Icon(Icons.send_outlined), label: const Text('Enviar pregunta')),
       ],
