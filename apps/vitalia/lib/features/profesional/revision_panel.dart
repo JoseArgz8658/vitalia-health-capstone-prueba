@@ -103,9 +103,10 @@ class _RevisionPanelState extends State<RevisionPanel> {
     catch (_) { if (mounted) setState(() { _error = 'No se pudo guardar. Actualiza la revisión antes de repetir.'; _canReview = false; }); }
     finally { if (mounted) { setState(() => _busy = false); widget.onSaving(false); } }
   }
-  Widget _field(TextEditingController controller, String label) => TextField(
-    controller: controller, enabled: !_busy, maxLength: 500,
-    decoration: InputDecoration(labelText: label));
+  Widget _field(TextEditingController controller, String label) => Padding(
+    padding: const EdgeInsets.only(top: 12, bottom: 8),
+    child: TextField(controller: controller, enabled: !_busy, maxLength: 500,
+      decoration: InputDecoration(labelText: label)));
   String _dateLabel(String iso) {
     final date = DateTime.tryParse(iso)?.toLocal();
     if (date == null) return 'Fecha no disponible';
@@ -117,7 +118,10 @@ class _RevisionPanelState extends State<RevisionPanel> {
     final saved = _saved;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       const SizedBox(height: 20),
+      const Icon(Icons.fact_check_outlined, size: 32),
+      const SizedBox(height: 12),
       Text('Revisión profesional', style: Theme.of(context).textTheme.titleLarge),
+      const SizedBox(height: 12),
       const Text('La extracción original se conserva. Aprobar guarda una copia revisada que no se sobrescribe. No se guardan borradores.'),
       TextButton(onPressed: _busy ? null : _load, child: const Text('Actualizar revisión')),
       if (_busy) const Center(child: CircularProgressIndicator()),
@@ -135,10 +139,11 @@ class _RevisionPanelState extends State<RevisionPanel> {
         _field(_date, 'Fecha revisada (DD-MM-AAAA)'),
         if (_hasReport) ...[
           const Text('Datos del paciente y del estudio: coteja cada campo con el original.'),
-          for (final field in _report.entries) TextField(
+          for (final field in _report.entries) Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10), child: TextField(
             controller: field.value, enabled: !_busy,
             maxLength: field.key == 'observaciones_originales' ? 2000 : 500,
-            decoration: InputDecoration(labelText: informeLabels[field.key])),
+            decoration: InputDecoration(labelText: informeLabels[field.key]))),
         ],
         ..._rows.asMap().entries.map((entry) => Card(child: Padding(padding: const EdgeInsets.all(12),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -154,12 +159,18 @@ class _RevisionPanelState extends State<RevisionPanel> {
           ])))),
         TextButton(onPressed: _busy || _rows.length >= 100 ? null
           : () => setState(() => _rows.add(_ReviewRow(_hasReport ? {'estado_documento': null} : {}))), child: const Text('Añadir resultado')),
+        const SizedBox(height: 24),
+        Text('Observaciones de tu revisión', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 12),
         TextField(controller: _observations, enabled: !_busy, maxLength: 2000, minLines: 2, maxLines: 4,
           decoration: const InputDecoration(labelText: 'Motivo de correcciones o datos ausentes',
-            helperText: 'Obligatorio si corriges datos o conservas campos ausentes.')),
+            helperText: 'Obligatorio si corriges datos o conservas campos ausentes.',
+            helperMaxLines: 3)),
+        const SizedBox(height: 16),
         CheckboxListTile(value: _confirmed, onChanged: _busy ? null
           : (value) => setState(() => _confirmed = value ?? false), contentPadding: EdgeInsets.zero,
           title: const Text('Confirmo que cotejé estos datos con el documento original.')),
+        const SizedBox(height: 12),
         FilledButton(onPressed: _busy || !_confirmed ? null : _save,
           child: const Text('Aprobar y guardar revisión')),
       ] else if (!_busy && _error == null)
