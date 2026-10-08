@@ -38,7 +38,12 @@ class _AccesoPageState extends State<AccesoPage> {
   }
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: SafeArea(child: Center(child: SingleChildScrollView(
+    body: Stack(fit: StackFit.expand, children: [
+      Positioned.fill(child: ExcludeSemantics(child: Image.asset(
+        'assets/branding/vitalia-fondo-acceso.png', fit: BoxFit.cover,
+      ))),
+      const Positioned.fill(child: ColoredBox(color: Color(0x33FFFFFF))),
+      SafeArea(child: Center(child: SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: SizedBox(width: 500, child: Card(
         elevation: 0,
@@ -99,6 +104,7 @@ class _AccesoPageState extends State<AccesoPage> {
           ])),
       ))),
     ))),
+    ]),
   );
   TextStyle roleStyle(BuildContext context) =>
     TextStyle(color: Theme.of(context).colorScheme.error);
