@@ -110,8 +110,63 @@ class _ProfesionalDocumentosPageState extends State<ProfesionalDocumentosPage> {
     catch (_) { if (mounted) setState(() => _error = 'No se pudo guardar el archivo.'); }
     finally { if (mounted) setState(() => _busy = false); }
   }
+  void _closeConsultation() {
+    if (_blocked) return;
+    _stopPolling();
+    setState(() { _detail = null; _detailName = null; _detailId = null; });
+  }
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) {
+    if (_detail != null) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop && !_blocked) _closeConsultation();
+        },
+        child: Scaffold(
+          appBar: AppBar(title: const Text('Consulta y revisión del examen'),
+            leading: IconButton(onPressed: _blocked ? null : _closeConsultation,
+              icon: const Icon(Icons.arrow_back), tooltip: 'Volver a exámenes'),
+            actions: [TextButton(onPressed: _blocked || widget.sessionBusy ? null : widget.onLogout,
+              child: const Text('Cerrar sesión'))]),
+          body: SafeArea(child: SingleChildScrollView(
+            key: ValueKey('consultation-$_detailId'),
+            padding: const EdgeInsets.all(24),
+            child: Center(child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Text(_detailName ?? '', style: Theme.of(context).textTheme.headlineSmall),
+                const SizedBox(height: 8),
+                Text('Paciente: ${widget.patientEmail}'),
+                const SizedBox(height: 16),
+                Wrap(spacing: 12, runSpacing: 8, children: [
+                  TextButton(onPressed: _blocked ? null : _closeConsultation,
+                    child: const Text('Cerrar consulta')),
+                  OutlinedButton.icon(onPressed: _blocked ? null : _refreshExtraction,
+                    icon: const Icon(Icons.refresh), label: const Text('Actualizar extracción')),
+                  for (final item in _items.where((item) => item.id == _detailId))
+                    OutlinedButton.icon(onPressed: _blocked || !descargaDisponible ? null : () => _download(item),
+                      icon: const Icon(Icons.download_outlined), label: const Text('Descargar original')),
+                ]),
+                if (_busy) const LinearProgressIndicator(),
+                if (_error != null) Padding(padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
+                const SizedBox(height: 20),
+                ExtraccionPanel(value: _detail!),
+                const SizedBox(height: 24),
+                const Divider(),
+                if (_detailId != null) RevisionPanel(
+                  key: ValueKey('review-$_detailId-${_detail!.status}'),
+                  auth: widget.auth, patientId: widget.patientId, documentId: _detailId!,
+                  processingStatus: _detail!.status, onFailure: _failure,
+                  onSaving: (saving) { if (mounted) setState(() => _reviewSaving = saving); }),
+              ]),
+            ))),
+          ),
+        ),
+      );
+    }
+    return Scaffold(
     appBar: AppBar(title: const Text('Exámenes del paciente'),
       leading: IconButton(onPressed: _blocked ? null : widget.onBack,
         icon: const Icon(Icons.arrow_back), tooltip: 'Volver a mis pacientes'),
@@ -152,27 +207,10 @@ class _ProfesionalDocumentosPageState extends State<ProfesionalDocumentosPage> {
             TextButton(onPressed: _blocked || _offset == 0 ? null : () => _load(_offset - 20), child: const Text('Anterior')),
             TextButton(onPressed: _blocked || _items.length < 20 || _offset >= 10000 ? null : () => _load(_offset + 20), child: const Text('Siguiente')),
           ]),
-          if (_detail != null) Card(child: Padding(padding: const EdgeInsets.all(16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Text(_detailName ?? '', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 12),
-              TextButton(onPressed: _blocked ? null : () { _stopPolling(); setState(() { _detail = null; _detailName = null; _detailId = null; }); },
-                child: const Text('Cerrar consulta')),
-              TextButton(onPressed: _blocked ? null : _refreshExtraction,
-                child: const Text('Actualizar extracción')),
-              const Divider(),
-              const SizedBox(height: 16),
-              ExtraccionPanel(value: _detail!),
-              const SizedBox(height: 24),
-              const Divider(),
-              const SizedBox(height: 16),
-              if (_detailId != null) RevisionPanel(key: ValueKey('review-$_detailId-${_detail!.status}'),
-                auth: widget.auth, patientId: widget.patientId, documentId: _detailId!,
-                processingStatus: _detail!.status, onFailure: _failure,
-                onSaving: (saving) { if (mounted) setState(() => _reviewSaving = saving); }),
-            ]))),
+
         ]),
       )),
     )),
   );
+  }
 }
