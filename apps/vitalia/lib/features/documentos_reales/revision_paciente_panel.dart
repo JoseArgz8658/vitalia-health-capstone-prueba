@@ -8,7 +8,10 @@ import '../../core/auth_api.dart';
 
 class RevisionPacientePanel extends StatefulWidget {
   const RevisionPacientePanel({super.key, required this.auth,
-    required this.documentId, required this.onExpired});
+    required this.documentId, required this.onExpired,
+    this.openInPage = false, this.autoLoad = false});
+  final bool openInPage;
+  final bool autoLoad;
   final AuthApi auth;
   final String documentId;
   final VoidCallback onExpired;
@@ -20,6 +23,34 @@ class _RevisionPacientePanelState extends State<RevisionPacientePanel> {
   Map<String, dynamic>? _review;
   String? _message;
   bool _busy = false;
+  @override
+  void initState() {
+    super.initState();
+    if (widget.autoLoad) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _load();
+      });
+    }
+  }
+  void _openResults() {
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => Scaffold(
+        appBar: AppBar(title: const Text('Resultados de tu examen')),
+        body: SafeArea(child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Center(child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 900),
+            child: RevisionPacientePanel(auth: widget.auth,
+              documentId: widget.documentId, autoLoad: true,
+              onExpired: () {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                widget.onExpired();
+              }),
+          )),
+        )),
+      ),
+    ));
+  }
   String visible(dynamic value) => value == null ? 'No disponible' : value.toString();
   Future<void> _load() async {
     if (_busy) return;
@@ -59,11 +90,21 @@ class _RevisionPacientePanelState extends State<RevisionPacientePanel> {
   }
   @override
   Widget build(BuildContext context) {
+    if (widget.openInPage) {
+      return OutlinedButton.icon(
+        onPressed: _openResults,
+        icon: const Icon(Icons.assignment_turned_in_outlined),
+        label: const Text('Ver resultados revisados'),
+      );
+    }
     final review = _review;
     final extraction = review?['extraction'] as Map<String, dynamic>?;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       TextButton(onPressed: _busy ? null : _load,
-        child: Text(_busy ? 'Consultando resultados…' : 'Ver resultados revisados')),
+        child: Text(_busy ? 'Consultando resultados…'
+          : widget.autoLoad ? 'Actualizar resultados revisados' : 'Ver resultados revisados')),
+      if (_busy) const Padding(padding: EdgeInsets.symmetric(vertical: 12),
+        child: LinearProgressIndicator()),
       if (_message != null) Text(_message!),
       if (review != null && extraction != null) Card(child: Padding(
         padding: const EdgeInsets.all(16), child: Column(

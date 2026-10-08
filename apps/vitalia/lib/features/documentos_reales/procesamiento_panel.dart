@@ -86,7 +86,7 @@ class _ProcesamientoPanelState extends State<ProcesamientoPanel> {
         style: TextStyle(color: Theme.of(context).colorScheme.error)),
       if (!_busy && _error == null && _status != null)
         RevisionPacientePanel(key: ValueKey('${widget.documentId}:$_status'), auth: widget.auth,
-          documentId: widget.documentId, onExpired: widget.onExpired),
+          documentId: widget.documentId, onExpired: widget.onExpired, openInPage: true),
       Wrap(spacing: 8, children: [
         if (_status == 'not_requested' && _error == null)
           OutlinedButton(onPressed: _busy ? null : () => _run(true),
