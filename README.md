@@ -1,6 +1,6 @@
 # Vitalia Health — instalación y uso
 
-La idea de esta rama es que podamos descargar el proyecto y probarlo en otro equipo, tanto en web como en Android, sin llevarnos los documentos de avance ni las pruebas manuales de etapas anteriores. Aquí está la aplicación Flutter, el backend, las migraciones y lo necesario para levantar el entorno.
+Esta rama reúne el proyecto para compartirlo con el equipo y llevarlo al repositorio oficial. Conserva la aplicación Flutter para web y Android, el backend, las migraciones, Docker, las pruebas y la documentación de avances y correcciones de cada fase. Los registros técnicos están en `docs/avance` y `docs/cambios-codigo`; el modelo actual y la ampliación propuesta están en `docs/base-datos`.
 
 El proyecto permite registrar pacientes, subir documentos, solicitar su extracción, revisar los datos como profesional y hacer preguntas sobre el examen revisado. Las respuestas de IA no son diagnósticos, recetas ni aprobación profesional. Para las pruebas usemos documentos ficticios.
 
@@ -49,7 +49,7 @@ cd vitalia-health-capstone
 git switch develop
 ```
 
-Estos comandos de `develop` se usan después de que José haya copiado y publicado la aplicación en esa rama del repositorio oficial. Mientras tanto, descarga la rama `distribucion/equipo-docker` del repositorio de pruebas.
+Estos comandos de `develop` se usan después de que José haya copiado y publicado la aplicación en esa rama del repositorio oficial. Mientras tanto, descarga la rama `entrega/proyecto-con-evidencias` del repositorio de pruebas.
 
 Abre la carpeta donde están `compose.yaml`, `README.md`, `backend` y `apps`. Esa es la raíz del proyecto. Todos los comandos siguientes parten desde ahí, salvo cuando se indica `cd backend` o `cd apps\vitalia`.
 
@@ -80,7 +80,7 @@ Desde la raíz, en PowerShell:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\deploy\configurar.ps1 -Modo Docker
 ```
 
-El script pide los datos de AWS, oculta los secretos y crea un `.env` local. La contraseña de la base Docker se genera automáticamente. Si el archivo ya existe, no lo reemplaza. No hay un `.env.example` en la rama de distribución: este script prepara la configuración necesaria.
+El script pide los datos de AWS, oculta los secretos y crea un `.env` local. La contraseña de la base Docker se genera automáticamente. Si el archivo ya existe, no lo reemplaza. Se conserva `backend/.env.example` como referencia de variables para la ejecución local. No contiene credenciales reales. Para Docker, el script prepara la configuración de la raíz.
 
 No subas ese `.env` a GitHub ni lo compartas. El proyecto lo ignora. Para otro sistema operativo puedes crear un `.env` desde tu editor con estas variables: `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `AWS_REGION`, `S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` y, si corresponde, `AWS_SESSION_TOKEN`. Usa una base/usuario llamado `vitalia`, contraseña propia y valores entre comillas simples. PowerShell 7 también permite ejecutar el script en macOS/Linux: `pwsh -File ./deploy/configurar.ps1 -Modo Docker`.
 
@@ -200,7 +200,7 @@ Para probar:
 5. Entra como paciente, actualiza el historial y consulta la copia revisada, la explicación y las preguntas sobre ese examen.
 6. Comprueba también un documento sin texto y las restricciones del chat. Un indicador ficticio como Alfa no tiene un significado clínico que la IA deba inventar.
 
-La interfaz actual es funcional, pero su rediseño y accesibilidad siguen pendientes. La comparación entre exámenes y otras mejoras de fases futuras no se consideran implementadas por incluir Docker.
+La interfaz incorpora el rediseño de acceso, historial, consultas y chat de Fase 6. La validación amplia de accesibilidad y Android sigue pendiente. La comparación entre exámenes y otras mejoras de fases futuras no se consideran implementadas por incluir Docker.
 
 ## 8. Camino local, sin Docker
 
@@ -298,7 +298,7 @@ Los volúmenes conservan datos al detener los servicios. No ejecutes `docker com
 
 ## 11. Llevar esta rama al repositorio oficial
 
-Esta rama limpia se descarga del repositorio de pruebas: selecciona `distribucion/equipo-docker` → Code → Download ZIP. No incluye archivos `.env` reales, node_modules, build ni documentos de avance.
+Esta rama de entrega se descarga del repositorio de pruebas: selecciona `entrega/proyecto-con-evidencias` → Code → Download ZIP. No incluye archivos `.env` reales, node_modules ni resultados de compilación. Sí conserva los documentos de avance, correcciones y pruebas del proyecto.
 
 En GitHub Desktop abre el repositorio oficial, crea o selecciona `develop` y copia el **contenido** del ZIP extraído a la raíz de esa rama. No copies una carpeta `.git` de otro repositorio. Antes de confirmar, revisa los archivos seleccionados: no agregues tu configuración local, credenciales, dependencias descargadas ni resultados de compilación. El ZIP de GitHub no incluye `.git` ni los secretos que generaste en tu equipo.
 
