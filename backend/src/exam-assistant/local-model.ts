@@ -2,7 +2,7 @@ import {ollamaUrl} from '../runtime/local-services';
 import {educationalEvidence,applyEducationalNotes,questionIndices,KNOWLEDGE_VERSION} from './knowledge';
 import {extractionSchema,type Extraction} from '../ai/contract';
 import {type Mode,type Reply,type History,ContentPolicyError,gate,synthetic,fixed,validateReply,ASSISTANT_VERSION} from './contract';
-export const ASSISTANT_PROMPT_REVISION=9;
+export const ASSISTANT_PROMPT_REVISION=10;
 export type AssistantFailure='configuration'|'input'|'http'|'transport'|'timeout'|'response_limit'|'invalid_json'|'incomplete'|'invalid_reply'|'invalid_references'|'unsafe_content'|'chat_format'|'partial_explanation'|'invalid_definition';
 export class AssistantModelError extends Error {
  constructor(public readonly reason:AssistantFailure='transport',public readonly detail?:ContentPolicyError['category']){super('El asistente local no produjo una respuesta aceptable.');}
@@ -60,11 +60,11 @@ export function createExamAssistant(options:{model?:string;fetchImpl?:typeof fet
  };
  return async(input:Input):Promise<{reply:Reply;model:string;promptVersion:number;elapsedMs:number;generationAttempts?:number;verifiedNoteIndices?:number[];knowledgeVersion?:number}>=>{
   const started=performance.now(),deadline=started+120000;
-  const run=async(part:Input)=>{
-   try{return {...await generate(part,deadline),generationAttempts:1};}
+  const run=async(part:Input,partDeadline=deadline)=>{
+   try{return {...await generate(part,partDeadline),generationAttempts:1};}
    catch(error){
     if(!(error instanceof AssistantModelError)||error.reason!=='unsafe_content')throw error;
-    const result=await generate(part,deadline,true);
+    const result=await generate(part,partDeadline,true);
     return {...result,generationAttempts:2};
    }
   };
@@ -86,13 +86,13 @@ export function createExamAssistant(options:{model?:string;fetchImpl?:typeof fet
    const indices=unresolved.slice(offset,offset+3);
    let part;
    try {
-    part=await run({mode:'explanation',question:input.question,history:[],extraction:{examen:extraction.examen,fecha:extraction.fecha,resultados:indices.map(index=>extraction.resultados[index])}});
+    part=await run({mode:'explanation',question:input.question,history:[],extraction:{examen:extraction.examen,fecha:extraction.fecha,resultados:indices.map(index=>extraction.resultados[index])}},Math.min(deadline,performance.now()+10000));
    } catch(error) {
     // Un bloque rechazado no elimina definiciones aceptadas de otras filas.
     // Transporte, tiempo, formato y referencias siguen siendo fallos completos.
-    if(!(error instanceof AssistantModelError)||error.reason!=='unsafe_content')throw error;
-    attempts+=2;
-    for(const index of indices)definitions[index]={index,text:'El modelo no identifica con suficiente certeza el significado de este indicador.',known:false};
+    if(!(error instanceof AssistantModelError)||!['unsafe_content','timeout'].includes(error.reason))throw error;
+    attempts+=error.reason==='timeout'?1:2;
+    for(const index of indices)definitions[index]={index,text:error.reason==='timeout'?'No se pudo generar la explicación de este indicador dentro del tiempo disponible.':'El modelo no identifica con suficiente certeza el significado de este indicador.',known:false};
     continue;
    }
    attempts+=part.generationAttempts;

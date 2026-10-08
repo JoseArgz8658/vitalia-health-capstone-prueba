@@ -53,7 +53,7 @@ test('un bloque fallido impide entregar una explicación parcial',async()=>{
  };
  await expect(createExamAssistant({fetchImpl})({extraction:value,question:'Explica.',mode:'explanation',history:[]})).rejects.toMatchObject({reason:'http'});expect(calls).toBe(2);
 });
-test('todos los bloques comparten dos minutos, sin reiniciar el reloj',async()=>{
+test('bloques lentos se abortan y señalan cobertura no disponible sin esperar dos minutos',async()=>{
  jest.useFakeTimers();
  try {
   const value=extraction();value.resultados=Array.from({length:5},(_,i)=>({nombre:`Sustancia ${i}`,valor:null,unidad:null,rango_referencia:null}));
@@ -68,8 +68,11 @@ test('todos los bloques comparten dos minutos, sin reiniciar el reloj',async()=>
    return new Response(JSON.stringify({done:true,message:{content:JSON.stringify({kind:'education',answer:'Conceptos.',indices:definitions.map(item=>item.index),definitions})}}));
   });
   const promise=createExamAssistant({fetchImpl})({extraction:value,question:'Explica.',mode:'explanation',history:[]});
-  const rejected=expect(promise).rejects.toMatchObject({reason:'timeout'});
-  await jest.advanceTimersByTimeAsync(70000);await jest.advanceTimersByTimeAsync(50000);await rejected;
+  await jest.advanceTimersByTimeAsync(20000);
+  const result=await promise;
+  expect(result.reply.definitions).toHaveLength(5);
+  expect(result.reply.definitions.every(item=>!item.known&&item.text.includes('tiempo disponible'))).toBe(true);
+  expect(result.elapsedMs).toBe(20000);
   expect(calls).toBe(2);
  } finally {jest.useRealTimers();}
 });
@@ -126,3 +129,18 @@ test('bloque educativo rechazado conserva definiciones aceptadas y marca filas n
  expect(JSON.stringify(result.reply)).not.toContain('Toma hierro');
  expect(validateReply(result.reply,value,'explanation')).toEqual(result.reply);
 });
+
+ test('timeout de bloque conserva nota verificada y continúa con filas posteriores',async()=>{
+ jest.useFakeTimers();
+ try{
+  const value=extraction();value.resultados=[{nombre:'Hemoglobina',valor:null,unidad:null,rango_referencia:null},...Array.from({length:4},(_,i)=>({nombre:`Sustancia ${i}`,valor:null,unidad:null,rango_referencia:null}))];
+  const fetchImpl=jest.fn(async(_,options)=>{
+   if(fetchImpl.mock.calls.length===1)return new Promise((_,reject)=>options.signal.addEventListener('abort',()=>reject(new Error('abort')),{once:true}));
+   return new Response(JSON.stringify({done:true,message:{content:JSON.stringify({kind:'education',answer:'Conceptos.',indices:[0],definitions:[{index:0,text:'Componente del examen.',known:true}]})}}));
+  });
+  const promise=createExamAssistant({fetchImpl})({extraction:value,question:'Explica.',mode:'explanation',history:[]});
+  await jest.advanceTimersByTimeAsync(10000);const result=await promise;
+  expect(result.reply.definitions.map(item=>item.known)).toEqual([true,false,false,false,true]);
+  expect(result.verifiedNoteIndices).toEqual([0]);expect(fetchImpl).toHaveBeenCalledTimes(2);
+ }finally{jest.useRealTimers();}
+ });

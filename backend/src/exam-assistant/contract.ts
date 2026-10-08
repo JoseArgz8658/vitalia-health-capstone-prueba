@@ -67,7 +67,7 @@ export function validateReply(value:unknown,extraction:Extraction,mode:Mode):Rep
    if(item.index!==index||reply.indices[index]!==index)throw new Error('Definición inválida.');
    checkText(item.text);
    if(synthetic(extraction.resultados[index].nombre)){item.known=false;item.text='No hay información suficiente para explicar este indicador sin inventar su significado.';}
-   else if(!item.known)item.text='El modelo no identifica con suficiente certeza el significado de este indicador.';
+   else if(!item.known&&item.text!=='No se pudo generar la explicación de este indicador dentro del tiempo disponible.')item.text='El modelo no identifica con suficiente certeza el significado de este indicador.';
   });
  }
  return reply;
