@@ -1,3 +1,4 @@
+import '../../core/mensaje_vista.dart';
 import 'revision_paciente_panel.dart';
 import 'package:flutter/material.dart';
 import '../../core/auth_api.dart';
@@ -82,8 +83,7 @@ class _ProcesamientoPanelState extends State<ProcesamientoPanel> {
         const Text('La revisión fue aprobada por un profesional. Puedes consultar sus resultados.'),
       if (_status == 'requires_review')
         const Text('Los datos extraídos aún no están aprobados.'),
-      if (_error != null) Text(_error!,
-        style: TextStyle(color: Theme.of(context).colorScheme.error)),
+      if (_error != null) MensajeVista(text: _error!, icon: Icons.error_outline, error: true),
       if (!_busy && _error == null && _status != null)
         RevisionPacientePanel(key: ValueKey('${widget.documentId}:$_status'), auth: widget.auth,
           documentId: widget.documentId, onExpired: widget.onExpired, openInPage: true),

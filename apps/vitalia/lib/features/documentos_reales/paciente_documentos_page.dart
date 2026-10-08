@@ -1,3 +1,4 @@
+import '../../core/mensaje_vista.dart';
 import 'procesamiento_panel.dart';
 import 'package:flutter/material.dart';
 import '../../core/auth_api.dart';
@@ -79,11 +80,11 @@ class _PacienteDocumentosPageState extends State<PacienteDocumentosPage> {
         child: const Text('Cerrar sesión')),
     ]),
     body: SafeArea(child: SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(MediaQuery.sizeOf(context).width < 600 ? 16 : 24),
       child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 900),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(MediaQuery.sizeOf(context).width < 600 ? 16 : 24),
             decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(24)),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -102,7 +103,7 @@ class _PacienteDocumentosPageState extends State<PacienteDocumentosPage> {
           ),
           const SizedBox(height: 20),
           if (_upload)
-            Card(child: Padding(padding: const EdgeInsets.all(24),
+            Card(child: Padding(padding: EdgeInsets.all(MediaQuery.sizeOf(context).width < 600 ? 16 : 24),
               child: SubirDocumentoForm(api: _documents, onSaved: _saved,
                 onCancel: () => setState(() => _upload = false), onExpired: widget.onExpired)))
           else ...[
@@ -120,7 +121,7 @@ class _PacienteDocumentosPageState extends State<PacienteDocumentosPage> {
             const SizedBox(height: 16),
             if (_loading) const Column(children: [LinearProgressIndicator(), SizedBox(height: 8), Text('Cargando tus exámenes…')]),
             if (_error != null) Padding(padding: const EdgeInsets.only(bottom: 16),
-              child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
+              child: MensajeVista(text: _error!, icon: Icons.error_outline, error: true)),
             if (!_loading && _items.isEmpty && _error == null)
               const Card(child: Padding(padding: EdgeInsets.all(32),
                 child: Column(children: [Icon(Icons.folder_open_outlined, size: 48),

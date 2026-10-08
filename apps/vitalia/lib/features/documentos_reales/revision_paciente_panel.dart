@@ -1,3 +1,4 @@
+import '../../core/mensaje_vista.dart';
 import 'informe_fields.dart';
 import 'chat_examen_panel.dart';
 import 'explicacion_panel.dart';
@@ -59,7 +60,9 @@ class _RevisionPacientePanelState extends State<RevisionPacientePanel> {
             ),
             body: SafeArea(child: SingleChildScrollView(
               // Reserva espacio para que el botón no tape el último contenido.
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 112),
+              padding: EdgeInsets.fromLTRB(
+                MediaQuery.sizeOf(context).width < 600 ? 16 : 24, 24,
+                MediaQuery.sizeOf(context).width < 600 ? 16 : 24, 112),
               child: Center(child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 900),
                 child: RevisionPacientePanel(auth: widget.auth,
@@ -139,7 +142,7 @@ class _RevisionPacientePanelState extends State<RevisionPacientePanel> {
           : widget.autoLoad ? 'Actualizar resultados revisados' : 'Ver resultados revisados')),
       if (_busy) const Padding(padding: EdgeInsets.symmetric(vertical: 12),
         child: LinearProgressIndicator()),
-      if (_message != null) Text(_message!),
+      if (_message != null) MensajeVista(text: _message!),
       if (review != null && extraction != null) Card(child: Padding(
         padding: const EdgeInsets.all(16), child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, children: [

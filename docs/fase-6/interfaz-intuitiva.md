@@ -6,11 +6,11 @@ Objetivo: convertir los flujos actuales en una interfaz comprensible para pacien
 
 ## Orden de implementación
 - [ ] Preparar logo completo y símbolo para aplicación; revisar nitidez y márgenes.
-- [ ] Definir estilos compartidos con paleta acordada y acciones con texto e iconos.
-- [ ] Inicio e historial del paciente: acción principal clara y estados visibles.
-- [ ] Detalle de examen: original, extracción IA, copia revisada y observaciones diferenciados.
-- [ ] Profesional: pendientes y formulario de revisión, con acciones claras.
-- [ ] Chat propio con burbujas, preguntas sugeridas, indicador de espera y conservación de conversación.
+- [x] Definir estilos compartidos con paleta acordada y acciones con texto e iconos.
+- [x] Inicio e historial del paciente: acción principal clara y estados visibles.
+- [x] Detalle de examen: original, extracción IA, copia revisada y observaciones diferenciados.
+- [x] Profesional: pendientes y formulario de revisión, con acciones claras.
+- [x] Chat propio con burbujas, preguntas sugeridas, indicador de espera y conservación de conversación.
 - [ ] Probar tamaños móviles, teclado, texto ampliado y navegación web.
 - [ ] Registrar capturas y pruebas para informe de avance.
 
@@ -23,4 +23,9 @@ Mejorar mockups e interfaz; justificar asignación administrativa provisional. E
 Ver ../pendientes/ia-cobertura-rendimiento.md antes de retomar IA.
 Modelo relacional actual, ampliación de datos y documentación académica siguen pendientes; diferenciar realidad implementada de propuesta.
 
-Estado inicial: rama y plan creados; cambios visuales aún no implementados.
+## Estado del avance
+Implementadas mejoras de acceso y registro, símbolo y fondo, historial, consulta dedicada del profesional, resultados del paciente, chat dedicado y acceso flotante a IA. El usuario informó que las vistas se ven más ordenadas. Esto no equivale a una prueba completa de accesibilidad.
+
+Pendientes: iconos de instalación Android, comprobación sistemática de teclado/texto ampliado/tamaños, capturas para la entrega y ajustes derivados de las pruebas. El símbolo está preparado; no se declara completado el logo completo ni los iconos Android.
+
+Bloque CAM-068: avisos compartidos, márgenes adaptativos, estados de carga/listas vacías y tarjetas de explicación. Validación Flutter pendiente en el equipo del usuario.

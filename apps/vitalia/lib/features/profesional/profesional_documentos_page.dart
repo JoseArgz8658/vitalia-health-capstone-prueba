@@ -1,3 +1,4 @@
+import '../../core/mensaje_vista.dart';
 import 'dart:async';
 import 'revision_panel.dart';
 import 'package:flutter/material.dart';
@@ -131,7 +132,7 @@ class _ProfesionalDocumentosPageState extends State<ProfesionalDocumentosPage> {
               child: const Text('Cerrar sesión'))]),
           body: SafeArea(child: SingleChildScrollView(
             key: ValueKey('consultation-$_detailId'),
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(MediaQuery.sizeOf(context).width < 600 ? 16 : 24),
             child: Center(child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 900),
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -150,7 +151,7 @@ class _ProfesionalDocumentosPageState extends State<ProfesionalDocumentosPage> {
                 ]),
                 if (_busy) const LinearProgressIndicator(),
                 if (_error != null) Padding(padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
+                  child: MensajeVista(text: _error!, icon: Icons.error_outline, error: true)),
                 const SizedBox(height: 20),
                 ExtraccionPanel(value: _detail!),
                 const SizedBox(height: 24),
@@ -172,7 +173,7 @@ class _ProfesionalDocumentosPageState extends State<ProfesionalDocumentosPage> {
         icon: const Icon(Icons.arrow_back), tooltip: 'Volver a mis pacientes'),
       actions: [TextButton(onPressed: _blocked || widget.sessionBusy ? null : widget.onLogout,
         child: const Text('Cerrar sesión'))]),
-    body: SafeArea(child: SingleChildScrollView(padding: const EdgeInsets.all(24),
+    body: SafeArea(child: SingleChildScrollView(padding: EdgeInsets.all(MediaQuery.sizeOf(context).width < 600 ? 16 : 24),
       child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 900),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text('Paciente', style: Theme.of(context).textTheme.labelLarge),
@@ -182,9 +183,11 @@ class _ProfesionalDocumentosPageState extends State<ProfesionalDocumentosPage> {
           const Text('Consulta el archivo original y compara la extracción antes de registrar tu revisión.'),
           const SizedBox(height: 16),
           TextButton(onPressed: _blocked ? null : () => _load(_offset), child: const Text('Actualizar historial')),
-          if (_busy) const Center(child: CircularProgressIndicator()),
-          if (_error != null) Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-          if (!_busy && _items.isEmpty && _error == null) const Text('No hay exámenes en esta página.'),
+          if (_busy) const Padding(padding: EdgeInsets.symmetric(vertical: 16),
+            child: Column(children: [LinearProgressIndicator(), SizedBox(height: 8),
+              Text('Cargando la información…')])),
+          if (_error != null) MensajeVista(text: _error!, icon: Icons.error_outline, error: true),
+          if (!_busy && _items.isEmpty && _error == null) const MensajeVista(text: 'No hay exámenes en esta página.', icon: Icons.folder_open_outlined),
           ..._items.map((item) => Card(
             margin: const EdgeInsets.only(bottom: 16), elevation: 0,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -195,14 +198,14 @@ class _ProfesionalDocumentosPageState extends State<ProfesionalDocumentosPage> {
               const SizedBox(height: 8),
               Text(item.archivo),
               const SizedBox(height: 12),
-              Wrap(spacing: 8, children: [
+              Wrap(spacing: 8, runSpacing: 8, children: [
                 OutlinedButton(onPressed: _blocked || !descargaDisponible ? null : () => _download(item),
                   child: const Text('Descargar original')),
                 TextButton(onPressed: _blocked ? null : () => _consult(item),
                   child: const Text('Consultar extracción')),
               ]),
             ])))),
-          Wrap(spacing: 12, crossAxisAlignment: WrapCrossAlignment.center, children: [
+          Wrap(spacing: 12, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
             Text('Página ${_offset ~/ 20 + 1}'),
             TextButton(onPressed: _blocked || _offset == 0 ? null : () => _load(_offset - 20), child: const Text('Anterior')),
             TextButton(onPressed: _blocked || _items.length < 20 || _offset >= 10000 ? null : () => _load(_offset + 20), child: const Text('Siguiente')),
