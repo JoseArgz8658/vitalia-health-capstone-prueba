@@ -144,3 +144,22 @@ test('bloque educativo rechazado conserva definiciones aceptadas y marca filas n
   expect(result.verifiedNoteIndices).toEqual([0]);expect(fetchImpl).toHaveBeenCalledTimes(2);
  }finally{jest.useRealTimers();}
  });
+
+test('dieciséis indicadores habituales se explican sin llamar a Ollama',async()=>{
+ const names=['Glóbulos Rojos (Eritrocitos)','Hemoglobina','Hematocrito','VCM (Volumen Corpuscular Medio)','Glóbulos Blancos (Leucocitos)','Plaquetas','Glucosa en Ayunas','Urea','Creatinina','Colesterol Total','Triglicéridos','Colesterol HDL','Colesterol LDL','TGP (ALT)','TGO (AST)','Bilirrubina Total'];
+ const value=extraction();value.resultados=names.map(nombre=>({nombre,valor:null,unidad:null,rango_referencia:null}));
+ const fetchImpl=jest.fn();const result=await createExamAssistant({fetchImpl})({extraction:value,question:'Explica.',mode:'explanation',history:[]});
+ expect(fetchImpl).not.toHaveBeenCalled();expect(result.reply.definitions.every(item=>item.known)).toBe(true);
+ expect(result.verifiedNoteIndices).toEqual(names.map((_,index)=>index));expect(result.generationAttempts).toBe(0);
+});
+test('consulta actualiza definiciones disponibles de explicación antigua sin modificar respuesta guardada',()=>{
+ const {explanationView}=require('../dist/exam-assistant/contract');
+ const {questionIndices:indices}=require('../dist/exam-assistant/knowledge');
+ const value=extraction();value.resultados=[{nombre:'Glucosa en Ayunas',valor:'94',unidad:'mg/dL',rango_referencia:null},{nombre:'Sustancia desconocida',valor:null,unidad:null,rango_referencia:null}];
+ const reply={kind:'education',answer:'Conceptos.',indices:[0,1],definitions:[0,1].map(index=>({index,text:'No se pudo generar la explicación de este indicador dentro del tiempo disponible.',known:false}))};
+ const before=JSON.stringify(reply);const view=explanationView(value,reply);
+ expect(view.items[0].explanation).toContain('energía');expect(view.items[0].source).toContain('medlineplus.gov');expect(view.items[0].value).toBe('94');
+ expect(view.items[1].source).toBeNull();expect(JSON.stringify(reply)).toBe(before);
+ expect(indices('¿Qué es glucosa?',value,[])).toEqual([0]);
+ expect(indices('¿Qué es urea?',{...value,resultados:[{...value.resultados[0],nombre:'Nitrógeno ureico'}]},[])).toBeNull();
+});

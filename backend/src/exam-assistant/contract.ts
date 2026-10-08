@@ -75,7 +75,8 @@ export function validateReply(value:unknown,extraction:Extraction,mode:Mode):Rep
 export function explanationView(extraction:Extraction,reply:Reply){
  return {exam:extraction.examen,date:extraction.fecha,approved:false,notice,
   items:extraction.resultados.map((row,index)=>{
-   const item=reply.definitions[index];
+   const currentNote=educationalEvidence(extraction).find(entry=>entry.index===index);
+   const item=currentNote?{index,text:currentNote.definition,known:true}:reply.definitions[index];
    const note=educationalEvidence(extraction).find(entry=>entry.index===index&&entry.definition===item?.text&&item.known);return {index,name:row.nombre,value:row.valor,unit:row.unidad,reference:row.rango_referencia,
     concept:item?.known?'medical_general':'desconocido',explanation:item?.text??'No hay información suficiente para explicar este indicador sin inventar su significado.',source:note?.source??null};
   })};
