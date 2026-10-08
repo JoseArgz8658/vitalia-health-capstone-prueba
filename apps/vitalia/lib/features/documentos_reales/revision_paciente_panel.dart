@@ -9,7 +9,8 @@ import '../../core/auth_api.dart';
 class RevisionPacientePanel extends StatefulWidget {
   const RevisionPacientePanel({super.key, required this.auth,
     required this.documentId, required this.onExpired,
-    this.openInPage = false, this.autoLoad = false});
+    this.openInPage = false, this.autoLoad = false, this.onReviewChanged});
+  final ValueChanged<Map<String, dynamic>?>? onReviewChanged;
   final bool openInPage;
   final bool autoLoad;
   final AuthApi auth;
@@ -32,29 +33,59 @@ class _RevisionPacientePanelState extends State<RevisionPacientePanel> {
       });
     }
   }
-  void _openResults() {
+  void _openChat(Map<String, dynamic> extraction) {
     Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => Scaffold(
-        appBar: AppBar(title: const Text('Resultados de tu examen')),
-        body: SafeArea(child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Center(child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 900),
-            child: RevisionPacientePanel(auth: widget.auth,
-              documentId: widget.documentId, autoLoad: true,
-              onExpired: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
-                widget.onExpired();
-              }),
-          )),
-        )),
-      ),
-    ));
+      builder: (_) => ChatExamenPage(auth: widget.auth,
+        documentId: widget.documentId, reviewedExtraction: extraction,
+        onExpired: () {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+          widget.onExpired();
+        })));
+  }
+  Future<void> _openResults() async {
+    final reviewed = ValueNotifier<Map<String, dynamic>?>(null);
+    var active = true;
+    try {
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => ValueListenableBuilder<Map<String, dynamic>?>(
+          valueListenable: reviewed,
+          builder: (context, review, _) => Scaffold(
+            appBar: AppBar(title: const Text('Resultados de tu examen')),
+            floatingActionButton: review == null ? null : FloatingActionButton.extended(
+              onPressed: () => _openChat(review['extraction'] as Map<String, dynamic>),
+              icon: const Icon(Icons.auto_awesome_outlined),
+              label: const Text('Preguntar a la IA'),
+              tooltip: 'Abrir el chat sobre este examen',
+            ),
+            body: SafeArea(child: SingleChildScrollView(
+              // Reserva espacio para que el botón no tape el último contenido.
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 112),
+              child: Center(child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 900),
+                child: RevisionPacientePanel(auth: widget.auth,
+                  documentId: widget.documentId, autoLoad: true,
+                  onReviewChanged: (value) {
+                    if (active) reviewed.value = value;
+                  },
+                  onExpired: () {
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                    widget.onExpired();
+                  }),
+              )),
+            )),
+          ),
+        ),
+      ));
+    } finally {
+      active = false;
+      reviewed.dispose();
+    }
   }
   String visible(dynamic value) => value == null ? 'No disponible' : value.toString();
   Future<void> _load() async {
     if (_busy) return;
     setState(() { _busy = true; _review = null; _message = null; });
+    widget.onReviewChanged?.call(null);
     try {
       final response = await widget.auth.sendDocumentRequest(
         http.Request('GET', widget.auth.documentUri('${widget.documentId}/review')));
@@ -85,7 +116,10 @@ class _RevisionPacientePanelState extends State<RevisionPacientePanel> {
     } catch (_) {
       if (mounted) setState(() => _message = 'No se pudo consultar la revisión aprobada.');
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+        widget.onReviewChanged?.call(_review);
+      }
     }
   }
   @override
@@ -171,13 +205,7 @@ class _RevisionPacientePanelState extends State<RevisionPacientePanel> {
             const Divider(),
             const SizedBox(height: 16),
             FilledButton.icon(
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                builder: (_) => ChatExamenPage(auth: widget.auth,
-                  documentId: widget.documentId, reviewedExtraction: extraction,
-                  onExpired: () {
-                    Navigator.of(context).popUntil((route) => route.isFirst);
-                    widget.onExpired();
-                  }))),
+              onPressed: () => _openChat(extraction),
               icon: const Icon(Icons.auto_awesome_outlined),
               label: const Text('Preguntar a la IA'),
             ),
