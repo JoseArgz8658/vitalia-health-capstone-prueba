@@ -68,27 +68,67 @@ class _RevisionPacientePanelState extends State<RevisionPacientePanel> {
       if (review != null && extraction != null) Card(child: Padding(
         padding: const EdgeInsets.all(16), child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Resultados revisados por un profesional', style: Theme.of(context).textTheme.titleMedium),
+            Row(children: [
+              Icon(Icons.verified_outlined, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 12),
+              Expanded(child: Text('Resultados revisados por un profesional',
+                style: Theme.of(context).textTheme.titleLarge)),
+            ]),
+            const SizedBox(height: 12),
             const Text('Estos datos fueron cotejados con el documento original. No constituyen un diagnóstico ni una recomendación de tratamiento.'),
+            const SizedBox(height: 16),
             SelectableText('Examen: ${visible(extraction['examen'])}'),
             SelectableText('Fecha del examen: ${visible(extraction['fecha'])}'),
             InformeFields(value: extraction['informe']),
-            for (final row in extraction['resultados'] as List) Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8), child: Column(
+            for (final row in extraction['resultados'] as List) Container(
+              width: double.infinity,
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                border: Border.all(color: Theme.of(context).colorScheme.outline),
+                borderRadius: BorderRadius.circular(12),
+              ), child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  SelectableText(visible(row['nombre'])),
+                  SelectableText(visible(row['nombre']), style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
                   SelectableText('Valor: ${visible(row['valor'])}'),
                   SelectableText('Unidad: ${visible(row['unidad'])}'),
                   SelectableText('Rango de referencia: ${visible(row['rango_referencia'])}'),
                   if (row.containsKey('estado_documento')) SelectableText('Estado transcrito del documento: ${visible(row['estado_documento'])}'),
                 ])),
-            const Text('Observaciones del profesional'),
-            SelectableText((review['observations'] as String).isEmpty
-              ? 'Sin observaciones registradas.' : review['observations'] as String),
-            Text('Revisión registrada: ${_date(review['reviewedAt'] as String)}'),
+            const SizedBox(height: 16),
+            Container(width: double.infinity, padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(16),
+              ), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Icon(Icons.medical_information_outlined),
+                const SizedBox(height: 8),
+                Text('Observaciones del profesional', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 8),
+                SelectableText((review['observations'] as String).isEmpty
+                  ? 'Sin observaciones registradas.' : review['observations'] as String),
+                const SizedBox(height: 12),
+                Text('Revisión registrada: ${_date(review['reviewedAt'] as String)}'),
+              ])),
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 16),
+            Row(children: [
+              const Icon(Icons.auto_awesome_outlined),
+              const SizedBox(width: 12),
+              Expanded(child: Text('Espacio de IA', style: Theme.of(context).textTheme.titleLarge)),
+            ]),
+            const SizedBox(height: 8),
+            const Text('Las explicaciones y respuestas siguientes son educativas. No forman parte de la aprobación profesional.'),
+            const SizedBox(height: 16),
             ExplicacionPanel(key: ValueKey('${widget.documentId}:${review['reviewedAt']}'),
               auth: widget.auth, documentId: widget.documentId, reviewedExtraction: extraction,
               onExpired: widget.onExpired),
+            const SizedBox(height: 20),
+            const Divider(),
+            const SizedBox(height: 16),
             ChatExamenPanel(key: ValueKey('chat:${widget.documentId}:${review['reviewedAt']}'),
               auth: widget.auth, documentId: widget.documentId, reviewedExtraction: extraction,
               onExpired: widget.onExpired),
