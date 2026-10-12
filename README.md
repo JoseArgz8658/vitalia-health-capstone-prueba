@@ -1,12 +1,18 @@
-# Vitalia Health — instalación y uso
+# Vitalia Health: instalación y pruebas en Windows
 
-Esta rama reúne el proyecto para compartirlo con el equipo y llevarlo al repositorio oficial. Conserva la aplicación Flutter para web y Android, el backend, las migraciones, Docker, las pruebas y la documentación de avances y correcciones de cada fase. Los registros técnicos están en `docs/avance` y `docs/cambios-codigo`; el modelo actual y la ampliación propuesta están en `docs/base-datos`.
+Esta guía está pensada para los computadores Windows del equipo. Todos los comandos se ejecutan en PowerShell. Conservamos Flutter para web y Android, backend, migraciones, pruebas y documentos de avance. Los cambios por fase están en `docs/avance` y `docs/cambios-codigo`.
 
-El proyecto permite registrar pacientes, subir documentos, solicitar su extracción, revisar los datos como profesional y hacer preguntas sobre el examen revisado. Las respuestas de IA no son diagnósticos, recetas ni aprobación profesional. Para las pruebas usemos documentos ficticios.
+Trabajamos con documentos ficticios. La extracción queda pendiente de revisión profesional y las respuestas educativas del asistente no constituyen diagnóstico ni tratamiento.
 
-Docker prepara el backend, PostgreSQL y Ollama en contenedores. No instala Android Studio ni crea un emulador. Tampoco incluye las credenciales de AWS: S3 sigue siendo un servicio externo. Cada equipo tiene su propia base de datos; descargar el proyecto no copia las cuentas que creó José.
+## 1. Elegir cómo ejecutar el proyecto
 
-## 1. Qué necesitamos instalar
+- **Con Docker:** Docker Desktop prepara PostgreSQL, API, procesador y Ollama. Flutter y Android Studio se instalan en Windows.
+- **Sin Docker:** instalamos PostgreSQL, Node.js y Ollama en Windows, y arrancamos API y procesador en terminales separadas.
+- **AWS S3:** usamos el bucket de pruebas compartido del equipo en ambos caminos. Cada integrante utiliza su propio acceso autorizado.
+
+No ejecutes los dos caminos simultáneamente en los mismos puertos. Docker crea una base independiente de la que ya tienes instalada en Windows. Descargar GitHub no copia los datos de José.
+
+## 2. Herramientas
 
 | Herramienta | Cuándo es necesaria | Descarga y versión |
 | --- | --- | --- |
@@ -20,71 +26,111 @@ Docker prepara el backend, PostgreSQL y Ollama en contenedores. No instala Andro
 | Git o GitHub Desktop | Opcional si descargamos ZIP; necesario para trabajar con ramas y subir cambios | [Git](https://git-scm.com/downloads), [GitHub Desktop](https://desktop.github.com/download/). |
 | Acceso autorizado a AWS S3 | Obligatorio para el flujo real de documentos, con Docker o sin él | [Consola S3](https://console.aws.amazon.com/s3/). Bucket privado y credenciales propias/autorizadas. |
 
-Para este entorno recomiendo 16 GB de RAM y espacio libre para Docker, el modelo y el emulador. Es una recomendación del proyecto, no una garantía de funcionamiento en cualquier computador. La IA puede ser más lenta en CPU y tiene límite de tiempo. Una GPU NVIDIA compatible ayuda; no es obligatoria para arrancar Docker. Una primera instalación requiere Internet para descargar dependencias e imágenes. S3 requiere conexión también durante el uso.
 
-En Windows, si Docker pide WSL, abre PowerShell como administrador y ejecuta:
+Usamos Flutter 3.44.6, Dart 3.12.2 y Node 24 en el equipo de desarrollo. Las versiones de imágenes están fijadas en Dockerfile y Compose. Una primera instalación requiere Internet. Es recomendable contar con 16 GB de RAM y espacio para Docker, el modelo y el emulador. El rendimiento de IA depende del computador y sigue sujeto a evaluación.
+
+## 3. Descargar la rama
+
+En GitHub Desktop selecciona `entrega/proyecto-con-evidencias` del repositorio de pruebas y pulsa Fetch origin y Pull origin. También puedes descargar Code > Download ZIP.
+
+Para una descarga nueva desde PowerShell:
+
+```powershell
+git clone --branch entrega/proyecto-con-evidencias --single-branch https://github.com/JoseArgz8658/vitalia-health-capstone-prueba.git
+cd vitalia-health-capstone-prueba
+```
+
+La raíz es la carpeta con `README.md`, `compose.yaml`, `backend` y `apps`. En GitHub privado necesitas tener acceso autorizado. Cuando esta entrega esté publicada en el repositorio oficial, podrás seleccionar allí la rama acordada.
+
+## 4. Docker Desktop y WSL 2 en Windows
+
+Instala Docker Desktop y utiliza el motor WSL 2 con contenedores Linux. Windows sigue siendo el sistema del equipo. No hace falta trabajar desde una terminal de Ubuntu.
+
+Si WSL no está preparado, abre PowerShell **como administrador**:
 
 ```powershell
 wsl --install
 wsl --update
 ```
 
-Reinicia si lo solicita. Abre Docker Desktop y espera a que el motor esté funcionando. Luego, en una terminal nueva:
+Reinicia si Windows lo solicita. Abre Docker Desktop y espera a que arranque el motor.
+
+### Si Docker no arranca por virtualización o componentes de Windows
+
+En el equipo de José, habilitar estos componentes y reiniciar resolvió el problema. Son pasos de recuperación para ese tipo de fallo, no una solución universal a cualquier error de Docker.
+
+Comprueba en Administrador de tareas > Rendimiento > CPU que la virtualización esté habilitada. Si está deshabilitada, debes habilitarla desde BIOS/UEFI siguiendo las instrucciones del fabricante.
+
+En PowerShell **como administrador**:
+
+```powershell
+dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
+dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+bcdedit /set hypervisorlaunchtype auto
+wsl --update
+```
+
+Reinicia el computador. Abre otra vez Docker Desktop. Los comandos DISM con `/norestart` no reinician por sí solos. En un equipo institucional, estos cambios pueden requerir autorización del administrador.
+
+### Comprobar antes de continuar
+
+En PowerShell normal:
 
 ```powershell
 docker --version
 docker compose version
-flutter --version
+docker compose version --short
+docker info --format '{{.OSType}}'
+wsl --status
 ```
 
-Si un comando no se reconoce, revisa su instalación y PATH y abre otra terminal. No necesitamos Visual Studio con C++ para probar web o Android.
+Esperamos una versión de Compose, `linux` como tipo de contenedores y WSL 2. Si Compose no muestra versión, ejecuta `docker compose --help` y revisa Docker Desktop antes de continuar. No se considera validado solo porque el comando no imprimió un error.
 
-## 2. Descargar y abrir el proyecto
+Referencias: [instalación Docker en Windows](https://docs.docker.com/desktop/setup/install/windows-install/), [problemas de virtualización](https://docs.docker.com/desktop/troubleshoot-and-support/troubleshoot/topics/), [componentes WSL](https://learn.microsoft.com/es-es/windows/wsl/install-manual).
 
-En GitHub selecciona la rama de aplicación que corresponda, pulsa Code → Download ZIP y extrae el contenido. También puedes clonar el repositorio del equipo:
+## 5. Acceso al bucket S3 del equipo
 
-```powershell
-git clone https://github.com/JoseArgz8658/vitalia-health-capstone.git
-cd vitalia-health-capstone
-git switch develop
-```
+José invitó al equipo al acceso de AWS. **No debemos crear otro bucket para seguir esta guía.** Necesitamos confirmar que la cuenta o rol asignado tenga permisos sobre el bucket de pruebas.
 
-Estos comandos de `develop` se usan después de que José haya copiado y publicado la aplicación en esa rama del repositorio oficial. Mientras tanto, descarga la rama `entrega/proyecto-con-evidencias` del repositorio de pruebas.
+José debe comunicar por el canal del equipo:
+- Nombre exacto del bucket y región.
+- Portal o método de inicio de sesión y cuenta/rol asignado.
+- Permisos de pruebas y coordinación para no borrar archivos de otros integrantes.
 
-Abre la carpeta donde están `compose.yaml`, `README.md`, `backend` y `apps`. Esa es la raíz del proyecto. Todos los comandos siguientes parten desde ahí, salvo cuando se indica `cd backend` o `cd apps\vitalia`.
+Cada persona acepta su invitación y entra con su propia identidad. Poder abrir la consola no garantiza que la API tenga credenciales ni todos los permisos necesarios.
 
-## 3. Preparar S3
+El script actual pide `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` y, para sesiones temporales, `AWS_SESSION_TOKEN`. Si el acceso es IAM Identity Center, utiliza el apartado de acceso programático del portal para obtener las credenciales temporales de tu propio rol. No necesitas crear claves permanentes de un usuario IAM. Cuando expiran, hay que renovar la configuración local.
 
-Antes de iniciar la API necesitamos una región, un bucket y credenciales autorizadas para ese bucket. Docker no crea recursos de AWS ni transfiere los del desarrollador.
+Si el portal no ofrece acceso programático o el rol no tiene permisos, consulta al responsable de AWS. No uses claves de otra persona.
 
-Si el equipo ya te proporcionó acceso a un bucket de pruebas, usa tus credenciales autorizadas. No copies credenciales de otra persona del repositorio. Si crearás el tuyo:
+El backend necesita permisos sobre el bucket para ListBucket y comprobaciones de seguridad, y sobre `patients/*` para PutObject, GetObject y DeleteObject. El bucket permanece privado y con ACL deshabilitadas. Tener acceso general a AWS no prueba que estos permisos estén concedidos.
 
-1. En la consola de AWS abre S3 → Create bucket.
-2. Selecciona un bucket de propósito general y una región; por ejemplo, `us-east-2`.
-3. El nombre debe ser único. Escríbelo sin espacios; evita poner datos personales.
-4. Conserva **Block all public access** activado y **Object Ownership: Bucket owner enforced**, con ACL deshabilitadas.
-5. Usa cifrado SSE-S3 y crea el bucket.
-6. Pide al administrador de tu cuenta un acceso programático con permisos para el bucket de pruebas. Si tu cuenta institucional prohíbe crear usuarios o claves, esa restricción no se soluciona con Docker.
+Con Docker, la configuración está en `.env` de la raíz. Sin Docker, en `backend/.env`. No compartas esos archivos ni publiques credenciales en capturas.
 
-Los permisos usados por la aplicación son: `s3:ListBucket`, `s3:GetBucketPublicAccessBlock`, `s3:GetBucketOwnershipControls`, `s3:GetBucketPolicyStatus` sobre ese bucket, y `s3:PutObject`, `s3:GetObject`, `s3:DeleteObject` sobre su prefijo `patients/*`. El administrador debe limitar la política al ARN de ese bucket. [Guía oficial de creación](https://docs.aws.amazon.com/AmazonS3/latest/userguide/create-bucket-overview.html) y [bloqueo público](https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html).
+[Acceso programático y credenciales AWS](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-authentication.html).
 
-Necesitarás AWS Access Key ID y AWS Secret Access Key. Si son credenciales temporales, también AWS Session Token; cuando caduquen hay que renovarlas. No se incluyen en esta rama. Los recursos de AWS pueden tener costo según la cuenta y su uso.
+## 6. Ejecutar con Docker
 
-## 4. Camino recomendado: servicios con Docker
-
-### Crear la configuración
-
-Desde la raíz, en PowerShell:
+Desde la raíz del proyecto:
 
 ```powershell
+Test-Path .env
+Test-Path backend\.env
 powershell -NoProfile -ExecutionPolicy Bypass -File .\deploy\configurar.ps1 -Modo Docker
 ```
 
-El script pide los datos de AWS, oculta los secretos y crea un `.env` local. La contraseña de la base Docker se genera automáticamente. Si el archivo ya existe, no lo reemplaza. Se conserva `backend/.env.example` como referencia de variables para la ejecución local. No contiene credenciales reales. Para Docker, el script prepara la configuración de la raíz.
+El script crea `.env` en la raíz y genera la contraseña del PostgreSQL Docker. No modifica `backend/.env`. Si el archivo de destino ya existe, se detiene para no sobrescribirlo. Usa región y bucket compartidos y tus credenciales autorizadas.
 
-No subas ese `.env` a GitHub ni lo compartas. El proyecto lo ignora. Para otro sistema operativo puedes crear un `.env` desde tu editor con estas variables: `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `AWS_REGION`, `S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` y, si corresponde, `AWS_SESSION_TOKEN`. Usa una base/usuario llamado `vitalia`, contraseña propia y valores entre comillas simples. PowerShell 7 también permite ejecutar el script en macOS/Linux: `pwsh -File ./deploy/configurar.ps1 -Modo Docker`.
+Antes de arrancar:
 
-### Iniciar la base y descargar el modelo
+```powershell
+docker compose config --quiet
+docker compose config --services
+```
+
+No compartas la salida de `docker compose config` sin `--quiet`: puede mostrar secretos.
+
+Arranca la base y descarga el modelo:
 
 ```powershell
 docker compose up -d postgres ollama
@@ -92,11 +138,9 @@ docker compose exec ollama ollama pull qwen3:4b-instruct
 docker compose exec ollama ollama list
 ```
 
-Espera a que termine la descarga. Ollama dentro de Docker guarda sus modelos en un volumen propio; no utiliza automáticamente los que ya tienes instalados en Windows.
+El modelo de Docker se guarda en su propio volumen. No utiliza automáticamente el modelo instalado en Windows.
 
-### Iniciar API y procesador
-
-Si tienes `npm start`, `npm run worker` o Flutter web abiertos de una prueba local anterior, detén esas terminales con Ctrl+C antes de utilizar los mismos puertos.
+Detén con Ctrl+C las terminales anteriores de API, worker o Flutter si van a usar los mismos puertos. Después:
 
 ```powershell
 docker compose up -d --build api worker
@@ -104,17 +148,11 @@ docker compose ps -a
 docker compose logs --tail 40 migrate api worker
 ```
 
-`migrate` aplica las migraciones en orden; debe terminar con código 0. API y worker arrancan después. La base, las cuentas y la conversación permanecen en el volumen local. La API debe indicar que inició y el worker que el procesador automático está activo. PostgreSQL y Ollama no tienen puertos publicados al exterior; la API se publica solamente en `127.0.0.1:3000`.
+`migrate` debe finalizar con código 0. La API debe iniciar y el worker debe indicar que espera trabajos. El worker se mantiene activo, aunque no haya solicitudes. PostgreSQL y Ollama no publican puertos en este Compose. La API utiliza `127.0.0.1:3000`.
 
-El procesador toma las solicitudes pendientes de la aplicación, de una en una. Debes seguir pulsando el botón para solicitar extracción: subir el archivo por sí solo no autoriza su procesamiento. El original de S3 se conserva y los datos extraídos quedan pendientes de revisión profesional.
+### GPU NVIDIA opcional
 
-Si el procesador se interrumpe y se reinicia, marca el trabajo que quedó en proceso como fallido. No lo vuelve a enviar automáticamente a la IA ni altera una revisión aprobada. Para repetir una prueba, sube una copia ficticia nueva y solicita la extracción. Los trabajos fallidos o rechazados no se repiten indefinidamente.
-
-### GPU NVIDIA, opcional
-
-En Windows necesitas Docker con WSL 2 y controladores NVIDIA compatibles. En Linux necesitas el NVIDIA Container Toolkit. [Guía Docker para GPU](https://docs.docker.com/compose/how-tos/gpu-support/) y [GPU en Windows](https://docs.docker.com/desktop/features/gpu/).
-
-Para usar la configuración GPU desde el principio, reemplaza los comandos de `up` anteriores por:
+Solo para equipos con GPU y controladores compatibles con Docker y WSL 2:
 
 ```powershell
 docker compose -f compose.yaml -f compose.gpu.yaml up -d postgres ollama
@@ -122,94 +160,21 @@ docker compose exec ollama ollama pull qwen3:4b-instruct
 docker compose -f compose.yaml -f compose.gpu.yaml up -d --build api worker
 ```
 
-Si tu equipo no tiene una GPU compatible, usa el camino normal con CPU. No habilites la configuración GPU sin soporte en tu equipo.
+Usa ambos archivos también en posteriores arranques si elegiste GPU. Sin GPU, utiliza los comandos normales. [GPU en Docker Desktop Windows](https://docs.docker.com/desktop/features/gpu/).
 
-## 5. Verlo en web
+## 7. Ejecutar sin Docker
 
-Elige una de estas dos opciones; ambas utilizan la API de Docker o la API local en el mismo puerto.
+Instala Node 24, PostgreSQL 16, Ollama y Flutter. Crea una base de pruebas y un usuario autorizado en PostgreSQL. El script no crea la base ni el usuario.
 
-### Web de desarrollo con Flutter
-
-En otra terminal:
-
-```powershell
-cd apps\vitalia
-flutter pub get
-flutter run -d edge --web-hostname localhost --web-port 5173 --dart-define=VITALIA_API_URL=http://127.0.0.1:3000
-```
-
-Se abrirá Edge. La URL es `http://localhost:5173`. Mantén abierta la terminal de Flutter. Usa siempre ese nombre y puerto: el backend restringe el origen web. En macOS/Linux usa `-d chrome` si tienes Chrome instalado.
-
-### Web compilada servida por Docker
-
-Desde la raíz, con Flutter instalado:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\deploy\crear-web.ps1
-docker compose --profile web up -d web
-```
-
-Abre `http://localhost:5173`. Para recompilar después de cambios, repite el script. No ejecutes simultáneamente Flutter de desarrollo y el servicio `web`: ambos usan el puerto 5173. Si no usas PowerShell, el equivalente es `cd apps/vitalia`, `flutter pub get`, `flutter build web --dart-define=VITALIA_API_URL=http://127.0.0.1:3000`, volver a la raíz y ejecutar Compose.
-
-## 6. Probar Android con emulador
-
-1. Instala Android Studio y ejecuta su asistente inicial.
-2. Abre SDK Manager e instala el SDK que indique `flutter doctor`, Android SDK Platform-Tools, Command-line Tools y Android Emulator.
-3. En Device Manager → Create Virtual Device elige **Pixel 3a** o **Pixel 6**. Pixel 3a sirve para probar una pantalla pequeña; Pixel 6 ofrece otra resolución. No es necesario un emulador de televisión.
-4. Recomiendo una imagen estable **Android 15 / API 35** para la prueba inicial, y después probar también API 36. En un PC Intel/AMD elige x86_64; en un equipo ARM elige una imagen compatible con su arquitectura. Estas son recomendaciones de prueba, no requisitos del nombre del teléfono.
-5. Descarga la imagen y arranca el emulador. [Guía oficial de dispositivos virtuales](https://developer.android.com/studio/run/managing-avds).
-6. En una terminal nueva:
-
-```powershell
-cd apps\vitalia
-flutter doctor --android-licenses
-flutter doctor
-flutter pub get
-flutter devices
-```
-
-Si aparece `emulator-5554`, ejecuta:
-
-```powershell
-flutter run -d emulator-5554 --dart-define=VITALIA_API_URL=http://10.0.2.2:3000
-```
-
-Si el identificador es otro, utiliza el que te mostró `flutter devices`. `10.0.2.2` permite al emulador llegar al computador anfitrión; `localhost` dentro del emulador apunta al propio emulador. El backend debe seguir activo. La carpeta Android ya está incluida: no hay que ejecutar antiguos scripts de preparación.
-
-Estas instrucciones son para **debug y emulador**. Un teléfono físico necesita una dirección accesible desde ese teléfono y una configuración de red segura; este Compose publica solo en loopback. Un APK de producción requiere HTTPS, firma y configuración de despliegue. No uses la dirección de emulador como servidor de producción.
-
-## 7. Crear cuentas y probar el flujo
-
-Los pacientes se registran desde la pantalla de la aplicación. Administrador y profesional se crean desde terminal; no se permite escoger esos roles en el registro público.
-
-Con la API Docker activa, desde la raíz:
-
-```powershell
-docker compose exec api node dist/database/create-privileged-account.js --role administrador --email admin@example.invalid
-docker compose exec api node dist/database/create-privileged-account.js --role profesional --email profesional@example.invalid
-```
-
-Cada comando pide una contraseña de al menos 12 caracteres y su confirmación, sin mostrarla. Usa después esos correos y contraseñas en la pantalla normal de inicio de sesión. No hay una contraseña predeterminada.
-
-Para probar:
-
-1. Registra un paciente y sube un PDF o imagen ficticia con texto.
-2. Solicita la extracción. El procesador automático debería tomar la solicitud; actualiza el estado después de esperar.
-3. Entra como administrador y asigna ese paciente al profesional.
-4. Entra como profesional, abre al paciente asignado, compara los datos con el documento original, corrige si hace falta y registra la revisión/observación.
-5. Entra como paciente, actualiza el historial y consulta la copia revisada, la explicación y las preguntas sobre ese examen.
-6. Comprueba también un documento sin texto y las restricciones del chat. Un indicador ficticio como Alfa no tiene un significado clínico que la IA deba inventar.
-
-La interfaz incorpora el rediseño de acceso, historial, consultas y chat de Fase 6. La validación amplia de accesibilidad y Android sigue pendiente. La comparación entre exámenes y otras mejoras de fases futuras no se consideran implementadas por incluir Docker.
-
-## 8. Camino local, sin Docker
-
-Instala Node 24 LTS, PostgreSQL 16, Ollama y Flutter. En pgAdmin crea una base de pruebas y utiliza un usuario autorizado para aplicar migraciones. El script de configuración no crea la base ni el usuario PostgreSQL.
-
-Desde la raíz:
+Si ya tienes `backend/.env` funcionando, consérvalo y omite la generación. Para una instalación nueva, desde la raíz:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\deploy\configurar.ps1 -Modo Local
+```
+
+`backend/.env.example` sirve como referencia sin secretos. Para iniciar la API:
+
+```powershell
 cd backend
 npm ci
 npm run build
@@ -220,90 +185,198 @@ ollama pull qwen3:4b-instruct
 npm start
 ```
 
-Deja esa terminal abierta. En otra terminal, desde la raíz:
+En otra terminal desde la raíz:
 
 ```powershell
 cd backend
 npm run worker
 ```
 
-En otra terminal, ejecuta Flutter como en web o Android. No ejecutes el antiguo comando manual `process-document --apply` mientras el procesador automático esté activo: ambos utilizan el mismo bloqueo exclusivo.
-
-Si PostgreSQL está detenido en Windows, abre PowerShell como administrador, verifica el nombre del servicio y arráncalo:
+No ejecutes el procesador manual mientras el worker esté activo. Para PostgreSQL detenido, en PowerShell administrador:
 
 ```powershell
 Get-Service *postgres*
 net start postgresql-x64-16
 ```
 
-Ese nombre corresponde a la instalación usada en desarrollo; si tu servicio tiene otro nombre, usa el que muestra `Get-Service`. Si Ollama no está activo, abre otra terminal y ejecuta `ollama serve`; si informa que el puerto ya está ocupado y `ollama list` funciona, ya estaba activo.
+Verifica el nombre real del servicio. Para Ollama detenido, abre otra terminal con `ollama serve`. Si el puerto ya está ocupado y `ollama list` funciona, ya existe un servidor.
 
-Para crear cuentas privilegiadas localmente:
+## 8. Abrir la web
+
+Con API y worker activos, desde la raíz en otra terminal:
+
+```powershell
+cd apps\vitalia
+flutter pub get
+flutter run -d edge --web-hostname localhost --web-port 5173 --dart-define=VITALIA_API_URL=http://127.0.0.1:3000
+```
+
+Abre `http://localhost:5173`. Mantén la terminal abierta. Para web compilada con Docker, desde la raíz:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\deploy\crear-web.ps1
+docker compose --profile web up -d web
+```
+
+Elige una opción. Ambas usan el puerto 5173 y no deben arrancar simultáneamente.
+
+## 9. Android en Windows
+
+En Android Studio abre Device Manager y crea un emulador Pixel 3a o Pixel 6. Para la primera prueba, usa Android 15 / API 35 con arquitectura compatible con tu PC, normalmente x86_64 en Intel/AMD. El SDK definitivo depende de `flutter doctor` y del proyecto. Prueba más tamaños y versiones antes de afirmar compatibilidad completa.
+
+Arranca el emulador y ejecuta, desde `apps\vitalia`:
+
+```powershell
+flutter doctor --android-licenses
+flutter doctor
+flutter pub get
+flutter devices
+flutter run -d emulator-5554 --dart-define=VITALIA_API_URL=http://10.0.2.2:3000
+```
+
+Usa el identificador que devuelva `flutter devices` si es diferente. `10.0.2.2` conecta el emulador al anfitrión Windows. Esta guía corresponde a debug y emulador. Un teléfono físico o APK productivo necesita dirección accesible, HTTPS, firma y configuración específica.
+
+## 10. Cuentas y recorrido de prueba
+
+Para una base nueva, el paciente se registra en la app. Administrador y profesional se crean desde terminal con contraseña propia, sin selector público de roles.
+
+Con Docker, desde la raíz:
+
+```powershell
+docker compose exec api node dist/database/create-privileged-account.js --role administrador --email admin@example.invalid
+docker compose exec api node dist/database/create-privileged-account.js --role profesional --email profesional@example.invalid
+```
+
+Sin Docker, desde `backend`:
 
 ```powershell
 node --env-file=.env dist/database/create-privileged-account.js --role administrador --email admin@example.invalid
 node --env-file=.env dist/database/create-privileged-account.js --role profesional --email profesional@example.invalid
 ```
 
-## 9. Pruebas y cierre del entorno
+Los comandos piden contraseña y confirmación. Para probar:
+1. El paciente sube un documento ficticio con texto y solicita extracción.
+2. El worker procesa y guarda el resultado pendiente de revisión.
+3. El administrador asigna paciente al profesional en el flujo actual de pruebas.
+4. El profesional coteja el original, corrige si corresponde y aprueba una copia revisada.
+5. El paciente consulta resultados, explicación y chat del examen.
+6. Comprueba también una imagen sin texto y una solicitud de tratamiento que el asistente debe rechazar.
 
-Backend sin instalar Node en el anfitrión:
+La elección del médico por el paciente, perfiles completos y atención multiclínica siguen pendientes de implementación. No se consideran disponibles por tener un diagrama propuesto.
+
+## 11. Compartir los datos actuales de PostgreSQL
+
+### Opción A: una copia por integrante
+
+Cada uno restaura una copia y prueba sin depender del computador de José. Los cambios no se sincronizan entre copias. Para un entorno vacío usa las migraciones; para conservar datos de prueba usa un respaldo completo.
+
+El respaldo incluye cuentas, hashes de contraseña, sesiones y conversaciones si existen. Antes de compartirlo, revisa los datos y prepara una copia exclusivamente de pruebas. No publiques un respaldo en GitHub ni compartas contraseñas personales. Los archivos PDF e imágenes siguen en S3 y no forman parte del respaldo PostgreSQL.
+
+Detén API y worker durante la preparación para evitar nuevos trabajos y usa una ventana sin procesos activos. Los documentos apuntarán al bucket original. **No borres documentos desde una copia restaurada que comparte S3**, porque podría eliminar el objeto que usa el resto del equipo. Para pruebas destructivas utiliza documentos y cuentas exclusivos o un entorno de almacenamiento separado.
+
+Exportación desde PostgreSQL Windows, ejemplo con base `vitalia_dev`. Comprueba nombre, usuario y puerto con tu configuración local. El archivo queda fuera del repositorio:
+
+```powershell
+$pgBin = 'C:\Program Files\PostgreSQL\16\bin'
+$backupDir = Join-Path $env:USERPROFILE 'VitaliaBackups'
+New-Item -ItemType Directory -Force -Path $backupDir | Out-Null
+$backupFile = Join-Path $backupDir 'vitalia-pruebas.backup'
+if (Test-Path $backupFile) { throw 'El respaldo ya existe. Usa otro nombre.' }
+& "$pgBin\pg_dump.exe" -h 127.0.0.1 -p 5432 -U vitalia -W -d vitalia_dev --format=custom --file=$backupFile
+if ($LASTEXITCODE -ne 0) { throw 'El respaldo no terminó correctamente.' }
+```
+
+`-W` pide la contraseña sin escribirla en el comando. Si el usuario de tu base tiene otro nombre, cambia `vitalia`. Comparte únicamente el respaldo revisado por un canal privado autorizado.
+
+**Restauración local del compañero:** en pgAdmin crea una base nueva y vacía, por ejemplo `vitalia_equipo`, con un propietario autorizado. No restaura encima de la base que ya usa. Después:
+
+```powershell
+$pgBin = 'C:\Program Files\PostgreSQL\16\bin'
+$backupFile = Join-Path $env:USERPROFILE 'VitaliaBackups\vitalia-pruebas.backup'
+& "$pgBin\pg_restore.exe" -h 127.0.0.1 -p 5432 -U vitalia -W -d vitalia_equipo --no-owner --no-privileges --single-transaction --exit-on-error $backupFile
+if ($LASTEXITCODE -ne 0) { throw 'La restauración falló.' }
+```
+
+El compañero debe usar su propio usuario existente si no se llama `vitalia`. Actualiza `backend/.env` con esa base y usuario. Compila y ejecuta las comprobaciones de conexión antes de iniciar API y worker. El respaldo completo ya contiene migraciones aplicadas y sus registros.
+
+**Restauración en Docker:** únicamente si el PostgreSQL del Compose tiene la base de destino vacía y API, worker y migrate todavía no se ejecutaron. No hagas este paso si ya tiene tablas. Copia el respaldo y restaura mediante el ejecutable del contenedor, evitando redirecciones binarias de PowerShell:
+
+```powershell
+$backupFile = Join-Path $env:USERPROFILE 'VitaliaBackups\vitalia-pruebas.backup'
+$pgContainer = docker compose ps -q postgres
+if (-not $pgContainer) { throw 'PostgreSQL Docker no está iniciado.' }
+docker cp $backupFile "${pgContainer}:/tmp/vitalia-pruebas.backup"
+docker compose exec postgres sh -c 'pg_restore --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --no-owner --no-privileges --single-transaction --exit-on-error /tmp/vitalia-pruebas.backup'
+if ($LASTEXITCODE -ne 0) { throw 'La restauración falló.' }
+docker compose exec postgres rm /tmp/vitalia-pruebas.backup
+```
+
+Los dos últimos comandos llaman a herramientas dentro del contenedor Linux desde PowerShell Windows. Después inicia migrate, API y worker con el procedimiento Docker. No borres volúmenes para vaciar una base existente.
+
+### Opción B: una base central para el equipo
+
+Todos consultan los mismos datos y los cambios se ven en la misma base. El servidor debe estar encendido y accesible. Estar en casas distintas no permite conectarse al `localhost` de José.
+
+Hace falta una red privada o túnel autorizado, usuarios individuales con permisos limitados, configuración de PostgreSQL (`listen_addresses`, `pg_hba.conf`) y firewall restringido. No publiques el puerto 5432 del computador directamente en Internet ni compartas la cuenta superusuario.
+
+El Compose actual fija `PGHOST=postgres`. Cambiar solo el `.env` no lo conecta a un PostgreSQL remoto. Esta opción requiere otra configuración y todavía no está preparada por este manual.
+
+Para las pruebas iniciales, utilicemos copias de datos ficticios y coordinemos S3. La base central se puede preparar después como entorno de integración del equipo.
+
+[Respaldo PostgreSQL 16](https://www.postgresql.org/docs/16/app-pgdump.html) y [restauración](https://www.postgresql.org/docs/16/app-pgrestore.html).
+
+## 12. Pruebas, parada y problemas comunes
+
+Backend local, desde `backend`:
+
+```powershell
+npm ci
+npm test
+```
+
+Backend con Docker, desde la raíz:
 
 ```powershell
 docker build --target test -t vitalia-backend-test ./backend
 ```
 
-Eso construye una etapa con dependencias de prueba y ejecuta Jest. La imagen normal de API no incluye herramientas de desarrollo. Si tienes Node instalado:
+Flutter, desde `apps\vitalia`:
 
 ```powershell
-cd backend
-npm ci
-npm test
-```
-
-Flutter:
-
-```powershell
-cd apps\vitalia
 flutter analyze
 flutter test
 ```
 
-Para detener Docker desde la raíz:
+Para detener Docker sin eliminar datos:
 
 ```powershell
 docker compose --profile web stop
 ```
 
-Para iniciarlo otro día:
+Para volver a iniciar:
 
 ```powershell
 docker compose up -d api worker
 ```
 
-Si usabas GPU, incluye los dos archivos Compose como se indicó antes. Si usabas la web compilada, inicia también `docker compose --profile web up -d web`.
+Si usabas GPU, incluye ambos Compose. Si usabas web compilada, inicia también `docker compose --profile web up -d web`. **No uses `docker compose down -v` para conservar datos:** elimina volúmenes PostgreSQL y Ollama.
 
-Los volúmenes conservan datos al detener los servicios. No ejecutes `docker compose down -v` si quieres conservar cuentas y trabajos: ese comando elimina los volúmenes de PostgreSQL y Ollama. Los documentos S3 no se borran con ese comando.
+- Servidor no disponible: revisa API, puerto 3000 y origen web localhost:5173.
+- Extracción pendiente: revisa logs del worker y modelo instalado. Una subida no inicia procesamiento sin la solicitud actual.
+- Credenciales S3 vencidas: renueva tu sesión, actualiza tu configuración local y recrea API/worker. Nunca envíes los valores al chat.
+- Puerto ocupado: detén el proceso anterior. No arranques ambos caminos simultáneamente.
+- Cambiar PGPASSWORD en .env no cambia la contraseña de un volumen PostgreSQL existente.
+- Trabajo fallido: actualizar solo consulta. El worker no repite trabajos indefinidamente ni modifica revisiones aprobadas.
+- Tras un reinicio del worker, un trabajo interrumpido puede quedar fallido. Utiliza una copia ficticia nueva para otra prueba.
 
-## 10. Si algo no funciona
+## 13. Evidencias y traslado al repositorio oficial
 
-- **No se pudo conectar con el servidor:** comprueba `docker compose ps -a` y `docker compose logs --tail 40 api`. En modo local verifica que `npm start` siga abierto. Web usa localhost:5173; emulador usa 10.0.2.2:3000.
-- **API no inicia:** revisa que migrate terminó correctamente y que el bucket y las credenciales AWS estén vigentes. `docker compose run --rm migrate` repite migraciones de forma idempotente, sin borrar tablas.
-- **Extracción pendiente:** revisa `docker compose logs --tail 40 worker` y `docker compose exec ollama ollama list`. El worker solo procesa modelos instalados y versiones de prompt compatibles.
-- **Tiempo de IA excedido:** CPU puede tardar demasiado; comprueba recursos y el soporte GPU. No se acepta una respuesta parcial ni se amplía el tiempo indefinidamente.
-- **Otro procesador activo:** detén el comando manual o el worker duplicado. No fuerces cambios de estado en la base.
-- **Credenciales temporales caducadas:** renueva los datos del `.env` local y recrea API y worker con `docker compose up -d --force-recreate api worker`.
-- **Puerto ocupado:** detén la ejecución anterior que usa 3000 o 5173. No cambies el puerto web al azar, porque el backend restringe el origen.
-- **Cambiaste contraseña de la base en .env:** modificar el archivo no cambia la contraseña de un volumen PostgreSQL existente. Usa la configuración original o administra el cambio desde PostgreSQL; no borres volúmenes para resolverlo sin respaldar los datos.
+Conservamos los CAM y avances por fase como registros técnicos. Los datos actuales y el modelo propuesto se distinguen en `docs/base-datos`. Las mejoras pendientes están en `docs/pendientes`.
 
-## 11. Llevar esta rama al repositorio oficial
+Para trasladar la entrega, descarga el ZIP de esta rama y copia su contenido a la rama acordada del repositorio oficial. No copies carpetas .git, .env, respaldos, node_modules ni compilaciones locales.
 
-Esta rama de entrega se descarga del repositorio de pruebas: selecciona `entrega/proyecto-con-evidencias` → Code → Download ZIP. No incluye archivos `.env` reales, node_modules ni resultados de compilación. Sí conserva los documentos de avance, correcciones y pruebas del proyecto.
+### Estado de comprobación al 12 de octubre de 2026
 
-En GitHub Desktop abre el repositorio oficial, crea o selecciona `develop` y copia el **contenido** del ZIP extraído a la raíz de esa rama. No copies una carpeta `.git` de otro repositorio. Antes de confirmar, revisa los archivos seleccionados: no agregues tu configuración local, credenciales, dependencias descargadas ni resultados de compilación. El ZIP de GitHub no incluye `.git` ni los secretos que generaste en tu equipo.
+José confirmó arranque del motor Docker en Windows tras habilitar componentes y reiniciar. Docker devuelve tipo `linux` y WSL versión 2. Todavía falta confirmar la salida de Compose y ejecutar el flujo completo en contenedores.
 
-Después realiza el commit y Push origin desde `develop`. Tus compañeros podrán seleccionar esa rama y seguir esta guía. Los recursos de AWS, las cuentas locales y la configuración privada se preparan por separado en cada equipo.
-
-## Estado de comprobación
-
-La compilación TypeScript, las pruebas automatizadas backend y el análisis de referencias de la rama limpia se verifican antes de entregar la rama. Docker, PowerShell y Flutter/Android deben comprobarse en un equipo con esas herramientas: no se declara validado su arranque real solo por escribir los archivos. Esta es una distribución de desarrollo para pruebas del equipo, no un despliegue médico de producción.
+La instalación completa en otro equipo, los accesos AWS del resto del equipo y la restauración de respaldos quedan por comprobar. Esos pasos son procedimientos propuestos, no pruebas ya aprobadas. Los resultados previos del backend y Flutter conservan su fecha y versión de ejecución.
