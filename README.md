@@ -118,39 +118,26 @@ En el script introduce únicamente el nombre del bucket. No añadas `arn:aws:s3:
 
 Estar dentro de AWS o ver el bucket no confirma todavía todos los permisos que necesita el backend. La comprobación del paso 5 verifica el acceso desde la aplicación.
 
-### Aclaración: usuario vitalia-backend-dev — José Aránguiz
+### Paso 3. Preparar credenciales individuales — José Aránguiz
 
-Al comprobar el acceso con otro correo, pude ver el bucket compartido en S3. Esto confirma visibilidad desde esa sesión, pero todavía hay que comprobar el acceso programático de cada integrante.
+Intenté abrir IAM Identity Center desde mis dos sesiones y recibí «No es posible acceder a este servicio». Por ahora no utilizaremos ese servicio como paso de instalación. Mi backend funciona con una clave permanente del usuario IAM `vitalia-backend-dev`. Esto no demuestra que el resto del equipo ya tenga credenciales programáticas propias. (José Aránguiz)
 
-La clave existente en **IAM > Usuarios > vitalia-backend-dev > Credenciales de seguridad** pertenece a ese usuario técnico. **No les pasaré esa clave ni su clave secreta. Tampoco creen otra clave dentro de vitalia-backend-dev para usarla como si fuera personal.** Ambas claves pertenecerían al mismo usuario y usarían sus permisos. (José Aránguiz)
+**No les compartiré la clave de vitalia-backend-dev ni su clave secreta. No creen una segunda clave en ese usuario para repartirla.** Seguiría siendo la misma identidad con los mismos permisos.
 
-Cada integrante necesita credenciales vinculadas a su propia identidad:
-- Con IAM Identity Center: obtener las credenciales temporales de la cuenta y rol asignados desde el portal. No crear claves dentro de un usuario IAM ajeno.
-- Si el equipo utiliza usuarios IAM individuales: un administrador debe preparar o confirmar el usuario de cada integrante y sus permisos limitados al bucket. Cada uno obtiene una clave de su propio usuario únicamente si ese método está autorizado. Si no tiene permiso para crearla, debe solicitarlo; no usar vitalia-backend-dev ni concederse permisos por su cuenta.
+Para habilitar cada computador necesitamos preparar un acceso individual autorizado. Esta parte está **pendiente de confirmar**, aunque el integrante ya pueda ver el bucket en la consola.
 
-La contraseña de acceso a la consola, el acceso al bucket y las credenciales del backend son elementos diferentes. Ver otros usuarios en IAM no significa que se deban utilizar sus claves. El nombre mostrado al iniciar sesión no basta para identificar qué usuario o rol está actuando.
+1. Confirma conmigo qué usuario o rol aparece en el menú de cuenta de tu sesión AWS. No envíes secretos.
+2. Verificaremos si la cuenta permite crear usuarios IAM individuales y quién tiene permiso para administrarlos. No uses la cuenta raíz para generar claves.
+3. Si está permitido, el administrador preparará un usuario por integrante con permisos limitados al bucket del proyecto. No se asignará AdministratorAccess como requisito de instalación.
+4. Con tu propio usuario IAM y autorización para gestionar sus claves, abre **IAM > Usuarios > tu usuario > Credenciales de seguridad > Crear clave de acceso**. Si no tienes esa autorización, solicita ayuda al administrador.
+5. Guarda tu Access Key ID y Secret Access Key de forma privada. Introduce esos dos valores en el script de configuración. Para este acceso permanente, deja AWS Session Token vacío y pulsa Enter.
+6. Ejecuta la comprobación S3 del paso 5. Poder listar el bucket en la consola no acredita los permisos de la aplicación.
 
-No se ha confirmado todavía cómo se configuraron todas las invitaciones. Antes de crear nuevas claves debemos comprobar la identidad activa, cuenta y rol de cada sesión. Les ayudaré a revisarlo sin compartir secretos. (José Aránguiz)
+Si la cuenta institucional impide crear estos accesos, detén este paso y avísame: debemos coordinar un acceso programático autorizado. No se soluciona compartiendo la clave del usuario técnico. Los accesos individuales no se presentan como ya configurados. (José Aránguiz)
+
+La contraseña de consola no sustituye las claves programáticas. Tener otra dirección de correo o poder abrir IAM no confirma que esa sesión sea un usuario IAM individual. Antes de crear claves revisaremos la identidad activa y sus permisos.
 
 Referencia: [gestión de claves IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html).
-
-### Paso 3. Obtener tus propias credenciales
-
-El método exacto depende del tipo de invitación. Si no sabes si tu acceso es IAM Identity Center, un usuario IAM o una cuenta de AWS Organizations, confírmalo conmigo antes de crear claves. (José Aránguiz)
-
-**Si entras por IAM Identity Center:**
-
-1. Abre el portal de acceso de AWS.
-2. Selecciona tu cuenta y el rol asignado.
-3. Abre **Access keys / Acceso programático**.
-4. Obtén de la misma sesión los tres valores: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` y `AWS_SESSION_TOKEN`.
-5. Úsalos únicamente en tu configuración local. Cuando la sesión expire, renueva los tres valores juntos.
-
-**Si utilizas un usuario IAM con claves permanentes:**
-
-Utiliza únicamente las claves de acceso autorizadas de tu propio usuario. En este caso se necesitan Access Key ID y Secret Access Key; el Session Token queda vacío. Tener una contraseña de consola no significa que ya tengas claves programáticas.
-
-No les comparto mis claves personales ni mi archivo .env. Cada integrante debe trabajar con su acceso autorizado. Si no encuentras el acceso programático, avísame para revisarlo. (José Aránguiz)
 
 ### Paso 4. Configurar el entorno elegido
 
