@@ -90,24 +90,97 @@ Referencias: [instalación Docker en Windows](https://docs.docker.com/desktop/se
 
 ## 5. Acceso al bucket S3 del equipo
 
-José invitó al equipo al acceso de AWS. **No debemos crear otro bucket para seguir esta guía.** Necesitamos confirmar que la cuenta o rol asignado tenga permisos sobre el bucket de pruebas.
+### Nota del acceso compartido — José Aránguiz
 
-José debe comunicar por el canal del equipo:
-- Nombre exacto del bucket y región.
-- Portal o método de inicio de sesión y cuenta/rol asignado.
-- Permisos de pruebas y coordinación para no borrar archivos de otros integrantes.
+Les invité al acceso de AWS para trabajar con los recursos del proyecto. Juan Jiménez ya está dentro y debería tener acceso; todavía debemos comprobar sus permisos sobre el bucket. Quedan pendientes Diego Palma y Mauricio Reyes. Este estado corresponde al 12 de octubre de 2026.
 
-Cada persona acepta su invitación y entra con su propia identidad. Poder abrir la consola no garantiza que la API tenga credenciales ni todos los permisos necesarios.
+Les dejo los datos del bucket que estoy utilizando. No necesitan crear otro bucket para seguir este manual. Si les falta la invitación, el enlace de acceso o el rol asignado, avísenme antes de continuar. **(José Aránguiz)**
 
-El script actual pide `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` y, para sesiones temporales, `AWS_SESSION_TOKEN`. Si el acceso es IAM Identity Center, utiliza el apartado de acceso programático del portal para obtener las credenciales temporales de tu propio rol. No necesitas crear claves permanentes de un usuario IAM. Cuando expiran, hay que renovar la configuración local.
+### Paso 1. Identificar el bucket del proyecto
 
-Si el portal no ofrece acceso programático o el rol no tiene permisos, consulta al responsable de AWS. No uses claves de otra persona.
+| Dato | Valor o indicación |
+| --- | --- |
+| Nombre exacto del bucket | `bucket-vitalia-health-0-949847740123-us-east-2-an` |
+| Región | `us-east-2`, Este de EE. UU. (Ohio) |
+| Enlace de acceso a AWS | Utiliza el enlace de tu invitación. Si no lo tienes, solicítamelo. (José Aránguiz) |
+| Cuenta y rol | Utiliza los asignados a tu identidad. La cuenta o el rol de cada integrante deben confirmarse. |
+| Documentos de prueba | Solo documentos ficticios. No borres archivos de otros integrantes. |
 
-El backend necesita permisos sobre el bucket para ListBucket y comprobaciones de seguridad, y sobre `patients/*` para PutObject, GetObject y DeleteObject. El bucket permanece privado y con ACL deshabilitadas. Tener acceso general a AWS no prueba que estos permisos estén concedidos.
+En el script introduce únicamente el nombre del bucket. No añadas `arn:aws:s3:::`, `s3://`, una URL ni carpetas. Conserva `us-east-2` exactamente como aparece en la tabla.
 
-Con Docker, la configuración está en `.env` de la raíz. Sin Docker, en `backend/.env`. No compartas esos archivos ni publiques credenciales en capturas.
+### Paso 2. Aceptar la invitación y comprobar el acceso
 
-[Acceso programático y credenciales AWS](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-authentication.html).
+1. Abre tu invitación de AWS y completa el acceso con tu propia identidad.
+2. Entra mediante el enlace proporcionado. No utilices la contraseña ni las claves de otro integrante.
+3. Selecciona la cuenta y el rol que te hayan asignado, si el portal presenta esas opciones.
+4. Abre Amazon S3 y busca el bucket de la tabla.
+5. Si no aparece o recibes acceso denegado, avísame para revisar la cuenta y los permisos. No crees un bucket alternativo. (José Aránguiz)
+
+Estar dentro de AWS o ver el bucket no confirma todavía todos los permisos que necesita el backend. La comprobación del paso 5 verifica el acceso desde la aplicación.
+
+### Paso 3. Obtener tus propias credenciales
+
+El método exacto depende del tipo de invitación. Si no sabes si tu acceso es IAM Identity Center, un usuario IAM o una cuenta de AWS Organizations, confírmalo conmigo antes de crear claves. (José Aránguiz)
+
+**Si entras por IAM Identity Center:**
+
+1. Abre el portal de acceso de AWS.
+2. Selecciona tu cuenta y el rol asignado.
+3. Abre **Access keys / Acceso programático**.
+4. Obtén de la misma sesión los tres valores: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` y `AWS_SESSION_TOKEN`.
+5. Úsalos únicamente en tu configuración local. Cuando la sesión expire, renueva los tres valores juntos.
+
+**Si utilizas un usuario IAM con claves permanentes:**
+
+Utiliza únicamente las claves de acceso autorizadas de tu propio usuario. En este caso se necesitan Access Key ID y Secret Access Key; el Session Token queda vacío. Tener una contraseña de consola no significa que ya tengas claves programáticas.
+
+No les comparto mis claves personales ni mi archivo .env. Cada integrante debe trabajar con su acceso autorizado. Si no encuentras el acceso programático, avísame para revisarlo. (José Aránguiz)
+
+### Paso 4. Configurar el entorno elegido
+
+Desde la raíz del proyecto, en PowerShell:
+
+**Para Docker:**
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\deploy\configurar.ps1 -Modo Docker
+```
+
+**Para ejecución sin Docker:**
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\deploy\configurar.ps1 -Modo Local
+```
+
+Ejecuta solo el que corresponda a tu instalación. El script pregunta región, nombre del bucket y tus credenciales. Para credenciales temporales introduce también el Session Token. Para claves permanentes deja ese token vacío y pulsa Enter.
+
+Docker crea `.env` en la raíz. La ejecución local crea `backend/.env`. Si el archivo ya existe, el script no lo reemplaza; revisa el archivo del entorno correcto en tu editor. No publiques su contenido ni envíes capturas de las claves.
+
+### Paso 5. Comprobar S3
+
+Primero completa el arranque y compilación del camino elegido en las secciones 6 o 7. Después comprueba:
+
+**Con Docker, desde la raíz y con la imagen del backend construida:**
+
+```powershell
+docker compose run --rm --no-deps api node dist/storage/check.js
+$LASTEXITCODE
+```
+
+**Sin Docker, desde la carpeta backend después de npm run build:**
+
+```powershell
+node --env-file=.env dist/storage/check.js
+$LASTEXITCODE
+```
+
+Esperamos el mensaje de conexión a S3 correcta, bloqueo público y ACL deshabilitadas, seguido de código `0`. Esta comprobación no sustituye la prueba posterior de subir y consultar un documento.
+
+Si aparece `NoSuchBucket` o `NotFound`, revisa el nombre del bucket en el archivo correcto: raíz para Docker y backend para local. Si aparece `AccessDenied`, revisaremos permisos; si las credenciales temporales caducaron, renueva la sesión.
+
+El backend requiere ListBucket y las comprobaciones de seguridad del bucket, además de PutObject, GetObject y DeleteObject sobre `patients/*`. El bucket se mantiene privado y con ACL deshabilitadas. Coordinaremos cualquier cambio de permisos y pruebas de borrado. (José Aránguiz)
+
+[Guía de credenciales AWS](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-authentication.html).
 
 ## 6. Ejecutar con Docker
 
@@ -268,7 +341,7 @@ La elección del médico por el paciente, perfiles completos y atención multicl
 
 ### Opción A: una copia por integrante
 
-Cada uno restaura una copia y prueba sin depender del computador de José. Los cambios no se sincronizan entre copias. Para un entorno vacío usa las migraciones; para conservar datos de prueba usa un respaldo completo.
+Cada uno restaura una copia y prueba sin depender de mi computador. Los cambios no se sincronizan entre copias. Para un entorno vacío usa las migraciones; para conservar datos de prueba usa un respaldo completo.
 
 El respaldo incluye cuentas, hashes de contraseña, sesiones y conversaciones si existen. Antes de compartirlo, revisa los datos y prepara una copia exclusivamente de pruebas. No publiques un respaldo en GitHub ni compartas contraseñas personales. Los archivos PDF e imágenes siguen en S3 y no forman parte del respaldo PostgreSQL.
 
@@ -382,9 +455,9 @@ git pull --ff-only
 
 Conserva la configuración local. No subas .env, respaldos, node_modules ni compilaciones. El código compartido se obtiene del repositorio oficial `https://github.com/JoseArgz8658/vitalia-health-capstone.git`, rama `develop`.
 
-### Estado de comprobación al 12 de octubre de 2026
+### Estado de comprobación al 12 de octubre de 2026 — José Aránguiz
 
-José confirmó Compose 5.5.1, migraciones 001–011, conexión PostgreSQL y S3, el flujo paciente–extracción–revisión–consulta con Docker y sin Docker, y conservación de cuentas y revisión tras detener y volver a iniciar los contenedores.
+Confirmé Compose 5.5.1, migraciones 001–011, conexión PostgreSQL y S3, el flujo paciente–extracción–revisión–consulta con Docker y sin Docker, y conservación de cuentas y revisión tras detener y volver a iniciar los contenedores.
 
 La primera extracción Docker agotó el tiempo. Con compose.gpu.yaml y RTX 3050 de 4 GB, Ollama utilizó CPU/GPU y el nuevo intento terminó pendiente de revisión. No es una garantía de rendimiento para otros equipos.
 
