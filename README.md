@@ -377,6 +377,14 @@ Para trasladar la entrega, descarga el ZIP de esta rama y copia su contenido a l
 
 ### Estado de comprobación al 12 de octubre de 2026
 
-José confirmó arranque del motor Docker en Windows tras habilitar componentes y reiniciar. Docker devuelve tipo `linux` y WSL versión 2. Todavía falta confirmar la salida de Compose y ejecutar el flujo completo en contenedores.
+José confirmó Compose 5.5.1, migraciones 001–011, conexión PostgreSQL y S3, el flujo paciente–extracción–revisión–consulta con Docker y sin Docker, y conservación de cuentas y revisión tras detener y volver a iniciar los contenedores.
 
-La instalación completa en otro equipo, los accesos AWS del resto del equipo y la restauración de respaldos quedan por comprobar. Esos pasos son procedimientos propuestos, no pruebas ya aprobadas. Los resultados previos del backend y Flutter conservan su fecha y versión de ejecución.
+La primera extracción Docker agotó el tiempo. Con compose.gpu.yaml y RTX 3050 de 4 GB, Ollama utilizó CPU/GPU y el nuevo intento terminó pendiente de revisión. No es una garantía de rendimiento para otros equipos.
+
+Con Jest 30.5.2, npm test aprobó 423 pruebas de 40 suites. npm audit --omit=dev reportó cero vulnerabilidades; la auditoría completa mantiene 19 avisos moderados en la cadena de desarrollo de sprintf-js. No aplicar audit fix --force: propone una bajada incompatible de Jest. Detalle y seguimiento: [CAM-078](docs/cambios-codigo/CAM-078-jest-validacion-windows.md).
+
+Las fechas de la copia revisada requieren DD-MM-AAAA. Si se corrige información o quedan campos ausentes, registrar observación y confirmar el cotejo con el original. Las incidencias originales permanecen como evidencia.
+
+Si Windows bloquea impellerc.exe, revisar la directiva de control de aplicaciones antes de cambiar seguridad. Desactivar protecciones no es requisito general del manual.
+
+Android, web compilada con Nginx, restauración de respaldos, instalación completa en otro equipo y accesos AWS del resto del equipo quedan por comprobar. Los registros de esta sesión están en CAM-078.
