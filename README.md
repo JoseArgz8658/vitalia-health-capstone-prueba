@@ -118,6 +118,22 @@ En el script introduce únicamente el nombre del bucket. No añadas `arn:aws:s3:
 
 Estar dentro de AWS o ver el bucket no confirma todavía todos los permisos que necesita el backend. La comprobación del paso 5 verifica el acceso desde la aplicación.
 
+### Aclaración: usuario vitalia-backend-dev — José Aránguiz
+
+Al comprobar el acceso con otro correo, pude ver el bucket compartido en S3. Esto confirma visibilidad desde esa sesión, pero todavía hay que comprobar el acceso programático de cada integrante.
+
+La clave existente en **IAM > Usuarios > vitalia-backend-dev > Credenciales de seguridad** pertenece a ese usuario técnico. **No les pasaré esa clave ni su clave secreta. Tampoco creen otra clave dentro de vitalia-backend-dev para usarla como si fuera personal.** Ambas claves pertenecerían al mismo usuario y usarían sus permisos. (José Aránguiz)
+
+Cada integrante necesita credenciales vinculadas a su propia identidad:
+- Con IAM Identity Center: obtener las credenciales temporales de la cuenta y rol asignados desde el portal. No crear claves dentro de un usuario IAM ajeno.
+- Si el equipo utiliza usuarios IAM individuales: un administrador debe preparar o confirmar el usuario de cada integrante y sus permisos limitados al bucket. Cada uno obtiene una clave de su propio usuario únicamente si ese método está autorizado. Si no tiene permiso para crearla, debe solicitarlo; no usar vitalia-backend-dev ni concederse permisos por su cuenta.
+
+La contraseña de acceso a la consola, el acceso al bucket y las credenciales del backend son elementos diferentes. Ver otros usuarios en IAM no significa que se deban utilizar sus claves. El nombre mostrado al iniciar sesión no basta para identificar qué usuario o rol está actuando.
+
+No se ha confirmado todavía cómo se configuraron todas las invitaciones. Antes de crear nuevas claves debemos comprobar la identidad activa, cuenta y rol de cada sesión. Les ayudaré a revisarlo sin compartir secretos. (José Aránguiz)
+
+Referencia: [gestión de claves IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html).
+
 ### Paso 3. Obtener tus propias credenciales
 
 El método exacto depende del tipo de invitación. Si no sabes si tu acceso es IAM Identity Center, un usuario IAM o una cuenta de AWS Organizations, confírmalo conmigo antes de crear claves. (José Aránguiz)
