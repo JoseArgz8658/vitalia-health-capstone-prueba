@@ -31,16 +31,16 @@ Usamos Flutter 3.44.6, Dart 3.12.2 y Node 24 en el equipo de desarrollo. Las ver
 
 ## 3. Descargar la rama
 
-En GitHub Desktop selecciona `entrega/proyecto-con-evidencias` del repositorio de pruebas y pulsa Fetch origin y Pull origin. También puedes descargar Code > Download ZIP.
+En el repositorio [Vitalia Health](https://github.com/JoseArgz8658/vitalia-health-capstone), selecciona la rama `develop`. En GitHub Desktop pulsa Fetch origin y Pull origin. Si prefieres descargar sin Git, selecciona `develop` en GitHub y utiliza Code > Download ZIP.
 
 Para una descarga nueva desde PowerShell:
 
 ```powershell
-git clone --branch entrega/proyecto-con-evidencias --single-branch https://github.com/JoseArgz8658/vitalia-health-capstone-prueba.git
-cd vitalia-health-capstone-prueba
+git clone --branch develop --single-branch https://github.com/JoseArgz8658/vitalia-health-capstone.git
+cd vitalia-health-capstone
 ```
 
-La raíz es la carpeta con `README.md`, `compose.yaml`, `backend` y `apps`. En GitHub privado necesitas tener acceso autorizado. Cuando esta entrega esté publicada en el repositorio oficial, podrás seleccionar allí la rama acordada.
+La raíz es la carpeta con `README.md`, `compose.yaml`, `backend` y `apps`. Si descargaste ZIP, entra a la carpeta extraída. Si el repositorio es privado, necesitas acceso autorizado. Todos los comandos de instalación parten de esta raíz, salvo cuando se indica otra carpeta.
 
 ## 4. Docker Desktop y WSL 2 en Windows
 
@@ -369,11 +369,18 @@ Si usabas GPU, incluye ambos Compose. Si usabas web compilada, inicia también `
 - Trabajo fallido: actualizar solo consulta. El worker no repite trabajos indefinidamente ni modifica revisiones aprobadas.
 - Tras un reinicio del worker, un trabajo interrumpido puede quedar fallido. Utiliza una copia ficticia nueva para otra prueba.
 
-## 13. Evidencias y traslado al repositorio oficial
+## 13. Evidencias y actualización del proyecto
 
 Conservamos los CAM y avances por fase como registros técnicos. Los datos actuales y el modelo propuesto se distinguen en `docs/base-datos`. Las mejoras pendientes están en `docs/pendientes`.
 
-Para trasladar la entrega, descarga el ZIP de esta rama y copia su contenido a la rama acordada del repositorio oficial. No copies carpetas .git, .env, respaldos, node_modules ni compilaciones locales.
+Para actualizar tu copia desde GitHub Desktop, selecciona `develop`, pulsa Fetch origin y después Pull origin. Desde la raíz también puedes ejecutar:
+
+```powershell
+git switch develop
+git pull --ff-only
+```
+
+Conserva la configuración local. No subas .env, respaldos, node_modules ni compilaciones. El código compartido se obtiene del repositorio oficial `https://github.com/JoseArgz8658/vitalia-health-capstone.git`, rama `develop`.
 
 ### Estado de comprobación al 12 de octubre de 2026
 
