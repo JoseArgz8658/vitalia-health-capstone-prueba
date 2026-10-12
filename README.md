@@ -92,50 +92,45 @@ Referencias: [instalación Docker en Windows](https://docs.docker.com/desktop/se
 
 ### Nota del acceso compartido — José Aránguiz
 
-Les invité al acceso de AWS para trabajar con los recursos del proyecto. Juan Jiménez ya está dentro y debería tener acceso; todavía debemos comprobar sus permisos sobre el bucket. Quedan pendientes Diego Palma y Mauricio Reyes. Este estado corresponde al 12 de octubre de 2026.
+Les invité al acceso de AWS para trabajar con el proyecto. Juan Jiménez ya entró al portal; Diego Palma y Mauricio Reyes tenían pendiente ese ingreso. Además, ya preparé los tres usuarios IAM individuales y sus pares de claves para ejecutar el backend. Les entregaré a cada uno únicamente sus propias credenciales por interno. La entrega y la comprobación desde sus computadores siguen pendientes al 12 de octubre de 2026. **(José Aránguiz)**
 
-Les dejo los datos del bucket que estoy utilizando. No necesitan crear otro bucket para seguir este manual. Si les falta la invitación, el enlace de acceso o el rol asignado, avísenme antes de continuar. **(José Aránguiz)**
+No necesitan crear otro bucket ni nuevas claves para seguir esta instalación. Tampoco necesitan iniciar sesión en la consola AWS para ejecutar el backend con el par de claves que les proporcionaré. El acceso al portal y las credenciales del backend son distintos.
 
-### Paso 1. Identificar el bucket del proyecto
+### Paso 1. Tener los datos del bucket
 
-| Dato | Valor o indicación |
+| Dato solicitado por el script | Qué debes introducir |
 | --- | --- |
-| Nombre exacto del bucket | `bucket-vitalia-health-0-949847740123-us-east-2-an` |
-| Región | `us-east-2`, Este de EE. UU. (Ohio) |
-| Enlace de acceso a AWS | Utiliza el enlace de tu invitación. Si no lo tienes, solicítamelo. (José Aránguiz) |
-| Cuenta y rol | Utiliza los asignados a tu identidad. La cuenta o el rol de cada integrante deben confirmarse. |
-| Documentos de prueba | Solo documentos ficticios. No borres archivos de otros integrantes. |
+| Región AWS | `us-east-2` (Este de EE. UU., Ohio) |
+| Nombre del bucket | `bucket-vitalia-health-0-949847740123-us-east-2-an` |
+| AWS Access Key ID | La clave de acceso de tu usuario, que te entregaré por interno. (José Aránguiz) |
+| AWS Secret Access Key | La clave secreta correspondiente al mismo usuario, que te entregaré por interno. (José Aránguiz) |
+| AWS Session Token | **Dejar vacío y pulsar Enter** para los accesos IAM permanentes preparados para esta entrega. |
 
-En el script introduce únicamente el nombre del bucket. No añadas `arn:aws:s3:::`, `s3://`, una URL ni carpetas. Conserva `us-east-2` exactamente como aparece en la tabla.
+Copia el nombre del bucket exactamente. No añadas `arn:aws:s3:::`, `s3://`, una URL ni carpetas. El nombre contiene `us-east-2`, sin una «e» adicional.
 
-### Paso 2. Aceptar la invitación y comprobar el acceso
+### Paso 2. Identificar tus credenciales
 
-1. Abre tu invitación de AWS y completa el acceso con tu propia identidad.
-2. Entra mediante el enlace proporcionado. No utilices la contraseña ni las claves de otro integrante.
-3. Selecciona la cuenta y el rol que te hayan asignado, si el portal presenta esas opciones.
-4. Abre Amazon S3 y busca el bucket de la tabla.
-5. Si no aparece o recibes acceso denegado, avísame para revisar la cuenta y los permisos. No crees un bucket alternativo. (José Aránguiz)
+| Integrante | Usuario IAM del backend | Estado al 12 de octubre de 2026 |
+| --- | --- | --- |
+| Juan Jiménez | `vitalia-dev-juan` | Usuario y claves preparados. Entrega y prueba pendientes. |
+| Diego Palma | `vitalia-dev-diego` | Usuario y claves preparados. Entrega y prueba pendientes. |
+| Mauricio Reyes | `vitalia-dev-mauricio` | Usuario y claves preparados. Entrega y prueba pendientes. |
 
-Estar dentro de AWS o ver el bucket no confirma todavía todos los permisos que necesita el backend. La comprobación del paso 5 verifica el acceso desde la aplicación.
+Preparé estos usuarios con la política `VitaliaS3DevPolicy`. Comparten el mismo bucket y el prefijo `patients/*`, pero tienen credenciales individuales. No les enviaré la clave de `vitalia-backend-dev`, que corresponde al backend que configuré inicialmente. **(José Aránguiz)**
 
-### Paso 3. Preparar credenciales individuales — José Aránguiz
+1. Solicítame por interno el par de claves correspondiente a tu usuario.
+2. Guarda ambos valores de forma privada. No los pegues en GitHub, en el chat grupal ni en capturas.
+3. Usa ese par de claves en el script del paso 4. No combines una clave de acceso con la secreta de otro usuario.
+4. Deja Session Token vacío para estos accesos permanentes. Si en el futuro cambiamos a credenciales temporales, revisaremos las instrucciones.
+5. Si falta alguno de los dos valores, avísame. No crees otra clave ni uses la de un compañero. **(José Aránguiz)**
 
-Intenté abrir IAM Identity Center desde mis dos sesiones y recibí «No es posible acceder a este servicio». Por ahora no utilizaremos ese servicio como paso de instalación. Mi backend funciona con una clave permanente del usuario IAM `vitalia-backend-dev`. Esto no demuestra que el resto del equipo ya tenga credenciales programáticas propias. (José Aránguiz)
+### Paso 3. Entender el alcance del acceso compartido
 
-**No les compartiré la clave de vitalia-backend-dev ni su clave secreta. No creen una segunda clave en ese usuario para repartirla.** Seguiría siendo la misma identidad con los mismos permisos.
+Todos estos usuarios pueden subir, consultar y eliminar objetos dentro de `patients/*`. No hemos separado los archivos por integrante. Coordinen antes de borrar un documento que esté utilizando otro compañero.
 
-Para habilitar cada computador necesitamos preparar un acceso individual autorizado. Esta parte está **pendiente de confirmar**, aunque el integrante ya pueda ver el bucket en la consola.
+El acceso al bucket no copia PostgreSQL ni hace aparecer los exámenes en el historial. Para utilizar los registros actuales, también necesitan restaurar el respaldo de datos de prueba que les proporcionaré según la sección 11. La entrega y restauración de ese respaldo todavía están pendientes. **(José Aránguiz)**
 
-1. Confirma conmigo qué usuario o rol aparece en el menú de cuenta de tu sesión AWS. No envíes secretos.
-2. Verificaremos si la cuenta permite crear usuarios IAM individuales y quién tiene permiso para administrarlos. No uses la cuenta raíz para generar claves.
-3. Si está permitido, el administrador preparará un usuario por integrante con permisos limitados al bucket del proyecto. No se asignará AdministratorAccess como requisito de instalación.
-4. Con tu propio usuario IAM y autorización para gestionar sus claves, abre **IAM > Usuarios > tu usuario > Credenciales de seguridad > Crear clave de acceso**. Si no tienes esa autorización, solicita ayuda al administrador.
-5. Guarda tu Access Key ID y Secret Access Key de forma privada. Introduce esos dos valores en el script de configuración. Para este acceso permanente, deja AWS Session Token vacío y pulsa Enter.
-6. Ejecuta la comprobación S3 del paso 5. Poder listar el bucket en la consola no acredita los permisos de la aplicación.
-
-Si la cuenta institucional impide crear estos accesos, detén este paso y avísame: debemos coordinar un acceso programático autorizado. No se soluciona compartiendo la clave del usuario técnico. Los accesos individuales no se presentan como ya configurados. (José Aránguiz)
-
-La contraseña de consola no sustituye las claves programáticas. Tener otra dirección de correo o poder abrir IAM no confirma que esa sesión sea un usuario IAM individual. Antes de crear claves revisaremos la identidad activa y sus permisos.
+IAM Identity Center no forma parte de este procedimiento. No habilité acceso de consola para estos usuarios del backend y no les concedí permisos para administrar usuarios o claves IAM. La prueba del paso 5 confirmará si las credenciales funcionan en la aplicación.
 
 Referencia: [gestión de claves IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html).
 
