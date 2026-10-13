@@ -335,66 +335,137 @@ Los comandos piden contraseña y confirmación. Para probar:
 
 La elección del médico por el paciente, perfiles completos y atención multiclínica siguen pendientes de implementación. No se consideran disponibles por tener un diagrama propuesto.
 
-## 11. Compartir los datos actuales de PostgreSQL
+## 11. Compartir los datos actuales de PostgreSQL — José Aránguiz
 
-### Opción A: una copia por integrante
+Preparé un respaldo de mi base de Windows `vitalia_dev` desde pgAdmin 4 para pasárselo por interno al grupo. Restauré una copia de comprobación, comparé los conteos y confirmé lectura con `vitalia_app`: 10 documentos y 4 revisiones. La entrega y la restauración en los computadores de mis compañeros siguen pendientes. **(José Aránguiz)**
 
-Cada uno restaura una copia y prueba sin depender de mi computador. Los cambios no se sincronizan entre copias. Para un entorno vacío usa las migraciones; para conservar datos de prueba usa un respaldo completo.
+No deben conectarse a mi servidor. Cada uno tendrá su propia copia. Los cambios de PostgreSQL no se sincronizan entre computadores. Los PDF e imágenes siguen en el bucket compartido de S3 y no están dentro del .backup.
 
-El respaldo incluye cuentas, hashes de contraseña, sesiones y conversaciones si existen. Antes de compartirlo, revisa los datos y prepara una copia exclusivamente de pruebas. No publiques un respaldo en GitHub ni compartas contraseñas personales. Los archivos PDF e imágenes siguen en S3 y no forman parte del respaldo PostgreSQL.
+### Paso 1. Recibir el respaldo
 
-Detén API y worker durante la preparación para evitar nuevos trabajos y usa una ventana sin procesos activos. Los documentos apuntarán al bucket original. **No borres documentos desde una copia restaurada que comparte S3**, porque podría eliminar el objeto que usa el resto del equipo. Para pruebas destructivas utiliza documentos y cuentas exclusivos o un entorno de almacenamiento separado.
+1. Solicítame el archivo .backup por interno. No lo descargues de GitHub ni publiques su contenido. (José Aránguiz)
+2. Guárdalo fuera del repositorio, por ejemplo en una carpeta `VitaliaBackups` de tus Documentos.
+3. El respaldo contiene cuentas, hashes de contraseña, sesiones y conversaciones existentes. Lo revisaremos antes de compartirlo y usaremos únicamente datos adecuados para las pruebas del equipo.
+4. Las contraseñas del servidor PostgreSQL y las claves AWS se configuran por separado. El respaldo de una base no crea los usuarios del servidor PostgreSQL.
 
-Exportación desde PostgreSQL Windows, ejemplo con base `vitalia_dev`. Comprueba nombre, usuario y puerto con tu configuración local. El archivo queda fuera del repositorio:
+### Paso 2. Crear una base local de destino en Windows
 
-```powershell
-$pgBin = 'C:\Program Files\PostgreSQL\16\bin'
-$backupDir = Join-Path $env:USERPROFILE 'VitaliaBackups'
-New-Item -ItemType Directory -Force -Path $backupDir | Out-Null
-$backupFile = Join-Path $backupDir 'vitalia-pruebas.backup'
-if (Test-Path $backupFile) { throw 'El respaldo ya existe. Usa otro nombre.' }
-& "$pgBin\pg_dump.exe" -h 127.0.0.1 -p 5432 -U vitalia -W -d vitalia_dev --format=custom --file=$backupFile
-if ($LASTEXITCODE -ne 0) { throw 'El respaldo no terminó correctamente.' }
+Este procedimiento es para PostgreSQL instalado en Windows, no para el volumen Docker. Si elegiste exclusivamente Docker, avísame antes de restaurar: el contenedor no aparece automáticamente en pgAdmin y no debes asumir que localhost:5432 apunta a él. (José Aránguiz)
+
+1. Instala PostgreSQL 16 y abre pgAdmin 4.
+2. Conéctate a tu servidor local con la cuenta administradora.
+3. Haz clic derecho en **Databases > Create > Database**.
+4. Nombre: `vitalia_equipo`. Owner: la cuenta administradora `postgres`.
+5. Guarda. La base debe ser nueva y vacía. Si el nombre ya existe, detente y acuerda otro destino; no borres datos existentes.
+
+No uses vitalia_app como cuenta de administración ni de migraciones.
+
+### Paso 3. Preparar el esquema vacío
+
+El respaldo incluye CREATE SCHEMA public. Una base nueva normalmente ya contiene public y esto provocó el primer error que encontré. Para evitarlo, abre **Query Tool sobre vitalia_equipo**, conectado como postgres, y ejecuta:
+
+```sql
+BEGIN;
+DO $$
+BEGIN
+  IF current_database() <> 'vitalia_equipo' THEN
+    RAISE EXCEPTION 'Base incorrecta: operación cancelada';
+  END IF;
+  EXECUTE 'DROP SCHEMA public';
+END
+$$;
+COMMIT;
 ```
 
-`-W` pide la contraseña sin escribirla en el comando. Si el usuario de tu base tiene otro nombre, cambia `vitalia`. Comparte únicamente el respaldo revisado por un canal privado autorizado.
+Solo se retira el esquema vacío de esta base nueva. Sin CASCADE, el comando falla si existen objetos dentro. No ejecutes esto en tu base de trabajo ni en vitalia_dev. Si falla, ejecuta ROLLBACK y revisa el destino; no añadas CASCADE para forzarlo.
 
-**Restauración local del compañero:** en pgAdmin crea una base nueva y vacía, por ejemplo `vitalia_equipo`, con un propietario autorizado. No restaura encima de la base que ya usa. Después:
+### Paso 4. Restaurar mediante pgAdmin
 
-```powershell
-$pgBin = 'C:\Program Files\PostgreSQL\16\bin'
-$backupFile = Join-Path $env:USERPROFILE 'VitaliaBackups\vitalia-pruebas.backup'
-& "$pgBin\pg_restore.exe" -h 127.0.0.1 -p 5432 -U vitalia -W -d vitalia_equipo --no-owner --no-privileges --single-transaction --exit-on-error $backupFile
-if ($LASTEXITCODE -ne 0) { throw 'La restauración falló.' }
+1. Clic derecho en **vitalia_equipo > Restore**.
+2. General: formato **Custom**, selecciona el archivo recibido. Number of jobs y Role name vacíos.
+3. Data options: activa **Pre-data, Data y Post-data**. Deja Only data y Only schema desactivados.
+4. Do not save: activa **Owner, Privileges y Tablespace**. Deja los demás desactivados.
+5. Query options: deja **Clean before restore** y **CREATE DATABASE** desactivados.
+6. Si aparecen, activa **Single transaction** y **Exit on error**. Deja Disable triggers desactivado.
+7. Comprueba el nombre de destino y pulsa Restore.
+8. Revisa Ver procesos: debe terminar correctamente, sin errores.
+
+Mi restauración comprobada terminó Successfully completed. El comando de ese intento no incluía single-transaction ni exit-on-error; no afirmo haber probado esas opciones. Si tu restauración falla, conserva el registro y avísame antes de repetirla sobre una base parcialmente cargada. (José Aránguiz)
+
+### Paso 5. Preparar el usuario de aplicación
+
+Los objetos restaurados como postgres quedan bajo su propiedad. Omitimos privilegios para no copiar permisos de otro computador.
+
+En **Login/Group Roles > Create > Login/Group Role** de tu servidor:
+1. Crea `vitalia_app` si no existe.
+2. Define una contraseña propia y permite iniciar sesión.
+3. No habilites Superuser, Create databases ni Create roles.
+4. Si ya existe, no cambies su contraseña o atributos sin comprobar qué aplicaciones lo utilizan.
+
+Después, desde Query Tool de **vitalia_equipo**, conectado como postgres:
+
+```sql
+BEGIN;
+DO $$
+BEGIN
+  IF current_database() <> 'vitalia_equipo' THEN
+    RAISE EXCEPTION 'Base incorrecta: operación cancelada';
+  END IF;
+END
+$$;
+GRANT CONNECT ON DATABASE vitalia_equipo TO vitalia_app;
+GRANT USAGE ON SCHEMA public TO vitalia_app;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO vitalia_app;
+GRANT INSERT, UPDATE, DELETE ON TABLE
+  public.vitalia_accounts,
+  public.vitalia_sessions,
+  public.vitalia_documents,
+  public.vitalia_document_cleanup,
+  public.vitalia_document_processing,
+  public.vitalia_patient_assignments,
+  public.vitalia_exam_explanations,
+  public.vitalia_exam_assistant_threads,
+  public.vitalia_exam_assistant_turns
+TO vitalia_app;
+GRANT INSERT ON TABLE
+  public.vitalia_professional_reviews,
+  public.vitalia_document_audit,
+  public.vitalia_assignment_audit,
+  public.vitalia_professional_access_audit,
+  public.vitalia_explanation_audit,
+  public.vitalia_exam_assistant_audit
+TO vitalia_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO vitalia_app;
+COMMIT;
 ```
 
-El compañero debe usar su propio usuario existente si no se llama `vitalia`. Actualiza `backend/.env` con esa base y usuario. Compila y ejecuta las comprobaciones de conexión antes de iniciar API y worker. El respaldo completo ya contiene migraciones aplicadas y sus registros.
+Estos GRANT no conceden modificación de roles o migraciones, ni actualización o eliminación directa de revisiones. No revocan permisos anteriores de un rol que ya existía. Si falla algún comando, ejecuta ROLLBACK y revisa el mensaje.
 
-**Restauración en Docker:** únicamente si el PostgreSQL del Compose tiene la base de destino vacía y API, worker y migrate todavía no se ejecutaron. No hagas este paso si ya tiene tablas. Copia el respaldo y restaura mediante el ejecutable del contenedor, evitando redirecciones binarias de PowerShell:
+Comprobé estas concesiones en mi copia y la conexión de lectura como vitalia_app; el recorrido completo de escritura de la aplicación contra esta copia sigue pendiente. (José Aránguiz)
 
-```powershell
-$backupFile = Join-Path $env:USERPROFILE 'VitaliaBackups\vitalia-pruebas.backup'
-$pgContainer = docker compose ps -q postgres
-if (-not $pgContainer) { throw 'PostgreSQL Docker no está iniciado.' }
-docker cp $backupFile "${pgContainer}:/tmp/vitalia-pruebas.backup"
-docker compose exec postgres sh -c 'pg_restore --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --no-owner --no-privileges --single-transaction --exit-on-error /tmp/vitalia-pruebas.backup'
-if ($LASTEXITCODE -ne 0) { throw 'La restauración falló.' }
-docker compose exec postgres rm /tmp/vitalia-pruebas.backup
-```
+### Paso 6. Configurar y comprobar el backend local
 
-Los dos últimos comandos llaman a herramientas dentro del contenedor Linux desde PowerShell Windows. Después inicia migrate, API y worker con el procedimiento Docker. No borres volúmenes para vaciar una base existente.
+En tu `backend/.env`, configura:
+- PGHOST: `127.0.0.1`.
+- PGPORT: el de tu PostgreSQL, normalmente `5432`.
+- PGDATABASE: `vitalia_equipo`.
+- PGUSER: `vitalia_app`.
+- PGPASSWORD: la contraseña que definiste en tu computador.
+- AWS: bucket compartido y tus propias claves.
 
-### Opción B: una base central para el equipo
+Desde backend, compila y comprueba las conexiones como en la sección 7. El respaldo completo ya contiene el esquema y el registro de migraciones: no necesitas ejecutar migraciones como vitalia_app para comenzar. Para futuras migraciones se requiere la cuenta administradora y una configuración separada.
 
-Todos consultan los mismos datos y los cambios se ven en la misma base. El servidor debe estar encendido y accesible. Estar en casas distintas no permite conectarse al `localhost` de José.
+Los GRANT anteriores se aplican después de restaurar. No están dentro del respaldo que comparto, porque lo generé sin privilegios. (José Aránguiz)
 
-Hace falta una red privada o túnel autorizado, usuarios individuales con permisos limitados, configuración de PostgreSQL (`listen_addresses`, `pg_hba.conf`) y firewall restringido. No publiques el puerto 5432 del computador directamente en Internet ni compartas la cuenta superusuario.
+### Paso 7. Consultar los documentos compartidos
 
-El Compose actual fija `PGHOST=postgres`. Cambiar solo el `.env` no lo conecta a un PostgreSQL remoto. Esta opción requiere otra configuración y todavía no está preparada por este manual.
+Inicia API y worker solo cuando hayas comprobado configuración y permisos. Verifica el historial, la copia revisada y el acceso al original S3. Los correos y contraseñas de cuentas de prueba de la aplicación se coordinan por privado; no son las credenciales PostgreSQL.
 
-Para las pruebas iniciales, utilicemos copias de datos ficticios y coordinemos S3. La base central se puede preparar después como entorno de integración del equipo.
+Una copia de la base conserva los mismos identificadores y referencias S3. **Borrar un documento puede eliminar el archivo compartido que utiliza el resto del grupo.** Coordina las pruebas de borrado y no ejecutes eliminación o recuperación automática de archivos compartidos sin revisar su alcance. Tampoco proceses el mismo trabajo pendiente desde varias copias sin coordinación.
 
-[Respaldo PostgreSQL 16](https://www.postgresql.org/docs/16/app-pgdump.html) y [restauración](https://www.postgresql.org/docs/16/app-pgrestore.html).
+### Cómo generé el respaldo original
+
+En pgAdmin hice clic derecho en vitalia_dev > Backup, formato Custom, con Pre-data, Data y Post-data y todos los objetos de public, incluidas sus dos secuencias. Dejé Only data y Only schema desactivados y Blobs activado. Omití Owner, Privileges y Tablespaces. Lo guardé fuera de GitHub. El detalle de restauración y comparación está en [CAM-079](docs/cambios-codigo/CAM-079-respaldo-restauracion-pgadmin.md). (José Aránguiz)
 
 ## 12. Pruebas, parada y problemas comunes
 
