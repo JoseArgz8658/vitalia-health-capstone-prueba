@@ -23,3 +23,9 @@ El respaldo puede incluir cuentas, hashes de contraseña, sesiones, auditorías 
 ## Reversión y conservación
 
 No se modificó vitalia_dev mediante la restauración. Se conservaron el archivo de respaldo y la base original. Las bases de verificación son copias independientes; cualquier limpieza posterior debe identificar explícitamente la copia y no tocar la original.
+
+## Comprobación posterior de permisos — José Aránguiz
+
+Comprobé que vitalia_app permite login y no tiene los atributos superusuario, crear bases ni crear roles. Las 17 tablas de la copia pertenecen a postgres. Apliqué concesiones de conexión, uso de esquema, lectura, DML para tablas operativas, inserción para revisión y auditorías y uso/lectura de secuencias, únicamente en vitalia_verificacion_backup_2 mediante transacción y verificación de nombre.
+
+Conecté desde Node como vitalia_app utilizando la configuración local sin modificar el .env, con destino explícito a la copia. La consulta devolvió 10 documentos, 4 revisiones y código de salida 0. No ejecuté escrituras ni el flujo completo de la aplicación contra esta copia. No cambié los permisos de vitalia_dev ni la contraseña del rol. Los permisos de la copia no están en el respaldo original, por lo que deben aplicarse tras la restauración por cada compañero. (José Aránguiz)
