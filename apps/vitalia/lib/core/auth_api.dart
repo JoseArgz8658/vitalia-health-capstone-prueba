@@ -22,6 +22,37 @@ class AuthApi {
   void clear() { _token = null; expiresAt = null; }
   void close() { clear(); _client.close(); }
 
+  Future<Map<String, dynamic>?> profile({Map<String, dynamic>? update}) async {
+    final token = _token;
+    if (token == null || expiresAt == null || !expiresAt!.isAfter(DateTime.now())) {
+      clear();
+      throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+    }
+    final headers = {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'};
+    try {
+      final uri = _base.resolve('/api/profile');
+      final response = await (update == null
+        ? _client.get(uri, headers: headers)
+        : _client.post(uri, headers: headers, body: jsonEncode(update)))
+        .timeout(const Duration(seconds: 15));
+      if (_token != token) throw const AuthFailure('La sesión cambió.', 401);
+      if (response.statusCode == 401) { clear(); throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401); }
+      if (response.statusCode >= 400) {
+        throw AuthFailure(switch (response.statusCode) {
+          400 => 'Revisa los nombres, la fecha y el dígito verificador del RUT.',
+          403 => 'Esta cuenta no tiene acceso a este perfil.',
+          409 => 'El perfil cambió o no se pudo guardar la identificación. Actualiza y revisa los datos. Un RUT registrado no se puede dejar vacío.',
+          503 => 'El perfil aún no está disponible. Revisa con el equipo la migración y sus permisos.',
+          _ => 'No se pudo guardar o consultar el perfil.',
+        }, response.statusCode);
+      }
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return data['profile'] as Map<String, dynamic>?;
+    } on AuthFailure { rethrow; }
+    on TimeoutException { throw const AuthFailure('La consulta tardó demasiado. Actualiza antes de repetir el guardado.'); }
+    catch (_) { throw const AuthFailure('No se pudo consultar el perfil. Intenta nuevamente.'); }
+  }
+
   Uri documentUri([String suffix = '', Map<String, String>? query]) {
     if (suffix.isNotEmpty && !RegExp(r'^[a-f0-9-]{36}/(file|processing|review|explanation|assistant(?:/explanation)?)$').hasMatch(suffix)) {
       throw const AuthFailure('Documento inválido.');

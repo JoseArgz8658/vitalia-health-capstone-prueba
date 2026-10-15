@@ -1,3 +1,4 @@
+import {createProfileService} from './profiles/service';
 import {createExamAssistantService} from './exam-assistant/service';
 import {createExamAssistant} from './exam-assistant/local-model';
 import {createExplanationService} from './explanations/service';
@@ -79,7 +80,7 @@ async function main(): Promise<void> {
       issue: id => issueSession(database, id),
       find: token => findSessionAccount(database, token),
       revoke: token => revokeSession(database, token),
-    }, register, documents, createProcessingService(database), createAssignmentService(documentDatabase(database)), createProfessionalService(documentDatabase(database), s3DocumentStorage(storage, storageConfig)), createReviewService(documentDatabase(database)), createExplanationService(documentDatabase(database), createExplanationGenerator()), createExamAssistantService(documentDatabase(database), createExamAssistant())).listen(config.PORT, config.HOST);
+    }, register, documents, createProcessingService(database), createAssignmentService(documentDatabase(database)), createProfessionalService(documentDatabase(database), s3DocumentStorage(storage, storageConfig)), createReviewService(documentDatabase(database)), createExplanationService(documentDatabase(database), createExplanationGenerator()), createExamAssistantService(documentDatabase(database), createExamAssistant()), createProfileService(documentDatabase(database))).listen(config.PORT, config.HOST);
     server.on('listening', () => console.info('Vitalia API iniciada en el entorno local.'));
     server.on('error', () => {
       console.error('No se pudo iniciar el servidor. Revisa el puerto y la dirección configurados.');

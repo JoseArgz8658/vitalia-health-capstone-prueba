@@ -9,12 +9,13 @@ import 'subir_documento_form.dart';
 
 class PacienteDocumentosPage extends StatefulWidget {
   const PacienteDocumentosPage({super.key, required this.api, required this.email,
-    required this.onExpired, required this.onLogout, this.sessionBusy = false});
+    required this.onExpired, required this.onLogout, this.sessionBusy = false, this.onProfile});
   final AuthApi api;
   final String email;
   final VoidCallback onExpired;
   final VoidCallback onLogout;
   final bool sessionBusy;
+  final VoidCallback? onProfile;
   @override
   State<PacienteDocumentosPage> createState() => _PacienteDocumentosPageState();
 }
@@ -76,6 +77,7 @@ class _PacienteDocumentosPageState extends State<PacienteDocumentosPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Mis exámenes'), actions: [
+      if (widget.onProfile != null) IconButton(tooltip: 'Mi perfil', onPressed: widget.sessionBusy ? null : widget.onProfile, icon: const Icon(Icons.account_circle_outlined)),
       TextButton(onPressed: widget.sessionBusy ? null : widget.onLogout,
         child: const Text('Cerrar sesión')),
     ]),

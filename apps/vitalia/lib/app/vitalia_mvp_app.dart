@@ -1,4 +1,5 @@
 import '../features/asignaciones/asignaciones_page.dart';
+import '../features/perfil/perfil_page.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../core/tema_vitalia.dart';
@@ -18,6 +19,7 @@ class _VitaliaMvpAppState extends State<VitaliaMvpApp> with WidgetsBindingObserv
   Timer? _expiration;
   String? _message;
   bool _busy = false;
+  final _navigator = GlobalKey<NavigatorState>();
   String? _accessNotice;
   @override
   void initState() {
@@ -41,7 +43,12 @@ class _VitaliaMvpAppState extends State<VitaliaMvpApp> with WidgetsBindingObserv
   void _expired() {
     _expiration?.cancel();
     _api.clear();
+    _navigator.currentState?.popUntil((route) => route.isFirst);
     if (mounted) setState(() { _user = null; _message = null; });
+  }
+  void _openProfile() {
+    _navigator.currentState?.push(MaterialPageRoute<void>(builder: (_) =>
+      PerfilPage(api: _api, onExpired: _expired)));
   }
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -73,16 +80,18 @@ class _VitaliaMvpAppState extends State<VitaliaMvpApp> with WidgetsBindingObserv
   }
   @override
   Widget build(BuildContext context) => MaterialApp(
+    navigatorKey: _navigator,
     title: 'Vitalia Health', debugShowCheckedModeBanner: false, theme: temaVitalia(),
     home: _user == null
       ? AccesoPage(api: _api, onAuthenticated: _signedIn, notice: _accessNotice)
       : _user!['role'] == 'paciente'
         ? PacienteDocumentosPage(key: ValueKey(_user!['id']), api: _api,
             email: _user!['email'] as String, onExpired: _expired,
-            onLogout: _logout, sessionBusy: _busy)
+            onLogout: _logout, sessionBusy: _busy, onProfile: _openProfile)
         : AsignacionesPage(key: ValueKey(_user!['id']), auth: _api,
             email: _user!['email'] as String, role: _user!['role'] as String,
-            onExpired: _expired, onLogout: _logout, sessionBusy: _busy, notice: _message),
+            onExpired: _expired, onLogout: _logout, sessionBusy: _busy, notice: _message,
+            onProfile: _user!['role'] == 'profesional' ? _openProfile : null),
   );
 }
 

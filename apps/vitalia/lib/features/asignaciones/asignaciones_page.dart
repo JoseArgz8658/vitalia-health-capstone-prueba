@@ -6,7 +6,7 @@ import 'asignaciones_api.dart';
 
 class AsignacionesPage extends StatefulWidget {
   const AsignacionesPage({super.key, required this.auth, required this.email,
-    required this.role, required this.onExpired, required this.onLogout, this.sessionBusy = false, this.notice});
+    required this.role, required this.onExpired, required this.onLogout, this.sessionBusy = false, this.notice, this.onProfile});
   final AuthApi auth;
   final String email;
   final String role;
@@ -14,6 +14,7 @@ class AsignacionesPage extends StatefulWidget {
   final VoidCallback onLogout;
   final bool sessionBusy;
   final String? notice;
+  final VoidCallback? onProfile;
   @override
   State<AsignacionesPage> createState() => _AsignacionesPageState();
 }
@@ -76,6 +77,7 @@ class _AsignacionesPageState extends State<AsignacionesPage> {
     }
     return Scaffold(
     appBar: AppBar(title: Text(_admin ? 'Asignaciones de pacientes' : 'Mis pacientes'), actions: [
+      if (widget.onProfile != null) IconButton(tooltip: 'Mi perfil', onPressed: widget.sessionBusy || _busy ? null : widget.onProfile, icon: const Icon(Icons.account_circle_outlined)),
       TextButton(onPressed: widget.sessionBusy || _busy ? null : widget.onLogout,
         child: const Text('Cerrar sesión')),
     ]),

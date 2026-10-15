@@ -24,3 +24,11 @@ No agregué PGlite como dependencia del proyecto. Las pruebas anteriores no equi
 ## Documentación y estado
 
 Actualicé [plan-migraciones](../fase-7/plan-migraciones.md), añadí [guía del bloque](../fase-7/bloque-1-perfiles-ubicacion.md) y [diccionario](../fase-7/diccionario-bloque-1.md). Son ocho tablas nuevas: el total será 25 después de aplicar 012 sobre las 17 anteriores. Este incremento prepara la estructura; todavía faltan rutas y pantallas para completar los perfiles. La carga de territorios, roles clínicos, clínicas, invitaciones y atención por examen continúa pendiente. (José Aránguiz)
+
+## Validación posterior en Windows — 15 de octubre de 2026
+
+Ejecuté npm test desde la rama correcta: 41 suites y 428 pruebas aprobadas, código 0. La ejecución anterior de 423 pruebas correspondía a otra rama; sus tres fallos de tiempo no se reprodujeron al probar este incremento. Respaldé vitalia_dev antes de aplicar cambios. Comprobé como postgres las versiones 001 a 011 y la ausencia de las ocho tablas. Apliqué 012 con el ejecutor administrativo: quedó registrada el 15 de octubre de 2026 a las 16:25:38.221549-03 y terminó con código 0. (José Aránguiz)
+
+Comprobé que las ocho tablas pertenecen a postgres y vitalia_app no tenía permisos SELECT/INSERT/UPDATE/DELETE sobre ellas en ese momento. Ejecuté verify-profiles-locations como postgres: 33 comprobaciones correctas, datos sintéticos revertidos, código 0. No cambié privilegios de vitalia_app ni ejecuté esta migración en Docker durante esa prueba. La conexión habitual de backend/.env siguió usando vitalia_app. (José Aránguiz)
+
+La continuación funcional de perfiles se registra por separado en CAM-083; los resultados anteriores corresponden a la base de datos de este incremento. (José Aránguiz)

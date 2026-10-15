@@ -56,3 +56,7 @@ Fase 6: ordenar modelo propuesto, vistas por área cuando haya tiempo, iconos An
 Preparé ocho tablas nuevas mediante 012_profiles_locations, sin modificar 001..011 ni los roles actuales. Añadí el ejecutor específico, 33 comprobaciones con datos sintéticos revertidos, pruebas de manejo de fallos y la guía [bloque-1-perfiles-ubicacion.md](bloque-1-perfiles-ubicacion.md). Este incremento es la base de datos: las rutas y pantallas para completar perfil siguen pendientes. Antes de habilitar captura de RUT faltan normalización y módulo 11. (José Aránguiz)
 
 Acordé para los siguientes bloques: el administrador invita al primer jefe clínico solo con autorización institucional previa verificada; el jefe invita profesionales únicamente de su clínica. El paciente elige al profesional por examen y puede consultar extracción/chat preliminar con advertencia y fuente diferenciada. Estos cambios todavía no están implementados. No añado un rol de director dentro de la aplicación. (José Aránguiz)
+
+## Continuación funcional 7.1 — CAM-083
+
+Añadí la API de perfil propio y la pantalla Mi perfil, con RUT opcional normalizado y validado por módulo 11. Separé los permisos de edición por columnas de la migración; su concesión en vitalia_dev requiere ejecución administrativa deliberada. Incorporé la validación de 33 comprobaciones en PostgreSQL 16 y 428 pruebas Windows en CAM-082. La continuación aprobó 456 pruebas backend; Flutter y flujo real del perfil quedan pendientes en Windows. Medidas, catálogo de comunas e invitaciones clínicas siguen pendientes. (José Aránguiz)

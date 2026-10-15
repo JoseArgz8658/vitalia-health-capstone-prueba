@@ -1,3 +1,5 @@
+import {createProfileRouter} from './profiles/router';
+import {type ProfileServices} from './profiles/service';
 import {createExamAssistantRouter} from './exam-assistant/router';
 import {type ExamAssistantServices} from './exam-assistant/service';
 import {createExplanationRouter} from './explanations/router';
@@ -19,7 +21,7 @@ import { createAuthRouter, type AuthServices } from './auth/router';
 import { createRegistrationRouter } from './auth/registration-router';
 import { type PatientRegistrar } from './auth/registration';
 
-export function createApp(auth?: AuthServices, register?: PatientRegistrar, documents?: DocumentServices, processing?: ProcessingServices, assignments?: AssignmentServices, professional?: ProfessionalServices, reviews?: ReviewServices, explanations?: ExplanationServices, assistant?: ExamAssistantServices) {
+export function createApp(auth?: AuthServices, register?: PatientRegistrar, documents?: DocumentServices, processing?: ProcessingServices, assignments?: AssignmentServices, professional?: ProfessionalServices, reviews?: ReviewServices, explanations?: ExplanationServices, assistant?: ExamAssistantServices, profiles?: ProfileServices) {
   const app = express();
   app.disable('x-powered-by');
   app.use(localWebCors);
@@ -30,6 +32,7 @@ export function createApp(auth?: AuthServices, register?: PatientRegistrar, docu
     res.status(200).json({ status: 'ok', service: 'vitalia-api' });
   });
 
+  if (auth && profiles) app.use('/api/profile', createProfileRouter(auth, profiles));
   if (auth && assistant) app.use('/api/documents', createExamAssistantRouter(auth, assistant));
 
   if (auth && explanations) app.use('/api/documents', createExplanationRouter(auth, explanations));

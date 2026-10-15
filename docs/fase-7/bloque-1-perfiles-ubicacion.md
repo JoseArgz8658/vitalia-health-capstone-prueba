@@ -1,6 +1,6 @@
 # Fase 7.1 — Base de perfiles y ubicación
 
-Preparé la migración 012_profiles_locations y su comprobación para PostgreSQL. Este incremento implementa la estructura de datos; todavía no añade formularios, rutas HTTP ni permisos de edición de perfiles. Conservé la autenticación y los datos de cuentas y exámenes existentes. (José Aránguiz)
+Preparé la migración 012_profiles_locations y su comprobación para PostgreSQL. La continuación CAM-083 añade consulta/edición del perfil propio y su pantalla Flutter. Conservé la autenticación y los datos de cuentas y exámenes existentes. (José Aránguiz)
 
 ## Tablas nuevas
 
@@ -22,11 +22,11 @@ Son ocho tablas y nueve claves foráneas nuevas. Sobre el esquema anterior de 17
 - Una cuenta puede seguir sin persona/perfil; una persona puede tener perfil paciente y profesional sin cambiar role_code ni obtener permisos nuevos.
 - Primer nombre y primer apellido obligatorios al crear persona. Segundo nombre, segundo apellido, teléfono, nacimiento y comuna son opcionales en esta estructura. La fecha de nacimiento será exigida por el futuro flujo de perfil completo del paciente.
 - No guardo edad fija. Rechazo fechas de nacimiento futuras o infinitas. Las medidas requieren fecha no futura, al menos un dato positivo y finito, fuente y autor.
-- El RUT no sustituye el UUID. La combinación país/tipo/valor es única, y una persona tiene un identificador por país/tipo. Este bloque aún no valida módulo 11 ni normaliza formatos de entrada: se implementará antes de habilitar la captura por API. No hay pantalla o ruta que acepte identificadores en esta entrega.
+- El RUT no sustituye el UUID. La combinación país/tipo/valor es única, y una persona tiene un identificador por país/tipo. CAM-083 normaliza puntos/guion/K y valida módulo 11 antes de guardarlo por API. No acredita identidad. Un RUT ya registrado no puede vaciarse mediante el formulario; si está verificado, no se permite cambiarlo.
 - Los identificadores nacen como not_verified y los profesionales como pending. La creación de una fila no verifica identidad o habilitación profesional. Los futuros servicios controlarán quién puede cambiar esos estados.
 - Los catálogos territoriales quedan vacíos. No invento regiones/comunas ni cargo nombres sin una fuente oficial revisada.
-- Las fechas updated_at deberán actualizarse desde el futuro servicio; no hay trigger automático. Las FK conservan el borrado restringido por defecto.
-- Estas FK no implementan aislamiento multiclínica, autorización de edición ni acceso profesional. Tampoco envío perfiles o medidas al asistente.
+- El servicio actualiza updated_at al editar y utiliza su revisión para rechazar un guardado obsoleto; no hay trigger automático. Las FK conservan el borrado restringido por defecto.
+- Las FK no implementan aislamiento multiclínica ni acceso profesional por sí mismas. La API de perfiles solo permite editar datos propios, obteniendo la identidad de la sesión. Tampoco envío perfiles o medidas al asistente.
 
 Conservo para los bloques siguientes las clínicas y sucursales, invitaciones institucionales de jefes clínicos, gestión de médicos, atención por examen y extracción/chat preliminar. El registro público actual continúa funcionando. (José Aránguiz)
 
@@ -83,6 +83,20 @@ docker build --target test -t vitalia-backend-test ./backend
 $LASTEXITCODE
 ```
 
-## Validación
+## Validación inicial en el entorno de comprobación
 
-Comprobé SQL, idempotencia, huella modificada rechazada, requisito 011 y reversión ante un fallo DDL en PGlite (motor PostgreSQL WASM aislado). Verifiqué las 33 reglas con el mismo comprobador y que la cuenta antigua permaneciera intacta. PGlite se instaló fuera del proyecto solo para esta comprobación; no se incorpora a package.json. No equivale a PostgreSQL 16, Docker o prueba de permisos de vitalia_app. La comprobación en Windows queda pendiente. (José Aránguiz)
+Comprobé SQL, idempotencia, huella modificada rechazada, requisito 011 y reversión ante un fallo DDL en PGlite (motor PostgreSQL WASM aislado). Verifiqué las 33 reglas con el mismo comprobador y que la cuenta antigua permaneciera intacta. PGlite se instaló fuera del proyecto solo para esta comprobación; no se incorpora a package.json. No equivale a PostgreSQL 16, Docker o prueba de permisos de vitalia_app. La comprobación posterior en Windows se registra a continuación. (José Aránguiz)
+
+### Resultado posterior en PostgreSQL 16
+
+Apliqué 012 en vitalia_dev como postgres y ejecuté las 33 comprobaciones con datos revertidos, código 0. Registré la evidencia y los permisos inicialmente ausentes de vitalia_app en CAM-082. (José Aránguiz)
+
+## Habilitar Mi perfil en el entorno local
+
+No repitas la migración si ya está aplicada. Actualiza esta rama y ejecuta npm test en backend, y flutter analyze/flutter test en apps/vitalia. El backend normal sigue usando vitalia_app.
+
+Para habilitar el acceso de ese usuario a las nuevas tablas, abre en VS Code backend/database/permissions/profiles-app.sql y revisa todo su contenido. En pgAdmin, conectado como postgres a vitalia_dev, abre Query Tool, pega el archivo completo y ejecútalo. Es una concesión de permisos persistente; no es la comprobación con rollback. No ejecutes el archivo sobre otra base ni lo adaptes para Docker sin revisar roles y destino.
+
+Después inicia API y Flutter como habitualmente. En Mis exámenes o Mis pacientes pulsa el icono de persona con ayuda Mi perfil. Completa primer nombre y primer apellido; los demás campos son opcionales en este incremento. Guarda, vuelve al inicio y abre Mi perfil nuevamente: debe conservar los datos. Prueba un RUT con dígito incorrecto y comprueba que no se guarda. Una cuenta distinta debe ver su propio perfil vacío. Si la sesión expira, debe volver a acceso. Comprueba que subir/consultar exámenes siga funcionando.
+
+La edición de estos datos no modifica revisiones aprobadas ni la información usada por el asistente. Aún faltan medidas personales, catálogo territorial, elección de profesional y las invitaciones clínicas. (José Aránguiz)
