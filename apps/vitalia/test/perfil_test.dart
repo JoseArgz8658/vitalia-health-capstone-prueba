@@ -21,7 +21,11 @@ void main() {
     final api = ProfileFake();
     await tester.pumpWidget(MaterialApp(home: PerfilPage(api: api, onExpired: () {})));
     await tester.pumpAndSettle();
+    expect(find.byType(TextFormField), findsNothing);
+    await tester.tap(find.text('Editar datos personales'));
+    await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextFormField, 'Primer nombre'), 'Ana');
+    await tester.ensureVisible(find.widgetWithText(TextFormField, 'Primer apellido'));
     await tester.enterText(find.widgetWithText(TextFormField, 'Primer apellido'), 'Prueba');
     await tester.ensureVisible(find.text('Guardar perfil'));
     await tester.tap(find.text('Guardar perfil'));
@@ -30,6 +34,29 @@ void main() {
     expect(api.saved?['rut'], isNull);
     expect(api.saved?.containsKey('role'), isFalse);
     expect(find.textContaining('Perfil guardado.'), findsOneWidget);
+    expect(find.byType(TextFormField), findsNothing);
+    expect(find.text('Ana'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());api.close();
+  });
+  testWidgets('cancelar restaura datos guardados sin enviar cambios', (tester) async {
+    final api = ProfileFake()..saved = {'firstName':'Ana','firstSurname':'Prueba'};
+    await tester.pumpWidget(MaterialApp(home: PerfilPage(api: api, onExpired: () {})));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextFormField), findsNothing);
+    expect(find.text('Contacto'), findsOneWidget);
+    expect(find.text('Identificación'), findsOneWidget);
+    await tester.tap(find.text('Editar datos personales'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextFormField, 'Primer nombre'), 'Borrador');
+    await tester.ensureVisible(find.text('Cancelar edición'));
+    await tester.tap(find.text('Cancelar edición'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextFormField), findsNothing);
+    expect(find.text('Ana'), findsOneWidget);
+    expect(api.saved?['firstName'], 'Ana');
+    final edit = find.text('Editar datos personales');
+    await tester.ensureVisible(edit);await tester.tap(edit);await tester.pumpAndSettle();
+    expect(tester.widget<TextFormField>(find.widgetWithText(TextFormField, 'Primer nombre')).controller!.text, 'Ana');
     await tester.pumpWidget(const SizedBox());api.close();
   });
   testWidgets('perfil oculta formulario cuando falla consulta y anuncia expiración', (tester) async {
