@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../core/auth_api.dart';
+import 'medidas_panel.dart';
 
 class PerfilPage extends StatefulWidget {
-  const PerfilPage({super.key, required this.api, required this.onExpired});
+  const PerfilPage({super.key, required this.api, required this.onExpired, this.isPatient = false});
   final AuthApi api;
   final VoidCallback onExpired;
+  final bool isPatient;
   @override
   State<PerfilPage> createState() => _PerfilPageState();
 }
@@ -14,7 +16,7 @@ class _PerfilPageState extends State<PerfilPage> {
   final _fields = <String, TextEditingController>{
     for (final key in ['firstName', 'additionalNames', 'firstSurname', 'secondSurname', 'birthDate', 'phone', 'rut']) key: TextEditingController(),
   };
-  bool _busy = false, _loaded = false, _verified = false, _editing = false;
+  bool _busy = false, _loaded = false, _verified = false, _editing = false, _measuresEditing = false;
   Map<String, dynamic>? _savedProfile;
   String? _revision, _commune, _message;
   @override
@@ -105,11 +107,11 @@ class _PerfilPageState extends State<PerfilPage> {
         const SizedBox(height: 16),
         if (_busy) const LinearProgressIndicator(),
         if (_message != null) Semantics(liveRegion: true, child: Card(child: Padding(padding: const EdgeInsets.all(16), child: Text(_message!)))),
-        Align(alignment: Alignment.centerRight, child: TextButton.icon(onPressed: _busy || _editing ? null : _load,
+        Align(alignment: Alignment.centerRight, child: TextButton.icon(onPressed: _busy || _editing || _measuresEditing ? null : _load,
           icon: const Icon(Icons.refresh), label: const Text('Actualizar perfil'))),
         if (_loaded) ...[
           if (!_editing) Padding(padding: const EdgeInsets.only(bottom: 20), child: FilledButton.icon(
-            onPressed: _busy ? null : () => setState(() { _editing = true; _message = null; }),
+            onPressed: _busy || _measuresEditing ? null : () => setState(() { _editing = true; _message = null; }),
             icon: const Icon(Icons.edit_outlined), label: const Text('Editar datos personales'))),
           if (_editing) const Padding(padding: EdgeInsets.only(bottom: 16),
             child: Text('Estás editando. Los cambios se guardan únicamente al pulsar Guardar perfil.')),
@@ -134,8 +136,11 @@ class _PerfilPageState extends State<PerfilPage> {
             ]),
           ])),
         ],
+        if (_loaded && _savedProfile != null && widget.isPatient)
+          MedidasPanel(api: widget.api, onExpired: widget.onExpired, enabled: !_busy && !_editing,
+            onEditingChanged: (value) { if (mounted) setState(() => _measuresEditing = value); }),
         const SizedBox(height: 24),
-        const Text('La selección de comuna y las medidas personales se habilitarán en próximos incrementos. No se envían datos del perfil al asistente.'),
+        const Text('La selección de comuna se habilitará al incorporar el catálogo territorial. No se envían datos del perfil al asistente.'),
       ]),
     ))),
   );

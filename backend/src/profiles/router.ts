@@ -14,6 +14,8 @@ export function createProfileRouter(auth:Pick<AuthServices,'find'>,service:Profi
  };
  router.get('/',guard,async(_req,res)=>{res.json(await service.get(res.locals.account));});
  router.post('/',guard,async(req,res)=>{res.json(await service.save(res.locals.account,req.body));});
+ router.get('/measurements',guard,async(_req,res)=>{res.json(await service.measurements(res.locals.account));});
+ router.post('/measurements',guard,async(req,res)=>{res.json(await service.recordMeasurement(res.locals.account,req.body));});
  const errors:ErrorRequestHandler=(error,_req,res,next)=>{
   if(error instanceof ProfileError){res.status(error.status).json({error:{code:error.code,message:'No se pudo consultar o guardar el perfil.'}});return;}
   next(error);

@@ -13,3 +13,7 @@ Actualicé la prueba de guardado para exigir la entrada explícita a edición y 
 Comprobé Flutter analyze sin incidencias y 79 pruebas Flutter aprobadas, código 0. El backend tuvo un cierre abrupto con código -1073740791 sin resumen de Jest. Probé explanations.test.cjs por separado: 28 pruebas aprobadas, código 0; después repetí la suite completa: 42 suites, 456 pruebas aprobadas y código 0. El cierre no se reprodujo y no se determinó su causa; no lo atribuí a una prueba funcional fallida. (José Aránguiz)
 
 Apliqué profiles-app.sql desde pgAdmin como administrador en vitalia_dev: terminó en COMMIT. Inicié la aplicación y confirmé el funcionamiento del perfil antes de solicitar este ajuste visual. Este registro no demuestra instalación Docker ni una nueva prueba en Android. (José Aránguiz)
+
+## Validación posterior del ajuste
+
+Ejecuté flutter analyze sin incidencias y flutter test con 80 pruebas aprobadas, código 0. Comprobé visualmente los cambios y confirmé el funcionamiento del perfil organizado por secciones y la edición explícita. (José Aránguiz)

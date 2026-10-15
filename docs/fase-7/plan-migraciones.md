@@ -60,3 +60,7 @@ Acordé para los siguientes bloques: el administrador invita al primer jefe clí
 ## Continuación funcional 7.1 — CAM-083
 
 Añadí la API de perfil propio y la pantalla Mi perfil, con RUT opcional normalizado y validado por módulo 11. Separé los permisos de edición por columnas de la migración; su concesión en vitalia_dev requiere ejecución administrativa deliberada. Incorporé la validación de 33 comprobaciones en PostgreSQL 16 y 428 pruebas Windows en CAM-082. La continuación aprobó 456 pruebas backend; Flutter y flujo real del perfil quedan pendientes en Windows. Medidas, catálogo de comunas e invitaciones clínicas siguen pendientes. (José Aránguiz)
+
+## Medidas y estado posterior — CAM-084 / CAM-085
+
+Comprobé el perfil propio en Windows y el ajuste de consulta/edición por secciones con 80 pruebas Flutter y análisis sin incidencias. Añadí el módulo opcional de peso/altura con historial propio y fuente patient_reported. El backend del nuevo módulo aprobó 482 pruebas; Flutter y flujo real de medidas siguen pendientes en Windows. No cambié 012 ni cargué catálogo territorial. Las clínicas e invitaciones siguen en los siguientes bloques. (José Aránguiz)

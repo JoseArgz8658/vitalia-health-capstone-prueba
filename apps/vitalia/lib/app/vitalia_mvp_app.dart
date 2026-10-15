@@ -48,7 +48,7 @@ class _VitaliaMvpAppState extends State<VitaliaMvpApp> with WidgetsBindingObserv
   }
   void _openProfile() {
     _navigator.currentState?.push(MaterialPageRoute<void>(builder: (_) =>
-      PerfilPage(api: _api, onExpired: _expired)));
+      PerfilPage(api: _api, onExpired: _expired, isPatient: _user?['role'] == 'paciente')));
   }
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {

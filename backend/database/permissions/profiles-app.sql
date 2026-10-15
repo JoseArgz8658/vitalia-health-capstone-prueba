@@ -16,4 +16,7 @@ GRANT INSERT(id,person_id,country_code,identifier_type,normalized_value)
  ON public.vitalia_person_identifiers TO vitalia_app;
 GRANT UPDATE(normalized_value) ON public.vitalia_person_identifiers TO vitalia_app;
 GRANT INSERT(person_id) ON public.vitalia_patient_profiles,public.vitalia_professional_profiles TO vitalia_app;
+GRANT SELECT ON public.vitalia_patient_measurements TO vitalia_app;
+GRANT INSERT(id,patient_person_id,measured_at,weight_kg,height_cm,source,recorded_by)
+ ON public.vitalia_patient_measurements TO vitalia_app;
 COMMIT;

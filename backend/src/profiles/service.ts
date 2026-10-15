@@ -3,8 +3,10 @@ import {type Pool} from 'pg';
 import {type AccountSummary} from '../accounts/repository';
 import {type DocumentDatabase} from '../documents/service';
 import {profileInput} from './validation';
+import {createMeasurementService} from './measurements';
+import {ProfileError} from './errors';
+export {ProfileError} from './errors';
 
-export class ProfileError extends Error{constructor(public status:number,public code:string){super(code);}}
 type Queryable=Pick<Pool,'query'>;
 interface Person{id:string;first_name:string;additional_names:string|null;first_surname:string;second_surname:string|null;birth_date:string|null;phone:string|null;preferred_commune_code:string|null;revision:string}
 interface Identifier{id:string;normalized_value:string;verification_status:string}
@@ -29,6 +31,7 @@ function translate(error:unknown):never{
  throw error;
 }
 export function createProfileService(db:DocumentDatabase){return {
+ ...createMeasurementService(db),
  async get(account:AccountSummary){allowed(account);try{return await db.transaction(tx=>read(tx,account));}catch(e){translate(e);}},
  async save(account:AccountSummary,input:unknown){
   allowed(account);const parsed=profileInput.safeParse(input);if(!parsed.success)throw new ProfileError(400,'INVALID_PROFILE');
