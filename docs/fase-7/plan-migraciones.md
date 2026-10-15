@@ -1,5 +1,5 @@
 # Fase 7 — Perfiles, clínicas y atención por examen
-Rama: fase-7/perfiles-clinicas, desde fase-6/interfaz-intuitiva. Estado: planificación técnica; ninguna migración 012+ creada ni aplicada en este bloque.
+Rama de este incremento: fase-7/01-perfiles-ubicacion. La migración 012 está implementada en código y comprobada en un motor aislado; su aplicación en PostgreSQL 16 del equipo sigue pendiente. Las migraciones 013+ continúan propuestas.
 
 ## Decisiones confirmadas
 Teléfono opcional, un médico responsable por examen a la vez, segunda opinión posterior sin sobrescribir revisión, derivaciones dentro de la misma clínica. Propuesta ampliada: 18 tablas nuevas, importadas como modelo visual separado. Las restricciones del diagrama Oracle no son migraciones PostgreSQL.
@@ -50,3 +50,9 @@ Queda por definir política de personas sin RUT, verificación profesional/ident
 
 ## Pendientes conservados
 Fase 6: ordenar modelo propuesto, vistas por área cuando haya tiempo, iconos Android y accesibilidad. IA: cobertura/rendimiento en docs/pendientes. Seguridad PostgreSQL: usuario limitado/coordinación con compañero; debe resolverse antes de despliegue. Estos trabajos no se declaran cerrados por iniciar fase 7.
+
+## Avance 7.1 — 15 de octubre de 2026
+
+Preparé ocho tablas nuevas mediante 012_profiles_locations, sin modificar 001..011 ni los roles actuales. Añadí el ejecutor específico, 33 comprobaciones con datos sintéticos revertidos, pruebas de manejo de fallos y la guía [bloque-1-perfiles-ubicacion.md](bloque-1-perfiles-ubicacion.md). Este incremento es la base de datos: las rutas y pantallas para completar perfil siguen pendientes. Antes de habilitar captura de RUT faltan normalización y módulo 11. (José Aránguiz)
+
+Acordé para los siguientes bloques: el administrador invita al primer jefe clínico solo con autorización institucional previa verificada; el jefe invita profesionales únicamente de su clínica. El paciente elige al profesional por examen y puede consultar extracción/chat preliminar con advertencia y fuente diferenciada. Estos cambios todavía no están implementados. No añado un rol de director dentro de la aplicación. (José Aránguiz)
