@@ -1,5 +1,7 @@
 # Invitaciones institucionales — Continuación de fase 7.2
 
+Actualicé el acceso y la activación en [modos-acceso.md](modos-acceso.md), correspondiente a CAM-091. Para la versión actual sigo primero esa guía: la activación está en una dirección independiente, el inicio permite Paciente/Profesional y la administración tiene su propia dirección. Conservo las dos entregas, manual y por correo pendiente de configuración. Las cifras de pruebas de los apartados siguientes corresponden al incremento original. (José Aránguiz)
+
 Implementé el flujo descrito en [CAM-089](../cambios-codigo/CAM-089-autorizacion-invitaciones-institucionales.md). Esta guía valida primero código y después PostgreSQL. No doy por aplicada 015 por haber aprobado las pruebas automatizadas. (José Aránguiz)
 
 ## 1. Actualizar y comprobar código en Windows

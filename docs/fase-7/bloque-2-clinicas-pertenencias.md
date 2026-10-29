@@ -66,3 +66,7 @@ Preparé la continuación institucional con 015, cinco tablas nuevas, servicio y
 ## Gestión del equipo — CAM-090
 
 Preparé listado y gestión auditada de pertenencias de profesionales ordinarios. El jefe actúa solo en su clínica; el administrador consulta sin editar. La migración 016 conserva las relaciones personales previas y añade especialidades por pertenencia y auditoría. La guía es [gestion-equipo.md](gestion-equipo.md). Su aplicación en PostgreSQL 16 y las comprobaciones Windows están pendientes; los resultados y límites se registran en CAM-090. (José Aránguiz)
+
+## Modos de acceso y aceptación de cuentas existentes — CAM-091
+
+Preparé el siguiente incremento con 017, sesiones ligadas al modo y activación independiente del inicio. Una cuenta existente acepta la invitación tras autenticarse, conservando contraseña y datos. Mantengo entrega manual y envío por correo pendiente de configuración. La guía está en [modos-acceso.md](modos-acceso.md); las comprobaciones en Windows/PostgreSQL 16 siguen pendientes. (José Aránguiz)

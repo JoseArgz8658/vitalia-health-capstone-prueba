@@ -20,8 +20,8 @@ function identity(account:AccountSummary,patientId:string,documentId?:string){
 }
 async function assigned(tx:Database,account:AccountSummary,patientId:string){
  const result=await tx.query<{id:string}>(`SELECT x.id FROM public.vitalia_patient_assignments x
- JOIN public.vitalia_accounts p ON p.id=x.patient_id AND p.role_code='paciente'
- JOIN public.vitalia_accounts r ON r.id=x.professional_id AND r.role_code='profesional'
+ JOIN public.vitalia_accounts p ON p.id=x.patient_id AND EXISTS(SELECT 1 FROM public.vitalia_account_roles g WHERE g.account_id=p.id AND g.role_code='paciente' AND g.active)
+ JOIN public.vitalia_accounts r ON r.id=x.professional_id AND EXISTS(SELECT 1 FROM public.vitalia_account_roles g WHERE g.account_id=r.id AND g.role_code='profesional' AND g.active)
  WHERE x.professional_id=$1 AND x.patient_id=$2 AND x.active=true FOR SHARE OF x,p,r`,[account.id,patientId]);
  if(result.rows.length!==1)throw new ProfessionalNotFoundError();
  return result.rows[0].id;
@@ -80,3 +80,4 @@ export function createProfessionalService(db:DocumentDatabase,storage:Pick<Docum
  };
 }
 export type ProfessionalServices=ReturnType<typeof createProfessionalService>;
+

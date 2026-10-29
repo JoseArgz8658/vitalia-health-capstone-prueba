@@ -5,7 +5,8 @@ import {OnboardingError,type OnboardingServices} from './service';
 export function createOnboardingRouter(auth:Pick<AuthServices,'find'>,service:OnboardingServices){
  const r=Router();r.use((req,res,next)=>{res.set('Cache-Control','no-store');if(Object.keys(req.query).length)throw new OnboardingError(400,'INVALID_ONBOARDING');next();});
  r.post('/activate',async(req,res)=>{res.json(await service.activate(req.body));});
- r.use(async(req,res,next)=>{const p=req.get('Authorization')?.split(' ');const token=p?.length===2&&p[0].toLowerCase()==='bearer'&&isSessionToken(p[1])?p[1]:null;const a=token?await auth.find(token):null;if(!a)throw new OnboardingError(401,'UNAUTHORIZED');if(!['administrador','profesional'].includes(a.role))throw new OnboardingError(403,'FORBIDDEN');res.locals.account=a;next();});
+ r.use(async(req,res,next)=>{const p=req.get('Authorization')?.split(' ');const token=p?.length===2&&p[0].toLowerCase()==='bearer'&&isSessionToken(p[1])?p[1]:null;const a=token?await auth.find(token):null;if(!a)throw new OnboardingError(401,'UNAUTHORIZED');if(!['administrador','profesional'].includes(a.role)&&!(req.path==='/accept'&&req.method==='POST'&&a.role==='paciente'))throw new OnboardingError(403,'FORBIDDEN');res.locals.account=a;next();});
+ r.post('/accept',async(req,res)=>{res.json(await service.accept(res.locals.account,req.body));});
  r.get('/context',async(_req,res)=>{res.json(await service.context(res.locals.account));});
  r.get('/:clinic',async(req,res)=>{res.json(await service.details(res.locals.account,req.params.clinic as string));});
  r.post('/:clinic/authorizations',async(req,res)=>{res.status(201).json({item:await service.record(res.locals.account,req.params.clinic as string,req.body)});});

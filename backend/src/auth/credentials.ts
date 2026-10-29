@@ -5,6 +5,7 @@ import { type AccountSummary, findAccountCredentialsByEmail } from '../accounts/
 import { hashPassword, verifyPassword } from './password';
 
 const inputSchema = z.object({
+  mode: z.enum(['paciente','profesional','administrador']).default('paciente'),
   email: z.string().trim().toLowerCase().pipe(z.email().max(254)),
   password: z.string().min(1).refine(value => Buffer.byteLength(value, 'utf8') <= 1024),
 }).strict();
@@ -29,11 +30,14 @@ export async function createCredentialAuthenticator(db: Pick<Pool, 'query'>) {
       // Una cuenta inexistente también ejecuta scrypt; no garantiza tiempos idénticos.
       const matches = await verifyPassword(parsed.data.password, account?.passwordHash ?? dummyHash);
       if (!account || !matches) return null;
+      const granted=await db.query<{role_code:string}>('SELECT role_code FROM public.vitalia_account_roles WHERE account_id=$1 AND role_code=$2 AND active',[account.id,parsed.data.mode]);
+      if(!granted.rows.some(row=>row.role_code===parsed.data.mode))return null;
       return {
-        id: account.id, email: account.email, role: account.role, createdAt: account.createdAt,
+        id: account.id, email: account.email, role: parsed.data.mode, createdAt: account.createdAt,
       };
     } finally {
       checking = false;
     }
   };
 }
+

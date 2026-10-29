@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { type AccountSummary } from '../accounts/repository';
+import { type AccountRole, type AccountSummary } from '../accounts/repository';
 import { CredentialCheckBusyError } from './credentials';
 import { type SessionGrant, isSessionToken } from './sessions';
 import { createLoginAttemptLimiter } from './login-limit';
 
 export interface AuthServices {
   authenticate(input: unknown): Promise<AccountSummary | null>;
-  issue(accountId: string): Promise<SessionGrant>;
+  issue(accountId: string, mode?: AccountRole): Promise<SessionGrant>;
   find(token: string): Promise<AccountSummary | null>;
   revoke(token: string): Promise<void>;
 }
@@ -43,7 +43,7 @@ export function createAuthRouter(services: AuthServices) {
       res.status(401).json({ error: { code: 'INVALID_CREDENTIALS', message: 'Correo o contraseña incorrectos.' } });
       return;
     }
-    const grant = await services.issue(user.id);
+    const grant = await services.issue(user.id,user.role);
     res.status(200).json({ token: grant.token, expiresAt: grant.expiresAt, user: safeUser(user) });
   });
   router.get('/me', async (req, res) => {
@@ -66,3 +66,4 @@ export function createAuthRouter(services: AuthServices) {
   });
   return router;
 }
+

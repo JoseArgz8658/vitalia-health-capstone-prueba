@@ -80,7 +80,7 @@ async function main(): Promise<void> {
     const register = createPatientRegistrar(database);
     server = createApp({
       authenticate,
-      issue: id => issueSession(database, id),
+      issue: (id,mode) => issueSession(database, id,mode),
       find: token => findSessionAccount(database, token),
       revoke: token => revokeSession(database, token),
     }, register, documents, createProcessingService(database), createAssignmentService(documentDatabase(database)), createProfessionalService(documentDatabase(database), s3DocumentStorage(storage, storageConfig)), createReviewService(documentDatabase(database)), createExplanationService(documentDatabase(database), createExplanationGenerator()), createExamAssistantService(documentDatabase(database), createExamAssistant()), createProfileService(documentDatabase(database)), createInstitutionService(documentDatabase(database)), createOnboardingService(documentDatabase(database)), createTeamService(documentDatabase(database))).listen(config.PORT, config.HOST);

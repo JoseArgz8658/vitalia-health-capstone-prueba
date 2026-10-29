@@ -1,5 +1,7 @@
 # Gestión del equipo — Continuación de fase 7.2
 
+Actualicé el acceso y la activación en [modos-acceso.md](modos-acceso.md), correspondiente a CAM-091. Para la versión actual sigo primero esa guía: la activación está en una dirección independiente, el inicio permite Paciente/Profesional y la administración tiene su propia dirección. Conservo las dos entregas, manual y por correo pendiente de configuración. Las cifras de pruebas de los apartados siguientes corresponden al incremento original. (José Aránguiz)
+
 Preparé el incremento de [CAM-090](../cambios-codigo/CAM-090-gestion-equipo-pertenencias.md). El flujo de autorización, invitaciones y activación de CAM-089 ya fue comprobado en Windows y PostgreSQL 16, incluida reutilización de código y revocación. La nueva gestión requiere sus propias comprobaciones y la migración 016. (José Aránguiz)
 
 ## 1. Comprobar el código en Windows

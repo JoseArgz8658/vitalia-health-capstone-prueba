@@ -56,7 +56,8 @@ export function createOnboardingService(db:DocumentDatabase){
  if(a.role==='administrador'){if(!v.authorizationId)fail(409,'AUTHORIZATION_REQUIRED');await validAuthorization(tx,clinic,v.authorizationId,v.email);await noChief(tx,clinic);role='jefe_clinico';}
  else {await chief(tx,a,clinic);if(v.authorizationId)fail(403,'FORBIDDEN');role='profesional';}
  await choices(tx,clinic,v.branchIds,v.specialtyIds);
- if((await tx.query('SELECT id FROM public.vitalia_accounts WHERE email=$1',[v.email])).rows.length)fail(409,'EXISTING_ACCOUNT');
+ const existing=(await tx.query('SELECT id,role_code FROM public.vitalia_accounts WHERE email=$1',[v.email])).rows[0];
+ if(existing?.role_code==='administrador')fail(409,'EXISTING_ACCOUNT');
  if(role==='jefe_clinico'&&(await tx.query("SELECT id FROM public.vitalia_professional_invitations WHERE clinic_id=$1 AND clinical_role='jefe_clinico' AND activated_at IS NULL AND revoked_at IS NULL AND expires_at>CURRENT_TIMESTAMP",[clinic])).rows.length)fail(409,'ONBOARDING_CONFLICT');
  const token=randomBytes(32).toString('hex');
  const r=await tx.query(`INSERT INTO public.vitalia_professional_invitations(id,clinic_id,authorization_id,email,clinical_role,invited_by,token_hash) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING ${inviteCols}`,[v.requestId,clinic,v.authorizationId,v.email,role,a.id,digest(token)]);
@@ -64,6 +65,37 @@ export function createOnboardingService(db:DocumentDatabase){
  for(const id of v.specialtyIds)await tx.query('INSERT INTO public.vitalia_invitation_specialties(invitation_id,specialty_id) VALUES($1,$2)',[v.requestId,id]);
  await audit(tx,a.id,clinic,'invitation_created',v.authorizationId,v.requestId);return {item:r.rows[0],token};});},
  async revoke(a:AccountSummary,clinic:string,id:string){checkId(clinic);checkId(id);return transaction(async tx=>{await lock(tx,clinic);await manage(tx,a,clinic);const r=await tx.query(`UPDATE public.vitalia_professional_invitations SET revoked_at=CURRENT_TIMESTAMP WHERE clinic_id=$1 AND id=$2 AND activated_at IS NULL AND revoked_at IS NULL ${a.role==='administrador'?'':"AND clinical_role='profesional'"} RETURNING id,authorization_id`,[clinic,id]);if(!r.rows.length)fail(409,'INVITATION_UNAVAILABLE');await audit(tx,a.id,clinic,'invitation_revoked',r.rows[0].authorization_id,id);});},
+ async accept(a:AccountSummary,input:unknown){
+ if(!['paciente','profesional'].includes(a.role))fail(403,'FORBIDDEN');
+ const v=parse(z.object({token:z.string().regex(/^[a-f0-9]{64}$/),firstName:text(100),firstSurname:text(100),confirmed:z.literal(true)}).strict(),input);
+ return transaction(async tx=>{
+  const hash=digest(v.token);const found=(await tx.query('SELECT clinic_id FROM public.vitalia_professional_invitations WHERE token_hash=$1',[hash])).rows[0];if(!found)fail(400,'INVITATION_UNAVAILABLE');
+  await lock(tx,found.clinic_id);
+  const inv=(await tx.query('SELECT * FROM public.vitalia_professional_invitations WHERE token_hash=$1 AND activated_at IS NULL AND revoked_at IS NULL AND expires_at>CURRENT_TIMESTAMP FOR UPDATE',[hash])).rows[0];
+  if(!inv)fail(400,'INVITATION_UNAVAILABLE');
+  const account=(await tx.query('SELECT id,email,role_code FROM public.vitalia_accounts WHERE id=$1',[a.id])).rows[0];
+  if(!account||account.email!==inv.email)fail(403,'INVITATION_ACCOUNT_MISMATCH');
+  if(account.role_code==='administrador')fail(403,'FORBIDDEN');
+  await clinicActive(tx,inv.clinic_id);
+  if(inv.clinical_role==='jefe_clinico'){await validAuthorization(tx,inv.clinic_id,inv.authorization_id,inv.email);await noChief(tx,inv.clinic_id);}
+  else await chief(tx,{id:inv.invited_by,role:'profesional'} as AccountSummary,inv.clinic_id);
+  const branches=(await tx.query('SELECT branch_id FROM public.vitalia_invitation_branches WHERE invitation_id=$1',[inv.id])).rows.map(r=>r.branch_id);
+  const specialties=(await tx.query('SELECT specialty_id FROM public.vitalia_invitation_specialties WHERE invitation_id=$1',[inv.id])).rows.map(r=>r.specialty_id);
+  await choices(tx,inv.clinic_id,branches,specialties);
+  let person=(await tx.query('SELECT id FROM public.vitalia_people WHERE account_id=$1',[a.id])).rows[0]?.id;
+  if(!person){person=randomUUID();await tx.query('INSERT INTO public.vitalia_people(id,account_id,first_name,first_surname) VALUES($1,$2,$3,$4)',[person,a.id,v.firstName,v.firstSurname]);}
+  if((await tx.query('SELECT id FROM public.vitalia_clinic_memberships WHERE clinic_id=$1 AND professional_person_id=$2',[inv.clinic_id,person])).rows.length)fail(409,'ALREADY_MEMBER');
+  await tx.query('INSERT INTO public.vitalia_professional_profiles(person_id) VALUES($1) ON CONFLICT DO NOTHING',[person]);
+  await tx.query("INSERT INTO public.vitalia_account_roles(account_id,role_code,grant_source,invitation_id) VALUES($1,'profesional','invitation_accepted',$2) ON CONFLICT(account_id,role_code) DO NOTHING",[a.id,inv.id]);
+  // Un permiso global revocado no se reactiva por aceptar otra invitación.
+  if(!(await tx.query("SELECT role_code FROM public.vitalia_account_roles WHERE account_id=$1 AND role_code='profesional' AND active",[a.id])).rows.length)fail(403,'FORBIDDEN');
+  const membership=randomUUID();await tx.query('INSERT INTO public.vitalia_clinic_memberships(id,clinic_id,professional_person_id,clinical_role,active) VALUES($1,$2,$3,$4,true)',[membership,inv.clinic_id,person,inv.clinical_role]);
+  for(const id of branches)await tx.query('INSERT INTO public.vitalia_branch_memberships(clinic_id,branch_id,membership_id) VALUES($1,$2,$3)',[inv.clinic_id,id,membership]);
+  for(const id of specialties)await tx.query('INSERT INTO public.vitalia_membership_specialties(clinic_id,membership_id,specialty_id) VALUES($1,$2,$3)',[inv.clinic_id,membership,id]);
+  await tx.query('UPDATE public.vitalia_professional_invitations SET activated_at=CURRENT_TIMESTAMP,activated_account_id=$2 WHERE id=$1',[inv.id,a.id]);
+  await audit(tx,a.id,inv.clinic_id,'invitation_activated',inv.authorization_id,inv.id);
+  return {accepted:true};
+ });},
  async activate(input:unknown){const v=parse(activationInput,input);if(activating)fail(429,'ACTIVATION_BUSY');activating=true;try{
  // Rechazar tokens inválidos antes de calcular scrypt; revalidar bajo bloqueo tras el hash.
  const hash=digest(v.token);const pre=await db.query('SELECT id FROM public.vitalia_professional_invitations WHERE token_hash=$1 AND activated_at IS NULL AND revoked_at IS NULL AND expires_at>CURRENT_TIMESTAMP',[hash]);if(!pre.rows.length)fail(400,'INVITATION_UNAVAILABLE');

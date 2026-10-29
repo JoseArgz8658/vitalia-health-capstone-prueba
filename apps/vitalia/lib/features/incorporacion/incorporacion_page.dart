@@ -260,7 +260,14 @@ class _IncorporacionPageState extends State<IncorporacionPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Código privado: se muestra una sola vez. Entrégalo al correo invitado junto con la dirección de Vitalia y la opción Activar invitación profesional. No lo publiques en capturas ni documentación. Vence a las 48 horas de emisión.',
+                              'Código privado: se muestra una sola vez. Entrégalo al correo invitado junto con la dirección de activación indicada aquí. No lo publiques en capturas ni documentación. Vence a las 48 horas de emisión.',
+                            ),
+                            const Text(
+                              'Entrega manual: comparte la dirección y el código por privado.',
+                            ),
+                            SelectableText(widget.api.invitationActivationUrl),
+                            const Text(
+                              'Entrega por correo: pendiente de configurar el servicio de envío.',
                             ),
                             SelectableText(_token!),
                             TextButton(

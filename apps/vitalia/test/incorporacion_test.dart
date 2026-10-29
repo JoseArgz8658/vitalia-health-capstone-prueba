@@ -146,7 +146,7 @@ void main() {
     await t.pumpAndSettle();
     expect(api.sent.single.containsKey('role'), isFalse);
     expect(api.hasSession, isFalse);
-    expect(find.textContaining('Cuenta activada.'), findsOneWidget);
+    expect(find.textContaining('Invitación aceptada.'), findsOneWidget);
     await t.pumpWidget(const SizedBox());
     api.close();
   });

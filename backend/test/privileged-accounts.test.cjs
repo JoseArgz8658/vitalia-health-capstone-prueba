@@ -21,7 +21,7 @@ test.each(['administrador','profesional'])('crea %s con hash real y permite aute
  const [sql,args]=db.query.mock.calls[0];expect(sql).not.toContain(password);expect(sql).not.toContain('UPDATE');
  expect(args[2]).toMatch(/^scrypt-v1\$/);expect(await verifyPassword(password,args[2])).toBe(true);
  const login=await createCredentialAuthenticator(db);
- expect((await login({email:'prueba@example.com',password})).role).toBe(role);
+ expect((await login({email:'prueba@example.com',password,mode:role})).role).toBe(role);
  expect(await login({email:'prueba@example.com',password:'incorrecta'})).toBeNull();
 });
 test.each([
@@ -44,3 +44,4 @@ test('argumentos permiten solo rol y correo, nunca contraseña',()=>{
  expect(parsePrivilegedArguments(['--role','profesional','--email',' PRUEBA@example.com '])).toEqual({role:'profesional',email:'prueba@example.com'});
  for(const args of [[],['--role','paciente','--email','p@example.com'],['--role','administrador','--email','p@example.com','--password',password]])expect(()=>parsePrivilegedArguments(args)).toThrow(PrivilegedInputError);
 });
+

@@ -104,13 +104,19 @@ class AuthApi {
     catch (_) { throw const AuthFailure('No se pudo conectar. Conserva el formulario y reintenta.'); }
   }
 
+  String get invitationActivationUrl {
+    const configured = String.fromEnvironment('VITALIA_WEB_URL');
+    final base = configured.isNotEmpty ? Uri.parse(configured) : (['http','https'].contains(Uri.base.scheme) ? Uri.base : Uri.parse('http://localhost:5173'));
+    return Uri(scheme:base.scheme,host:base.host,port:base.hasPort ? base.port : null,path:'/',fragment:'/activar-invitacion').toString();
+  }
+
   Future<Map<String, dynamic>> onboarding(
     String path, {
     Map<String, dynamic>? body,
   }) async {
     final activation = path == '/activate';
     if (!activation &&
-        path != '/context' &&
+        path != '/context' && path != '/accept' &&
         !RegExp(
           r'^/[a-f0-9-]{36}(?:/(?:authorizations(?:/[a-f0-9-]{36}/(?:verify|revoke))?|specialties|invitations(?:/[a-f0-9-]{36}/revoke)?))?$',
         ).hasMatch(path)) {
@@ -426,7 +432,7 @@ class AuthApi {
           .timeout(const Duration(seconds: 15));
       if (response.statusCode == 401) {
         if (path != 'login') clear();
-        throw AuthFailure(path == 'login' ? 'Correo o contraseña incorrectos.'
+        throw AuthFailure(path == 'login' ? 'Correo, contraseña o modo de acceso incorrectos.'
             : 'La sesión terminó. Ingresa nuevamente.', 401);
       }
       if (response.statusCode == 429) {
@@ -443,10 +449,11 @@ class AuthApi {
     catch (_) { throw const AuthFailure('No se pudo conectar con el servidor.'); }
   }
 
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  Future<Map<String, dynamic>> login(String email, String password, {String mode = 'paciente'}) async {
+    if (!['paciente','profesional','administrador'].contains(mode)) throw const AuthFailure('Modo de acceso inválido.');
     clear();
     try {
-      final data = await _request('login', body: {'email': email.trim(), 'password': password});
+      final data = await _request('login', body: {'email': email.trim(), 'password': password, 'mode':mode});
       _token = data['token'] as String;
       expiresAt = DateTime.parse(data['expiresAt'] as String);
       if (!expiresAt!.isAfter(DateTime.now())) throw const AuthFailure('La sesión terminó.');
@@ -463,7 +470,7 @@ class AuthApi {
     return user;
   }
   Future<void> register(String email, String password) async {
-    await _request('register', body: {'email': email.trim(), 'password': password});
+    await _request('register', body: {'email': email.trim(), 'password': password, 'mode':mode});
   }
   Future<void> logout() async {
     try { await _request('logout'); } finally { clear(); }
