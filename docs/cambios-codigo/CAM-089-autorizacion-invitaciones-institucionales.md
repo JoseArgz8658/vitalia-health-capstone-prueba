@@ -58,3 +58,9 @@ Guardé el respaldo previo y apliqué 015 en PostgreSQL local. El ejecutor infor
 Comprobé desde la interfaz el registro de autorización, su verificación, emisión de la invitación del primer jefe clínico, activación y acceso a su clínica. Después comprobé la invitación y activación de un profesional desde la cuenta del jefe. El profesional ordinario no pudo invitar a otros profesionales y permaneció sin pacientes ni exámenes al no tener asignaciones. Estos recorridos fueron confirmados en Windows. (José Aránguiz)
 
 Conservo pendientes de comprobación manual la reutilización de un código consumido y la revocación de una invitación antes de activarla. Sus condiciones tienen cobertura automatizada y del verificador, pero no las presento como recorridos manuales ya realizados. No incorporé correos, contraseñas ni códigos de las pruebas a la documentación. Las verificaciones de concurrencia real, Docker y los demás pendientes de alcance permanecen abiertos. No modifiqué el repositorio oficial. (José Aránguiz)
+
+## Cierre del recorrido manual de invitaciones
+
+Comprobé que un código ya consumido no permite otra activación y conserva la cuenta existente. También emití una invitación de prueba, la revoqué antes de activarla y confirmé que su código fue rechazado. Ambos recorridos funcionaron. Con esta confirmación cierro la validación manual prevista del incremento de invitaciones, junto con los recorridos anteriores del administrador, jefe y profesional. No publiqué códigos ni contraseñas. (José Aránguiz)
+
+Este cierre corresponde al incremento CAM-089, no a toda la fase 7.2. Conservo pendientes concurrencia real, Docker, suspensión/edición auditadas, incorporación de cuentas existentes y acreditación profesional. Los estados pendientes de los apartados anteriores describen el momento en que se registraron; la reutilización y revocación manuales ya están comprobadas. El repositorio oficial permanece sin cambios. (José Aránguiz)
