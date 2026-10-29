@@ -177,6 +177,40 @@ class AuthApi {
     }
   }
 
+  Future<Map<String, dynamic>> team(String clinicId, {String? memberId, bool history = false, int offset = 0, Map<String, dynamic>? update}) async {
+    final clinic = _institutionId(clinicId);
+    final member = memberId == null ? null : _institutionId(memberId);
+    if ((history && member == null) || (update != null && (member == null || history)) || (member != null && !history && update == null)) {
+      throw const AuthFailure('Solicitud de equipo inválida.');
+    }
+    final token = _token;
+    if (token == null || expiresAt == null || !expiresAt!.isAfter(DateTime.now())) {
+      clear(); throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+    }
+    try {
+      final path = '/api/team/$clinic${member == null ? '' : '/$member'}${history ? '/history' : ''}';
+      final uri = _base.resolve(path).replace(queryParameters: update == null ? {'limit':'20','offset':'$offset'} : null);
+      final headers = {'Authorization':'Bearer $token','Content-Type':'application/json'};
+      final response = await (update == null ? _client.get(uri, headers:headers) : _client.post(uri, headers:headers, body:jsonEncode(update))).timeout(const Duration(seconds:15));
+      if (_token != token || response.statusCode == 401) { clear(); throw const AuthFailure('La sesión terminó. Ingresa nuevamente.',401); }
+      if (response.statusCode >= 400) {
+        final data = jsonDecode(response.body) as Map<String,dynamic>;
+        final code = (data['error'] as Map?)?['code'];
+        throw AuthFailure(code == 'NO_MEMBERSHIP_CHANGE' ? 'No hiciste cambios en la pertenencia.' : switch(response.statusCode) {
+          400 => 'Revisa el motivo y las sucursales o especialidades seleccionadas.',
+          403 => 'Solo el jefe activo de esta clínica puede modificar pertenencias de profesionales ordinarios.',
+          404 => 'La pertenencia no está disponible en esta clínica.',
+          409 => 'La pertenencia cambió o la clínica no está disponible. Actualiza la lista antes de editar nuevamente.',
+          503 => 'La gestión del equipo aún no está disponible. Revisa migración y permisos con el equipo.',
+          _ => 'No se pudo completar la gestión del equipo.',
+        },response.statusCode);
+      }
+      return jsonDecode(response.body) as Map<String,dynamic>;
+    } on AuthFailure { rethrow; }
+    on TimeoutException { throw const AuthFailure('La solicitud tardó demasiado. Reintenta el mismo formulario para comprobar el resultado sin duplicar cambios, o actualiza la lista.'); }
+    catch (_) { throw const AuthFailure('No se pudo conectar. Conserva el formulario para reintentar o actualiza la lista.'); }
+  }
+
   Uri documentUri([String suffix = '', Map<String, String>? query]) {
     if (suffix.isNotEmpty && !RegExp(r'^[a-f0-9-]{36}/(file|processing|review|explanation|assistant(?:/explanation)?)$').hasMatch(suffix)) {
       throw const AuthFailure('Documento inválido.');

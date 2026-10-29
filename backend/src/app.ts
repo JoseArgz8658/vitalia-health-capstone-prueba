@@ -1,3 +1,5 @@
+import {createTeamRouter} from './team/router';
+import {type TeamServices} from './team/service';
 import {createOnboardingRouter} from './onboarding/router';
 import {type OnboardingServices} from './onboarding/service';
 import {createInstitutionRouter} from './institutions/router';
@@ -25,7 +27,7 @@ import { createAuthRouter, type AuthServices } from './auth/router';
 import { createRegistrationRouter } from './auth/registration-router';
 import { type PatientRegistrar } from './auth/registration';
 
-export function createApp(auth?: AuthServices, register?: PatientRegistrar, documents?: DocumentServices, processing?: ProcessingServices, assignments?: AssignmentServices, professional?: ProfessionalServices, reviews?: ReviewServices, explanations?: ExplanationServices, assistant?: ExamAssistantServices, profiles?: ProfileServices, institutions?: InstitutionServices, onboarding?: OnboardingServices) {
+export function createApp(auth?: AuthServices, register?: PatientRegistrar, documents?: DocumentServices, processing?: ProcessingServices, assignments?: AssignmentServices, professional?: ProfessionalServices, reviews?: ReviewServices, explanations?: ExplanationServices, assistant?: ExamAssistantServices, profiles?: ProfileServices, institutions?: InstitutionServices, onboarding?: OnboardingServices, team?: TeamServices) {
   const app = express();
   app.disable('x-powered-by');
   app.use(localWebCors);
@@ -36,6 +38,7 @@ export function createApp(auth?: AuthServices, register?: PatientRegistrar, docu
     res.status(200).json({ status: 'ok', service: 'vitalia-api' });
   });
 
+  if (auth && team) app.use('/api/team', createTeamRouter(auth, team));
   if (auth && onboarding) app.use('/api/onboarding', createOnboardingRouter(auth, onboarding));
   if (auth && institutions) app.use('/api/institutions', createInstitutionRouter(auth, institutions));
   if (auth && profiles) app.use('/api/profile', createProfileRouter(auth, profiles));

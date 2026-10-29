@@ -62,3 +62,7 @@ Registré el inventario confirmado de 31 tablas y 13 migraciones. Preparé API y
 ## Autorización e invitaciones — CAM-089
 
 Preparé la continuación institucional con 015, cinco tablas nuevas, servicio y pantallas. La creación y consulta de instituciones de CAM-088 ya se comprobaron en Windows y PostgreSQL 16; esta nueva continuación todavía requiere sus propias pruebas y aplicación. La guía está en [invitaciones-institucionales.md](invitaciones-institucionales.md) y la evidencia en [CAM-089](../cambios-codigo/CAM-089-autorizacion-invitaciones-institucionales.md). No cambian 013 ni 014. (José Aránguiz)
+
+## Gestión del equipo — CAM-090
+
+Preparé listado y gestión auditada de pertenencias de profesionales ordinarios. El jefe actúa solo en su clínica; el administrador consulta sin editar. La migración 016 conserva las relaciones personales previas y añade especialidades por pertenencia y auditoría. La guía es [gestion-equipo.md](gestion-equipo.md). Su aplicación en PostgreSQL 16 y las comprobaciones Windows están pendientes; los resultados y límites se registran en CAM-090. (José Aránguiz)

@@ -84,7 +84,10 @@ export function createOnboardingService(db:DocumentDatabase){
  await tx.query('INSERT INTO public.vitalia_professional_profiles(person_id) VALUES($1)',[person]);
  await tx.query('INSERT INTO public.vitalia_clinic_memberships(id,clinic_id,professional_person_id,clinical_role,active) VALUES($1,$2,$3,$4,true)',[membership,inv.clinic_id,person,inv.clinical_role]);
  for(const id of branches)await tx.query('INSERT INTO public.vitalia_branch_memberships(clinic_id,branch_id,membership_id) VALUES($1,$2,$3)',[inv.clinic_id,id,membership]);
- for(const id of specialties)await tx.query('INSERT INTO public.vitalia_professional_specialties(professional_person_id,specialty_id) VALUES($1,$2)',[person,id]);
+ for(const id of specialties){
+  await tx.query('INSERT INTO public.vitalia_professional_specialties(professional_person_id,specialty_id) VALUES($1,$2)',[person,id]);
+  await tx.query('INSERT INTO public.vitalia_membership_specialties(clinic_id,membership_id,specialty_id) VALUES($1,$2,$3)',[inv.clinic_id,membership,id]);
+ }
  await tx.query('UPDATE public.vitalia_professional_invitations SET activated_at=CURRENT_TIMESTAMP,activated_account_id=$2 WHERE id=$1',[inv.id,account]);
  await audit(tx,account,inv.clinic_id,'invitation_activated',inv.authorization_id,inv.id);
  return {activated:true};});

@@ -1,3 +1,4 @@
+import '../equipo/equipo_page.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../core/auth_api.dart';
@@ -229,6 +230,27 @@ class _IncorporacionPageState extends State<IncorporacionPage> {
                         },
                 ),
                 if (_detail != null) ...[
+                  TextButton.icon(
+                    onPressed: _busy
+                        ? null
+                        : () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => EquipoPage(
+                                api: widget.api,
+                                clinicId: _clinic!,
+                                clinicName:
+                                    _clinics.firstWhere(
+                                          (c) => c['id'] == _clinic,
+                                        )['name']
+                                        as String,
+                                admin: widget.admin,
+                                onExpired: widget.onExpired,
+                              ),
+                            ),
+                          ),
+                    icon: const Icon(Icons.groups_outlined),
+                    label: const Text('Ver equipo de esta clínica'),
+                  ),
                   const SizedBox(height: 20),
                   if (_token != null)
                     Card(
