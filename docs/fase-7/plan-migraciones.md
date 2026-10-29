@@ -1,5 +1,5 @@
 # Fase 7 — Perfiles, clínicas y atención por examen
-Rama de este incremento: fase-7/01-perfiles-ubicacion. La migración 012 está implementada en código y comprobada en un motor aislado; su aplicación en PostgreSQL 16 del equipo sigue pendiente. Las migraciones 013+ continúan propuestas.
+Rama de este incremento: fase-7/01-perfiles-ubicacion. La migración 012 está aplicada y comprobada en PostgreSQL 16 local. El perfil y el guardado/recuperación de medidas se comprobaron en Windows; el catálogo territorial y los bloques posteriores siguen pendientes. Las migraciones 013+ continúan propuestas.
 
 ## Decisiones confirmadas
 Teléfono opcional, un médico responsable por examen a la vez, segunda opinión posterior sin sobrescribir revisión, derivaciones dentro de la misma clínica. Propuesta ampliada: 18 tablas nuevas, importadas como modelo visual separado. Las restricciones del diagrama Oracle no son migraciones PostgreSQL.
@@ -64,3 +64,9 @@ Añadí la API de perfil propio y la pantalla Mi perfil, con RUT opcional normal
 ## Medidas y estado posterior — CAM-084 / CAM-085
 
 Comprobé el perfil propio en Windows y el ajuste de consulta/edición por secciones con 80 pruebas Flutter y análisis sin incidencias. Añadí el módulo opcional de peso/altura con historial propio y fuente patient_reported. El backend del nuevo módulo aprobó 482 pruebas; Flutter y flujo real de medidas siguen pendientes en Windows. No cambié 012 ni cargué catálogo territorial. Las clínicas e invitaciones siguen en los siguientes bloques. (José Aránguiz)
+
+## Comprobación Windows de medidas — 29 de octubre de 2026
+
+Comprobé 82 pruebas Flutter, análisis sin incidencias y 482 pruebas backend en 43 suites, con salida 0. Apliqué los permisos de perfiles/medidas en vitalia_dev y confirmé guardado y recuperación de las medidas al reabrir Mi perfil. La evidencia está en [CAM-085](../cambios-codigo/CAM-085-medidas-personales.md). No declaro comprobados manualmente los recorridos no informados. (José Aránguiz)
+
+El siguiente trabajo pendiente de ubicación es revisar una fuente oficial del catálogo territorial y habilitar la selección de comuna con validación de la relación región/provincia/comuna. También quedan por definir la auditoría específica y la rectificación de medidas. Las clínicas, pertenencias, invitaciones y atención por examen conservan su estado de propuesta; no se integran al repositorio oficial por esta comprobación. (José Aránguiz)
