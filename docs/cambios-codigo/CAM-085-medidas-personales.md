@@ -23,3 +23,11 @@ Añadí dos pruebas Flutter: registro con coma decimal y una medida omitida; can
 ## Pendientes conservados
 
 Continúan pendientes el catálogo territorial oficial y la selección de comuna, las clínicas y sucursales, invitaciones institucionales, atención por examen y la consulta preliminar del asistente. La auditoría específica de cambios de perfil/medidas y las políticas de rectificación del historial deben definirse antes de su despliegue real. No considero cerrada la fase 7 por añadir este módulo. (José Aránguiz)
+
+## Validación posterior en Windows — 29 de octubre de 2026
+
+Ejecuté flutter analyze sin incidencias y flutter test con 82 pruebas aprobadas, código de salida 0. Ejecuté npm test: TypeScript compiló y aprobaron 482 pruebas en 43 suites, código de salida 0. Los console.warn corresponden a escenarios de fallo provocados por las pruebas; la suite completa terminó aprobada. Los avisos de versiones nuevas de paquetes no impidieron la validación y no actualicé dependencias en este paso. (José Aránguiz)
+
+Apliqué el archivo completo backend/database/permissions/profiles-app.sql en vitalia_dev mediante pgAdmin; terminó en COMMIT, sin errores, en 532 ms. Después probé el módulo desde la aplicación y confirmé que las medidas se guardan y permanecen al salir y volver a abrir el perfil. Esta comprobación acredita guardado y recuperación en el entorno local; no la presento como una nueva prueba de cancelación, aislamiento entre cuentas o rechazo de todos los valores inválidos. (José Aránguiz)
+
+Conservo pendientes el catálogo territorial y la selección de comuna, la auditoría específica de perfiles/medidas, la política de rectificación y los bloques de clínicas, invitaciones y atención. El resultado no cierra toda la fase 7 ni modifica el repositorio oficial. (José Aránguiz)
