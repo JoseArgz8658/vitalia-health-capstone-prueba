@@ -71,3 +71,7 @@ La ejecución en Windows detectó que `TestTextInput.hide()` devuelve void y que
 ## Validación Flutter corregida en Windows
 
 Ejecuté `flutter analyze` sin incidencias, en 1,6 segundos, y la suite completa `flutter test`: 111 pruebas aprobadas, salida 0. Conservo como registro histórico los fallos y correcciones anteriores; esta ejecución confirma la validación automatizada de Flutter corregida. Junto con las 617 pruebas backend ya informadas, quedan aprobadas las suites de código en Windows. El respaldo actualizado, aplicación de 017, permisos y recorrido real siguen pendientes. No modifiqué el repositorio oficial. (José Aránguiz)
+
+## Validación local comunicada — 29 de octubre de 2026
+
+Registré el respaldo previo, la aplicación de 017, las 27 comprobaciones correctas y los permisos confirmados con COMMIT (72 ms). Comprobé manualmente, según la confirmación del usuario, los accesos de administrador, profesional y paciente y la aceptación de una cuenta existente siguiendo el flujo indicado. El siguiente ajuste de contraseñas independientes se documenta en CAM-092; estas pruebas corresponden a CAM-091. (José Aránguiz)

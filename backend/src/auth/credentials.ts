@@ -27,11 +27,14 @@ export async function createCredentialAuthenticator(db: Pick<Pool, 'query'>) {
     checking = true;
     try {
       const account = await findAccountCredentialsByEmail(db, parsed.data.email);
-      // Una cuenta inexistente también ejecuta scrypt; no garantiza tiempos idénticos.
-      const matches = await verifyPassword(parsed.data.password, account?.passwordHash ?? dummyHash);
-      if (!account || !matches) return null;
-      const granted=await db.query<{role_code:string}>('SELECT role_code FROM public.vitalia_account_roles WHERE account_id=$1 AND role_code=$2 AND active',[account.id,parsed.data.mode]);
-      if(!granted.rows.some(row=>row.role_code===parsed.data.mode))return null;
+      const granted = account ? await db.query<{role_code:string,password_hash:string|null}>(
+        'SELECT role_code,password_hash FROM public.vitalia_account_roles WHERE account_id=$1 AND role_code=$2 AND active',
+        [account.id,parsed.data.mode]) : {rows:[]};
+      const role = granted.rows.find(row=>row.role_code===parsed.data.mode);
+      // Solo el modo original conserva su credencial anterior. Nunca usarla en otro modo.
+      const selectedHash = role?.password_hash ?? (account?.role===parsed.data.mode ? account.passwordHash : null);
+      const matches = await verifyPassword(parsed.data.password, selectedHash ?? dummyHash);
+      if (!account || !role || !selectedHash || !matches) return null;
       return {
         id: account.id, email: account.email, role: parsed.data.mode, createdAt: account.createdAt,
       };

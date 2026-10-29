@@ -31,7 +31,7 @@ export async function findSessionAccount(db: Queryable, token: string): Promise<
     `SELECT a.id, a.email, s.active_role AS role_code, a.created_at
      FROM public.vitalia_sessions s JOIN public.vitalia_accounts a ON a.id = s.account_id
      JOIN public.vitalia_account_roles g ON g.account_id=s.account_id AND g.role_code=s.active_role AND g.active
-     WHERE s.token_hash = $1 AND s.expires_at > CURRENT_TIMESTAMP`,
+     WHERE (g.password_hash IS NOT NULL OR g.role_code=a.role_code) AND s.token_hash = $1 AND s.expires_at > CURRENT_TIMESTAMP`,
     [tokenHash(token)],
   );
   if (result.rows.length === 0) return null;

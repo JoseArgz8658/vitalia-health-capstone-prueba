@@ -6,22 +6,30 @@ class ActivarInvitacionPage extends StatefulWidget {
     super.key,
     required this.api,
     this.ownsApi = false,
+    this.passwordSetup = false,
   });
   final AuthApi api;
   final bool ownsApi;
+  final bool passwordSetup;
   @override
   State<ActivarInvitacionPage> createState() => _ActivarInvitacionPageState();
 }
 
 class _ActivarInvitacionPageState extends State<ActivarInvitacionPage> {
   final _form = GlobalKey<FormState>();
-  final _fields = List.generate(6, (_) => TextEditingController());
+  final _fields = List.generate(8, (_) => TextEditingController());
   bool _busy = false,
       _done = false,
       _existing = false,
       _professional = false,
       _confirmed = false;
   String? _message;
+  @override
+  void initState() {
+    super.initState();
+    _existing = widget.passwordSetup;
+  }
+
   @override
   void dispose() {
     for (final c in _fields) {
@@ -34,10 +42,7 @@ class _ActivarInvitacionPageState extends State<ActivarInvitacionPage> {
   Future<void> _activate() async {
     if (_busy || !_form.currentState!.validate()) return;
     if (_existing && !_confirmed) {
-      setState(
-        () => _message =
-            'Confirma que aceptas incorporarte a la clínica de la invitación.',
-      );
+      setState(() => _message = 'Marca la confirmación para continuar.');
       return;
     }
     setState(() {
@@ -54,12 +59,19 @@ class _ActivarInvitacionPageState extends State<ActivarInvitacionPage> {
         );
         signed = true;
         await widget.api.onboarding(
-          '/accept',
+          widget.passwordSetup ? '/professional-password' : '/accept',
           body: {
-            'token': _fields[0].text.trim(),
-            'firstName': _fields[1].text.trim(),
-            'firstSurname': _fields[2].text.trim(),
-            'confirmed': true,
+            if (!widget.passwordSetup) ...{
+              'token': _fields[0].text.trim(),
+              'firstName': _fields[1].text.trim(),
+              'firstSurname': _fields[2].text.trim(),
+              'confirmed': true,
+            },
+            'currentPassword': _fields[3].text,
+            if (!_professional) ...{
+              'professionalPassword': _fields[6].text,
+              'professionalConfirmation': _fields[7].text,
+            },
           },
         );
       } else {
@@ -88,6 +100,8 @@ class _ActivarInvitacionPageState extends State<ActivarInvitacionPage> {
       if (mounted) {
         _fields[3].clear();
         _fields[4].clear();
+        _fields[6].clear();
+        _fields[7].clear();
         setState(() => _busy = false);
       }
     }
@@ -98,7 +112,7 @@ class _ActivarInvitacionPageState extends State<ActivarInvitacionPage> {
     child: TextFormField(
       controller: _fields[i],
       enabled: !_busy,
-      obscureText: i == 0 || i == 3 || i == 4,
+      obscureText: i == 0 || i == 3 || i == 4 || i == 6 || i == 7,
       autocorrect: false,
       enableSuggestions: false,
       maxLength: max,
@@ -120,6 +134,16 @@ class _ActivarInvitacionPageState extends State<ActivarInvitacionPage> {
           return v != _fields[3].text
               ? 'Las contraseñas deben coincidir.'
               : null;
+        if (i == 6) {
+          if ((v ?? '').runes.length < 12) return 'Usa al menos 12 caracteres.';
+          if (v == _fields[3].text)
+            return 'Usa una contraseña diferente a la de paciente.';
+          return null;
+        }
+        if (i == 7)
+          return v != _fields[6].text
+              ? 'Las contraseñas deben coincidir.'
+              : null;
         if (i == 5)
           return RegExp(
                 r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
@@ -132,7 +156,13 @@ class _ActivarInvitacionPageState extends State<ActivarInvitacionPage> {
   );
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Activar invitación profesional')),
+    appBar: AppBar(
+      title: Text(
+        widget.passwordSetup
+            ? 'Configurar contraseña profesional'
+            : 'Activar invitación profesional',
+      ),
+    ),
     body: SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -142,8 +172,10 @@ class _ActivarInvitacionPageState extends State<ActivarInvitacionPage> {
             child: _done
                 ? Column(
                     children: [
-                      const Text(
-                        'Invitación aceptada. Inicia sesión en modo profesional con el correo invitado y tu contraseña. Tu cuenta y sus datos anteriores se conservan.',
+                      Text(
+                        widget.passwordSetup
+                            ? 'Contraseña profesional configurada. Inicia sesión en modo profesional con tu nueva contraseña. Tu acceso de paciente se conserva.'
+                            : 'Invitación aceptada. Inicia sesión en modo profesional con tu contraseña profesional. Tu cuenta y sus datos anteriores se conservan.',
                       ),
                       TextButton(
                         onPressed: () =>
@@ -157,46 +189,68 @@ class _ActivarInvitacionPageState extends State<ActivarInvitacionPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Text(
-                          'Pega el código de la invitación que recibiste. Vence a las 48 horas y se utiliza una sola vez. Conocer esta dirección no habilita una cuenta.',
-                        ),
-                        SwitchListTile(
-                          title: const Text('Ya tengo una cuenta en Vitalia'),
-                          value: _existing,
-                          onChanged: _busy
-                              ? null
-                              : (v) => setState(() {
-                                  _existing = v;
-                                  _fields[3].clear();
-                                  _fields[4].clear();
-                                  _message = null;
-                                  _confirmed = false;
-                                }),
-                        ),
-                        _field(0, 'Código de invitación', max: 64),
-                        _field(1, 'Primer nombre'),
-                        _field(2, 'Primer apellido'),
+                        if (!widget.passwordSetup)
+                          const Text(
+                            'Pega el código de la invitación que recibiste. Vence a las 48 horas y se utiliza una sola vez. Conocer esta dirección no habilita una cuenta.',
+                          ),
+                        if (!widget.passwordSetup)
+                          SwitchListTile(
+                            title: const Text('Ya tengo una cuenta en Vitalia'),
+                            value: _existing,
+                            onChanged: _busy
+                                ? null
+                                : (v) => setState(() {
+                                    _existing = v;
+                                    _fields[3].clear();
+                                    _fields[4].clear();
+                                    _message = null;
+                                    _confirmed = false;
+                                  }),
+                          ),
+                        if (!widget.passwordSetup) ...[
+                          _field(0, 'Código de invitación', max: 64),
+                          _field(1, 'Primer nombre'),
+                          _field(2, 'Primer apellido'),
+                        ],
                         if (_existing) ...[
                           const Text(
                             'Usa el correo invitado y tu contraseña actual. Los nombres solo se utilizarán si todavía no tienes datos personales registrados.',
                           ),
                           _field(5, 'Correo de tu cuenta', max: 254),
-                          SwitchListTile(
-                            title: const Text(
-                              'Ingresar con mi perfil profesional existente',
+                          if (!widget.passwordSetup)
+                            SwitchListTile(
+                              title: const Text(
+                                'Ingresar con mi perfil profesional existente',
+                              ),
+                              subtitle: const Text(
+                                'Desactivado: ingresar como paciente.',
+                              ),
+                              value: _professional,
+                              onChanged: _busy
+                                  ? null
+                                  : (v) => setState(() => _professional = v),
                             ),
-                            subtitle: const Text(
-                              'Desactivado: ingresar como paciente.',
-                            ),
-                            value: _professional,
-                            onChanged: _busy
-                                ? null
-                                : (v) => setState(() => _professional = v),
-                          ),
                           _field(3, 'Contraseña actual', max: 1024),
+                          if (!_professional) ...[
+                            const Text(
+                              'Valida tu cuenta con la contraseña de paciente y crea una diferente para el acceso profesional. Si ya tienes contraseña profesional, ingresa con ese perfil para aceptar otra clínica.',
+                            ),
+                            _field(
+                              6,
+                              'Nueva contraseña profesional',
+                              max: 1024,
+                            ),
+                            _field(
+                              7,
+                              'Confirmar contraseña profesional',
+                              max: 1024,
+                            ),
+                          ],
                           CheckboxListTile(
-                            title: const Text(
-                              'Acepto incorporarme a la clínica indicada en la invitación recibida.',
+                            title: Text(
+                              widget.passwordSetup
+                                  ? 'Confirmo que quiero configurar mi contraseña profesional independiente.'
+                                  : 'Acepto incorporarme a la clínica indicada en la invitación recibida.',
                             ),
                             value: _confirmed,
                             onChanged: _busy
@@ -217,7 +271,9 @@ class _ActivarInvitacionPageState extends State<ActivarInvitacionPage> {
                         FilledButton(
                           onPressed: _busy ? null : _activate,
                           child: Text(
-                            _existing
+                            widget.passwordSetup
+                                ? 'Guardar contraseña profesional'
+                                : _existing
                                 ? 'Iniciar sesión y aceptar invitación'
                                 : 'Activar mi cuenta',
                           ),

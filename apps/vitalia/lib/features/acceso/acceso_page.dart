@@ -230,6 +230,17 @@ class _AccesoPageState extends State<AccesoPage> {
                                     ),
                               child: const Text('Crear cuenta de paciente'),
                             ),
+                          if (!widget.adminMode && _professionalMode)
+                            TextButton(
+                              onPressed: _busy
+                                  ? null
+                                  : () => Navigator.of(
+                                      context,
+                                    ).pushNamed('/clave-profesional'),
+                              child: const Text(
+                                'Configurar contraseña profesional de mi cuenta de paciente',
+                              ),
+                            ),
                           TextButton(
                             onPressed: () => showDialog<void>(
                               context: context,

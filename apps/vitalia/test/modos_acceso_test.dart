@@ -52,6 +52,8 @@ Future<void> fillExisting(WidgetTester t) async {
     ('Primer apellido', 'Ficticia'),
     ('Correo de tu cuenta', 'persona@example.invalid'),
     ('Contraseña actual', 'Clave-actual-2026'),
+    ('Nueva contraseña profesional', 'Otra-profesional-2026!'),
+    ('Confirmar contraseña profesional', 'Otra-profesional-2026!'),
   ]) {
     final field = find.widgetWithText(TextFormField, pair.$1);
     await t.ensureVisible(field);
@@ -63,10 +65,9 @@ Future<void> fillExisting(WidgetTester t) async {
   final consent = find.byType(CheckboxListTile);
   await t.ensureVisible(consent);
   await t.pumpAndSettle();
-  final checkbox = find.descendant(
-    of: consent,
-    matching: find.byType(Checkbox),
-  ).hitTestable();
+  final checkbox = find
+      .descendant(of: consent, matching: find.byType(Checkbox))
+      .hitTestable();
   expect(checkbox, findsOneWidget);
   await t.tap(checkbox);
   await t.pumpAndSettle();
@@ -80,6 +81,53 @@ Future<void> fillExisting(WidgetTester t) async {
 }
 
 void main() {
+  testWidgets('cuenta dual anterior configura contraseña sin invitación', (
+    t,
+  ) async {
+    final api = ModesFake();
+    await t.pumpWidget(
+      MaterialApp(home: ActivarInvitacionPage(api: api, passwordSetup: true)),
+    );
+    expect(find.text('Código de invitación'), findsNothing);
+    for (final pair in [
+      ('Correo de tu cuenta', 'persona@example.invalid'),
+      ('Contraseña actual', 'Clave-actual-2026'),
+      ('Nueva contraseña profesional', 'Otra-profesional-2026!'),
+      ('Confirmar contraseña profesional', 'Otra-profesional-2026!'),
+    ]) {
+      final field = find.widgetWithText(TextFormField, pair.$1);
+      await t.ensureVisible(field);
+      await t.enterText(field, pair.$2);
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    t.testTextInput.hide();
+    await t.pumpAndSettle();
+    final consent = find.byType(CheckboxListTile);
+    await t.ensureVisible(consent);
+    await t.pumpAndSettle();
+    await t.tap(
+      find
+          .descendant(of: consent, matching: find.byType(Checkbox))
+          .hitTestable(),
+    );
+    await t.pumpAndSettle();
+    final submit = find.text('Guardar contraseña profesional');
+    await t.ensureVisible(submit);
+    await t.pumpAndSettle();
+    await t.tap(submit.hitTestable());
+    await t.pumpAndSettle();
+    expect(api.sent.single['path'], '/professional-password');
+    expect(api.sent.single.containsKey('token'), isFalse);
+    expect(api.modes, ['paciente']);
+    expect(api.loggedOut, isTrue);
+    expect(
+      find.textContaining('Contraseña profesional configurada.'),
+      findsOneWidget,
+    );
+    await t.pumpWidget(const SizedBox());
+    api.close();
+  });
+
   testWidgets(
     'paciente es inicial y cambiar modo no registra ni concede un perfil',
     (t) async {
@@ -141,7 +189,7 @@ void main() {
     },
   );
   testWidgets(
-    'cuenta existente acepta con contraseña actual y no la envía a aceptación',
+    'cuenta existente revalida contraseña actual y crea credencial profesional',
     (t) async {
       final api = ModesFake();
       await t.pumpWidget(MaterialApp(home: ActivarInvitacionPage(api: api)));
@@ -149,6 +197,8 @@ void main() {
       expect(api.modes, ['paciente']);
       expect(api.sent.single['path'], '/accept');
       expect(api.sent.single.containsKey('password'), isFalse);
+      expect(api.sent.single['currentPassword'], 'Clave-actual-2026');
+      expect(api.sent.single['professionalPassword'], 'Otra-profesional-2026!');
       expect(api.sent.single.containsKey('role'), isFalse);
       expect(api.sent.single['confirmed'], true);
       expect(api.loggedOut, isTrue);

@@ -1,5 +1,7 @@
 # Modos de acceso y activación independiente
 
+> Actualización: preparé la separación de contraseñas en CAM-092. Para el código actual, seguir [contraseñas por modo](contrasenas-por-modo.md); el flujo y las cifras siguientes describen CAM-091. (José Aránguiz)
+
 Preparé [CAM-091](../cambios-codigo/CAM-091-modos-acceso-activacion-independiente.md) en la rama `fase-7/02-clinicas-pertenencias`. La gestión del equipo anterior quedó validada; este incremento requiere su propia migración y comprobaciones. No ejecutes 017 sin respaldo y revisión. (José Aránguiz)
 
 ## 1. Actualizar y comprobar código

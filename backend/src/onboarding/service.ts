@@ -2,7 +2,7 @@ import {createHash, randomBytes, randomUUID} from 'node:crypto';
 import {z} from 'zod';
 import {type AccountSummary} from '../accounts/repository';
 import {type DocumentDatabase} from '../documents/service';
-import {hashPassword} from '../auth/password';
+import {hashPassword,verifyPassword} from '../auth/password';
 export class OnboardingError extends Error {constructor(public status:number,public code:string){super(code);}}
 const text=(n:number)=>z.string().trim().min(1).max(n);
 const uuid=z.uuid();
@@ -11,6 +11,12 @@ const email=z.string().trim().toLowerCase().pipe(z.email().max(254));
 export const authorizationInput=z.object({requestId:uuid,nomineeEmail:email,requesterName:text(150),requesterPosition:text(150),requesterContact:text(254),evidenceReference:text(500),requestedAt:z.iso.datetime({offset:true})}).strict();
 export const invitationInput=z.object({requestId:uuid,email,authorizationId:uuid.nullable(),branchIds:ids,specialtyIds:ids}).strict();
 export const activationInput=z.object({token:z.string().regex(/^[a-f0-9]{64}$/),firstName:text(100),firstSurname:text(100),password:z.string().refine(s=>Array.from(s).length>=12&&Buffer.byteLength(s,'utf8')<=1024),confirmation:z.string().max(1024)}).strict().refine(v=>v.password===v.confirmation);
+const professionalPasswordFields={
+ currentPassword:z.string().min(1).refine(s=>Buffer.byteLength(s,'utf8')<=1024),
+ professionalPassword:z.string().refine(s=>Array.from(s).length>=12&&Buffer.byteLength(s,'utf8')<=1024).optional(),
+ professionalConfirmation:z.string().max(1024).optional(),
+};
+export const professionalPasswordInput=z.object(professionalPasswordFields).strict();
 type Tx=Parameters<Parameters<DocumentDatabase['transaction']>[0]>[0];
 const authorizationCols='id,clinic_id AS "clinicId",nominee_email AS "nomineeEmail",requester_name AS "requesterName",requester_position AS "requesterPosition",requester_contact AS "requesterContact",evidence_reference AS "evidenceReference",requested_at AS "requestedAt",recorded_by AS "recordedBy",verified_by AS "verifiedBy",verified_at AS "verifiedAt",revoked_at AS "revokedAt"';
 const inviteCols='id,email,clinical_role AS "clinicalRole",expires_at AS "expiresAt",revoked_at AS "revokedAt",activated_at AS "activatedAt"';
@@ -32,6 +38,25 @@ async function choices(tx:Tx,clinic:string,branches:string[],specialties:string[
  const s=await tx.query('SELECT id FROM public.vitalia_specialties WHERE id=ANY($1::uuid[]) AND active',[specialties]);
  if(b.rows.length!==branches.length||s.rows.length!==specialties.length)fail(400,'INVALID_ONBOARDING');
 }
+async function professionalCredential(tx:Tx,a:AccountSummary,v:z.infer<typeof professionalPasswordInput>,requireExisting=false){
+ await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))',['vitalia-password-'+a.id]);
+ const account=(await tx.query('SELECT id,role_code,password_hash FROM public.vitalia_accounts WHERE id=$1',[a.id])).rows[0];
+ const roles=(await tx.query('SELECT role_code,password_hash,active FROM public.vitalia_account_roles WHERE account_id=$1',[a.id])).rows;
+ const current=roles.find(r=>r.role_code===a.role&&r.active);
+ const currentHash=current?.password_hash??(account?.role_code===a.role?account.password_hash:null);
+ if(!currentHash||!await verifyPassword(v.currentPassword,currentHash))fail(403,'CURRENT_PASSWORD_INVALID');
+ const professional=roles.find(r=>r.role_code==='profesional');
+ if(requireExisting&&!professional?.active)fail(403,'FORBIDDEN');
+ if(professional&&!professional.active)fail(403,'FORBIDDEN');
+ const alreadyConfigured=professional?.password_hash||account.role_code==='profesional';
+ if(alreadyConfigured){
+  if(a.role!=='profesional'||v.professionalPassword!==undefined||v.professionalConfirmation!==undefined)fail(409,'PROFESSIONAL_PASSWORD_EXISTS');
+  return null;
+ }
+ if(!v.professionalPassword||v.professionalPassword!==v.professionalConfirmation)fail(400,'PROFESSIONAL_PASSWORD_REQUIRED');
+ if(await verifyPassword(v.professionalPassword,account.password_hash))fail(400,'PASSWORD_REUSED');
+ return hashPassword(v.professionalPassword);
+}
 export function createOnboardingService(db:DocumentDatabase){
  let activating=false;
  async function transaction<T>(fn:(tx:Tx)=>Promise<T>){try{return await db.transaction(fn);}catch(e){translate(e);}}
@@ -47,7 +72,7 @@ export function createOnboardingService(db:DocumentDatabase){
  await lock(tx,clinic);await clinicActive(tx,clinic);
  const r=await tx.query(`INSERT INTO public.vitalia_institution_authorizations(id,clinic_id,nominee_email,requester_name,requester_position,requester_contact,evidence_reference,requested_at,recorded_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING ${authorizationCols}`,[v.requestId,clinic,v.nomineeEmail,v.requesterName,v.requesterPosition,v.requesterContact,v.evidenceReference,v.requestedAt,a.id]);
  await audit(tx,a.id,clinic,'authorization_recorded',v.requestId);return r.rows[0];});},
- async verify(a:AccountSummary,clinic:string,id:string,input:unknown){admin(a);checkId(clinic);checkId(id);parse(z.object({confirmed:z.literal(true)}).strict(),input);return transaction(async tx=>{
+ async verify(a:AccountSummary,clinic:string,id:string,input:unknown){admin(a);checkId(clinic);checkId(id);parse(z.object({confirmed:z.literal(true),...professionalPasswordFields}).strict(),input);return transaction(async tx=>{
  await lock(tx,clinic);await clinicActive(tx,clinic);const r=await tx.query(`UPDATE public.vitalia_institution_authorizations SET verified_by=$3,verified_at=CURRENT_TIMESTAMP WHERE clinic_id=$1 AND id=$2 AND verified_at IS NULL AND revoked_at IS NULL RETURNING ${authorizationCols}`,[clinic,id,a.id]);if(!r.rows.length)fail(409,'AUTHORIZATION_UNAVAILABLE');await audit(tx,a.id,clinic,'authorization_verified',id);return r.rows[0];});},
  async revokeAuthorization(a:AccountSummary,clinic:string,id:string){admin(a);checkId(clinic);checkId(id);return transaction(async tx=>{await lock(tx,clinic);const r=await tx.query('UPDATE public.vitalia_institution_authorizations SET revoked_at=CURRENT_TIMESTAMP WHERE clinic_id=$1 AND id=$2 AND revoked_at IS NULL AND NOT EXISTS(SELECT 1 FROM public.vitalia_professional_invitations i WHERE i.authorization_id=$2 AND i.activated_at IS NOT NULL) RETURNING id',[clinic,id]);if(!r.rows.length)fail(409,'AUTHORIZATION_UNAVAILABLE');await audit(tx,a.id,clinic,'authorization_revoked',id);});},
  async addSpecialty(a:AccountSummary,clinic:string,input:unknown){admin(a);checkId(clinic);const v=parse(z.object({name:text(150)}).strict(),input);return transaction(async tx=>{await clinicActive(tx,clinic);const r=await tx.query('INSERT INTO public.vitalia_specialties(id,name) VALUES($1,$2) RETURNING id,name',[randomUUID(),v.name]);await audit(tx,a.id,clinic,'specialty_created');return r.rows[0];});},
@@ -65,10 +90,22 @@ export function createOnboardingService(db:DocumentDatabase){
  for(const id of v.specialtyIds)await tx.query('INSERT INTO public.vitalia_invitation_specialties(invitation_id,specialty_id) VALUES($1,$2)',[v.requestId,id]);
  await audit(tx,a.id,clinic,'invitation_created',v.authorizationId,v.requestId);return {item:r.rows[0],token};});},
  async revoke(a:AccountSummary,clinic:string,id:string){checkId(clinic);checkId(id);return transaction(async tx=>{await lock(tx,clinic);await manage(tx,a,clinic);const r=await tx.query(`UPDATE public.vitalia_professional_invitations SET revoked_at=CURRENT_TIMESTAMP WHERE clinic_id=$1 AND id=$2 AND activated_at IS NULL AND revoked_at IS NULL ${a.role==='administrador'?'':"AND clinical_role='profesional'"} RETURNING id,authorization_id`,[clinic,id]);if(!r.rows.length)fail(409,'INVITATION_UNAVAILABLE');await audit(tx,a.id,clinic,'invitation_revoked',r.rows[0].authorization_id,id);});},
+ async configureProfessionalPassword(a:AccountSummary,input:unknown){
+ if(a.role!=='paciente')fail(403,'FORBIDDEN');
+ const v=parse(professionalPasswordInput,input);
+ if(activating)fail(429,'ACTIVATION_BUSY');activating=true;
+ try{return await transaction(async tx=>{
+  const passwordHash=await professionalCredential(tx,a,v,true);
+  await tx.query("UPDATE public.vitalia_account_roles SET password_hash=$2 WHERE account_id=$1 AND role_code='profesional' AND active AND password_hash IS NULL",[a.id,passwordHash]);
+  await tx.query("DELETE FROM public.vitalia_sessions WHERE account_id=$1 AND active_role='profesional'",[a.id]);
+  return {configured:true};
+ });}finally{activating=false;}
+ },
  async accept(a:AccountSummary,input:unknown){
  if(!['paciente','profesional'].includes(a.role))fail(403,'FORBIDDEN');
- const v=parse(z.object({token:z.string().regex(/^[a-f0-9]{64}$/),firstName:text(100),firstSurname:text(100),confirmed:z.literal(true)}).strict(),input);
- return transaction(async tx=>{
+ const v=parse(z.object({token:z.string().regex(/^[a-f0-9]{64}$/),firstName:text(100),firstSurname:text(100),confirmed:z.literal(true),...professionalPasswordFields}).strict(),input);
+ if(activating)fail(429,'ACTIVATION_BUSY');activating=true;
+ try{return await transaction(async tx=>{
   const hash=digest(v.token);const found=(await tx.query('SELECT clinic_id FROM public.vitalia_professional_invitations WHERE token_hash=$1',[hash])).rows[0];if(!found)fail(400,'INVITATION_UNAVAILABLE');
   await lock(tx,found.clinic_id);
   const inv=(await tx.query('SELECT * FROM public.vitalia_professional_invitations WHERE token_hash=$1 AND activated_at IS NULL AND revoked_at IS NULL AND expires_at>CURRENT_TIMESTAMP FOR UPDATE',[hash])).rows[0];
@@ -76,6 +113,7 @@ export function createOnboardingService(db:DocumentDatabase){
   const account=(await tx.query('SELECT id,email,role_code FROM public.vitalia_accounts WHERE id=$1',[a.id])).rows[0];
   if(!account||account.email!==inv.email)fail(403,'INVITATION_ACCOUNT_MISMATCH');
   if(account.role_code==='administrador')fail(403,'FORBIDDEN');
+  const professionalHash=await professionalCredential(tx,a,v);
   await clinicActive(tx,inv.clinic_id);
   if(inv.clinical_role==='jefe_clinico'){await validAuthorization(tx,inv.clinic_id,inv.authorization_id,inv.email);await noChief(tx,inv.clinic_id);}
   else await chief(tx,{id:inv.invited_by,role:'profesional'} as AccountSummary,inv.clinic_id);
@@ -87,6 +125,7 @@ export function createOnboardingService(db:DocumentDatabase){
   if((await tx.query('SELECT id FROM public.vitalia_clinic_memberships WHERE clinic_id=$1 AND professional_person_id=$2',[inv.clinic_id,person])).rows.length)fail(409,'ALREADY_MEMBER');
   await tx.query('INSERT INTO public.vitalia_professional_profiles(person_id) VALUES($1) ON CONFLICT DO NOTHING',[person]);
   await tx.query("INSERT INTO public.vitalia_account_roles(account_id,role_code,grant_source,invitation_id) VALUES($1,'profesional','invitation_accepted',$2) ON CONFLICT(account_id,role_code) DO NOTHING",[a.id,inv.id]);
+  if(professionalHash)await tx.query("UPDATE public.vitalia_account_roles SET password_hash=$2 WHERE account_id=$1 AND role_code='profesional' AND active AND password_hash IS NULL",[a.id,professionalHash]);
   // Un permiso global revocado no se reactiva por aceptar otra invitación.
   if(!(await tx.query("SELECT role_code FROM public.vitalia_account_roles WHERE account_id=$1 AND role_code='profesional' AND active",[a.id])).rows.length)fail(403,'FORBIDDEN');
   const membership=randomUUID();await tx.query('INSERT INTO public.vitalia_clinic_memberships(id,clinic_id,professional_person_id,clinical_role,active) VALUES($1,$2,$3,$4,true)',[membership,inv.clinic_id,person,inv.clinical_role]);
@@ -95,7 +134,7 @@ export function createOnboardingService(db:DocumentDatabase){
   await tx.query('UPDATE public.vitalia_professional_invitations SET activated_at=CURRENT_TIMESTAMP,activated_account_id=$2 WHERE id=$1',[inv.id,a.id]);
   await audit(tx,a.id,inv.clinic_id,'invitation_activated',inv.authorization_id,inv.id);
   return {accepted:true};
- });},
+ });}finally{activating=false;}},
  async activate(input:unknown){const v=parse(activationInput,input);if(activating)fail(429,'ACTIVATION_BUSY');activating=true;try{
  // Rechazar tokens inválidos antes de calcular scrypt; revalidar bajo bloqueo tras el hash.
  const hash=digest(v.token);const pre=await db.query('SELECT id FROM public.vitalia_professional_invitations WHERE token_hash=$1 AND activated_at IS NULL AND revoked_at IS NULL AND expires_at>CURRENT_TIMESTAMP',[hash]);if(!pre.rows.length)fail(400,'INVITATION_UNAVAILABLE');
