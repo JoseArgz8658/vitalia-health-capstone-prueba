@@ -1,5 +1,5 @@
 # Fase 7 — Perfiles, clínicas y atención por examen
-Rama activa de estructura institucional: fase-7/02-clinicas-pertenencias, continuando la base validada de fase-7/01-perfiles-ubicacion. La migración 012 está aplicada y comprobada en PostgreSQL 16 local. El perfil y el guardado/recuperación de medidas se comprobaron en Windows; el catálogo territorial y su selección también se comprobaron en Windows/PostgreSQL 16. Los bloques posteriores siguen pendientes. 013 está aplicada en PostgreSQL 16 local y sus 28 comprobaciones aprobaron; 014 de auditoría institucional está preparada en CAM-088; 015+ continúan propuestas.
+Rama activa de estructura institucional: fase-7/02-clinicas-pertenencias, continuando la base validada de fase-7/01-perfiles-ubicacion. La migración 012 está aplicada y comprobada en PostgreSQL 16 local. El perfil y el guardado/recuperación de medidas se comprobaron en Windows; el catálogo territorial y su selección también se comprobaron en Windows/PostgreSQL 16. Los bloques posteriores siguen pendientes. 013 está aplicada en PostgreSQL 16 local y sus 28 comprobaciones aprobaron; 014 de auditoría institucional está aplicada y comprobada en PostgreSQL 16 local; la creación y consulta institucional se validaron en Windows según CAM-088. 015+ continúan propuestas.
 
 ## Decisiones confirmadas
 Teléfono opcional, un médico responsable por examen a la vez, segunda opinión posterior sin sobrescribir revisión, derivaciones dentro de la misma clínica. Propuesta ampliada: 18 tablas nuevas, importadas como modelo visual separado. Las restricciones del diagrama Oracle no son migraciones PostgreSQL.
@@ -99,3 +99,22 @@ Registré el inventario confirmado por Query Tool: vitalia_dev, 31 tablas, 13 mi
 
 El backend aprobó 530 pruebas y el servicio pasó 14 comprobaciones aisladas. Las rutas no otorgan acceso a exámenes ni permiten designar jefes clínicos. Flutter, 014 y permisos de este incremento siguen pendientes en Windows/PostgreSQL 16. La guía está en [gestion-institucional.md](gestion-institucional.md). No se considera terminada la fase 7.2. (José Aránguiz)
 
+
+## Estado vigente después de validar gestión institucional
+
+Comprobé creación, consulta y persistencia de clínicas y sucursales, cancelación del formulario y restricciones de acceso de paciente/profesional. Registré 530 pruebas backend en 46 suites, 90 pruebas Flutter y análisis sin incidencias, con salida 0. Apliqué 014 y sus permisos; el verificador aprobó 14 comprobaciones y revirtió los datos sintéticos. También confirmé visualmente la ayuda contextual del número de dirección. La evidencia está en [CAM-088](../cambios-codigo/CAM-088-gestion-institucional.md). Las cifras automatizadas corresponden a la versión previa al ajuste de ayuda. Los estados pendientes en apartados anteriores se conservan como registro histórico. (José Aránguiz)
+
+La fase 7.2 sigue abierta: la estructura de especialidades y pertenencias existe, pero su gestión funcional no está habilitada. También permanecen pendientes edición y cambios de estado institucionales con auditoría. No considero activada la atención multiclínica ni la incorporación de profesionales por haber completado la creación de instituciones. (José Aránguiz)
+
+### Siguiente incremento propuesto: incorporación institucional de profesionales
+
+Propongo completar el flujo de pertenencias mediante autorización institucional e invitaciones, antes de habilitar altas profesionales desde la interfaz. Su alcance será el siguiente. (José Aránguiz)
+
+1. Registrar una solicitud externa del representante autorizado, vinculada a una clínica existente, con identidad/cargo del solicitante, referencia verificable de la autorización y fecha. No crear un rol de director dentro de la aplicación.
+2. Registrar el administrador que verifica la procedencia y autoridad del solicitante y cuándo lo hace. Impedir una invitación de jefe clínico sin autorización verificada para esa misma clínica.
+3. Crear una invitación individual con vencimiento, revocación y uso único; conservar solo la huella del token. El destinatario establece su contraseña al activar su cuenta. No guardar contraseñas en documentación ni registrar tokens en auditoría.
+4. Activar la pertenencia de jefe clínico únicamente al completar la invitación y registrar cuándo se activa. Definir expresamente el tratamiento de cuentas profesionales existentes sin cambiar sus credenciales ni roles por coincidencia de correo.
+5. Permitir al jefe invitar profesionales exclusivamente a su clínica, dentro de los permisos que puede gestionar. Incorporar especialidades y sucursales de forma coherente con esa pertenencia.
+6. Comprobar vencimiento, reintentos, uso concurrente del token, clínica cruzada, ausencia de autorización y límites del jefe clínico. Gestionar instituciones no habilitará lectura de exámenes ni acceso automático a todos los pacientes.
+
+Este incremento todavía no está implementado. Antes de escribir una nueva migración revisaré el orden efectivo de versiones: 015 para roles es una propuesta y no una migración ejecutada. Conservaré las revisiones y el flujo actual durante la transición. La entrega al repositorio oficial seguirá requiriendo comparación previa y autorización explícita. (José Aránguiz)
