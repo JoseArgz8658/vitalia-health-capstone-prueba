@@ -470,7 +470,7 @@ class AuthApi {
     return user;
   }
   Future<void> register(String email, String password) async {
-    await _request('register', body: {'email': email.trim(), 'password': password, 'mode':mode});
+    await _request('register', body: {'email': email.trim(), 'password': password});
   }
   Future<void> logout() async {
     try { await _request('logout'); } finally { clear(); }
