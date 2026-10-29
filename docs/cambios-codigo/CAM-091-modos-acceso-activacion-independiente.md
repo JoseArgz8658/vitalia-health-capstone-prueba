@@ -57,3 +57,9 @@ Conservo ambas entregas en el diseño; falta configurar el servicio de correo, u
 Ejecuté el backend en Windows: 617 pruebas aprobadas en 49 suites, salida 0, en 40,595 segundos. El análisis Flutter detectó una referencia indefinida a `mode` dentro de `AuthApi.register`, que se propagó como fallo de compilación a las suites dependientes. La modificación del cuerpo de login había afectado también al registro. (José Aránguiz)
 
 Retiré `mode` únicamente del cuerpo de registro y conservé correo/contraseña; login mantiene su modo explícito. No añadí selección de permisos al registro ni cambié backend, dependencias o migraciones. Revisé ambos cuerpos de solicitud en el código. El análisis y los tests Flutter corregidos siguen pendientes en Windows; no considero esta ejecución fallida una validación de la interfaz. El repositorio oficial permanece sin cambios. (José Aránguiz)
+
+## Ajuste de interacción en las pruebas de aceptación
+
+Después de corregir el registro, ejecuté análisis Flutter sin incidencias. La suite informó 109 pruebas aprobadas y dos fallidas: el helper de aceptación intentaba tocar el centro de CheckboxListTile antes de estabilizar el desplazamiento y no marcaba la confirmación; por eso no se ejecutaba el login esperado. (José Aránguiz)
+
+Ajusté el helper para retirar foco/teclado, esperar el desplazamiento, tocar el Checkbox que participa en el hit test y comprobar que su valor sea verdadero antes de enviar. También espero visibilidad del botón de envío. No suprimí las advertencias ni invoqué callbacks directamente; mantuve la confirmación obligatoria y las expectativas de ambos casos. No modifiqué producción, backend, migraciones o permisos. La ejecución Flutter corregida continúa pendiente en Windows. (José Aránguiz)
