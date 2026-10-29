@@ -1,5 +1,5 @@
 # Fase 7 — Perfiles, clínicas y atención por examen
-Rama activa de estructura institucional: fase-7/02-clinicas-pertenencias, continuando la base validada de fase-7/01-perfiles-ubicacion. La migración 012 está aplicada y comprobada en PostgreSQL 16 local. El perfil y el guardado/recuperación de medidas se comprobaron en Windows; el catálogo territorial y su selección también se comprobaron en Windows/PostgreSQL 16. Los bloques posteriores siguen pendientes. 013 está preparada en código para revisión y aplicación deliberada; 014+ continúan propuestas.
+Rama activa de estructura institucional: fase-7/02-clinicas-pertenencias, continuando la base validada de fase-7/01-perfiles-ubicacion. La migración 012 está aplicada y comprobada en PostgreSQL 16 local. El perfil y el guardado/recuperación de medidas se comprobaron en Windows; el catálogo territorial y su selección también se comprobaron en Windows/PostgreSQL 16. Los bloques posteriores siguen pendientes. 013 está aplicada en PostgreSQL 16 local y sus 28 comprobaciones aprobaron; 014+ continúan propuestas.
 
 ## Decisiones confirmadas
 Teléfono opcional, un médico responsable por examen a la vez, segunda opinión posterior sin sobrescribir revisión, derivaciones dentro de la misma clínica. Propuesta ampliada: 18 tablas nuevas, importadas como modelo visual separado. Las restricciones del diagrama Oracle no son migraciones PostgreSQL.
@@ -12,7 +12,7 @@ applyAdditionalMigration abre transacción, usa bloqueo advisory, exige versión
 | Bloque | Migración y estado | Entidades | Dependencia y compatibilidad |
 |---|---|---|---|
 | 1 | 012_profiles_locations | regions, provinces, communes, people, identifiers, patient_profiles, professional_profiles, patient_measurements | Crear primero territorios vacíos para FK de people. No cargar nombres/RUT a partir de exámenes. Perfil ausente sigue permitiendo login actual. |
-| 2 | 013_clinics_memberships (preparada; pendiente en PostgreSQL 16) | clinics, branches, specialties, professional_specialties, clinic_memberships, branch_memberships | FK compuestas para coherencia de clínica y sucursal. No asignar una clínica ficticia a todos los documentos antiguos. |
+| 2 | 013_clinics_memberships (aplicada; 28 comprobaciones correctas) | clinics, branches, specialties, professional_specialties, clinic_memberships, branch_memberships | FK compuestas para coherencia de clínica y sucursal. No asignar una clínica ficticia a todos los documentos antiguos. |
 | 3 | 014_account_roles | account_roles | Copiar pares account_id/role_code existentes con control de duplicidad. Conservar role_code durante transición. No activar privilegios múltiples antes de actualizar validación de actor y sesiones. |
 | 4 | 015_exam_care_reviews | exam_care, exam_referrals, care_reviews | Crear tablas y PK/UNIQUE antes de FK por el ciclo care.prior_review ↔ review.care. Índice parcial de una atención requested/active por documento. Trigger de inmutabilidad para nuevas revisiones. |
 | 5 | transición explícita, versión por definir | Puente legado/revisión nueva si es necesario | Definir lectura dual del API, explicación y chat. No aplicar INSERT SELECT que invente sede/profesional responsable. No duplicar una aprobación cambiando su autor. |
@@ -88,3 +88,7 @@ Preparé seis tablas institucionales y la migración 013 desde la base validada 
 
 Las pertenencias son inactivas por defecto y no conceden acceso a exámenes. No modifiqué las migraciones anteriores, Flutter, roles globales, revisiones, asignaciones ni el repositorio oficial. La fase 7.2 sigue abierta: faltan API y pantallas con autorización institucional, trazabilidad y permisos específicos. Las invitaciones del jefe clínico permanecen en su bloque posterior. (José Aránguiz)
 
+
+## Validación local de la estructura 7.2
+
+Comprobé 504 pruebas backend en Windows, respaldo finalizado y aplicación de 013 en vitalia_dev. El verificador aprobó 28 comprobaciones y revirtió los datos sintéticos, salida 0. La evidencia está en CAM-087. Conservo pendientes inventario final y repetición de la migración; los servicios, pantallas y autorizaciones institucionales de 7.2 todavía no están implementados. No cambió el repositorio oficial. (José Aránguiz)
