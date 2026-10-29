@@ -67,3 +67,7 @@ Ajusté el helper para retirar foco/teclado, esperar el desplazamiento, tocar el
 ## Corrección de la llamada síncrona del teclado de prueba
 
 La ejecución en Windows detectó que `TestTextInput.hide()` devuelve void y que el helper lo esperaba con await. Retiré ese await y conservé `pumpAndSettle` después de ocultar el teclado y después del desplazamiento. La suite informó 104 pruebas aprobadas y un archivo sin compilar; no lo presento como siete fallos funcionales distintos. El análisis, los siete casos de modos y la suite completa corregidos siguen pendientes. No cambié aplicación, backend, esquema o permisos. (José Aránguiz)
+
+## Validación Flutter corregida en Windows
+
+Ejecuté `flutter analyze` sin incidencias, en 1,6 segundos, y la suite completa `flutter test`: 111 pruebas aprobadas, salida 0. Conservo como registro histórico los fallos y correcciones anteriores; esta ejecución confirma la validación automatizada de Flutter corregida. Junto con las 617 pruebas backend ya informadas, quedan aprobadas las suites de código en Windows. El respaldo actualizado, aplicación de 017, permisos y recorrido real siguen pendientes. No modifiqué el repositorio oficial. (José Aránguiz)
