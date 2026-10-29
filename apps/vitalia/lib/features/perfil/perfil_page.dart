@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/auth_api.dart';
 import 'medidas_panel.dart';
+import 'ubicacion_panel.dart';
 
 class PerfilPage extends StatefulWidget {
   const PerfilPage({super.key, required this.api, required this.onExpired, this.isPatient = false});
@@ -125,6 +126,8 @@ class _PerfilPageState extends State<PerfilPage> {
             ]),
             _section('Contacto', Icons.phone_outlined, [
               _item('phone', 'Teléfono (opcional)', keyboard: TextInputType.phone),
+              UbicacionPanel(api: widget.api, value: _commune, editing: _editing, enabled: !_busy,
+                onChanged: (value) => setState(() => _commune = value), onExpired: widget.onExpired),
             ]),
             _section('Identificación', Icons.badge_outlined, [
               _item('rut', 'RUT (opcional)', hint: 'Sin puntos o con puntos; incluye dígito verificador'),
@@ -140,8 +143,9 @@ class _PerfilPageState extends State<PerfilPage> {
           MedidasPanel(api: widget.api, onExpired: widget.onExpired, enabled: !_busy && !_editing,
             onEditingChanged: (value) { if (mounted) setState(() => _measuresEditing = value); }),
         const SizedBox(height: 24),
-        const Text('La selección de comuna se habilitará al incorporar el catálogo territorial. No se envían datos del perfil al asistente.'),
+        const Text('No se envían datos del perfil ni de ubicación al asistente.'),
       ]),
     ))),
   );
 }
+

@@ -12,6 +12,7 @@ export function createProfileRouter(auth:Pick<AuthServices,'find'>,service:Profi
   if(Object.keys(req.query).length)throw new ProfileError(400,'INVALID_PROFILE');
   res.locals.account=account;next();
  };
+ router.get('/territories',guard,async(_req,res)=>{res.json(await service.territories(res.locals.account));});
  router.get('/',guard,async(_req,res)=>{res.json(await service.get(res.locals.account));});
  router.post('/',guard,async(req,res)=>{res.json(await service.save(res.locals.account,req.body));});
  router.get('/measurements',guard,async(_req,res)=>{res.json(await service.measurements(res.locals.account));});
@@ -21,3 +22,4 @@ export function createProfileRouter(auth:Pick<AuthServices,'find'>,service:Profi
   next(error);
  };router.use(errors);return router;
 }
+

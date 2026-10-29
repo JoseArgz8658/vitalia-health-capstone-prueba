@@ -69,4 +69,9 @@ Comprobé el perfil propio en Windows y el ajuste de consulta/edición por secci
 
 Comprobé 82 pruebas Flutter, análisis sin incidencias y 482 pruebas backend en 43 suites, con salida 0. Apliqué los permisos de perfiles/medidas en vitalia_dev y confirmé guardado y recuperación de las medidas al reabrir Mi perfil. La evidencia está en [CAM-085](../cambios-codigo/CAM-085-medidas-personales.md). No declaro comprobados manualmente los recorridos no informados. (José Aránguiz)
 
-El siguiente trabajo pendiente de ubicación es revisar una fuente oficial del catálogo territorial y habilitar la selección de comuna con validación de la relación región/provincia/comuna. También quedan por definir la auditoría específica y la rectificación de medidas. Las clínicas, pertenencias, invitaciones y atención por examen conservan su estado de propuesta; no se integran al repositorio oficial por esta comprobación. (José Aránguiz)
+Preparé el catálogo versionado de SUBDERE y la selección de comuna dependiente de región/provincia en CAM-086. Su ejecución en Windows y carga en PostgreSQL 16 siguen pendientes. También quedan por definir la auditoría específica y la rectificación de medidas. Las clínicas, pertenencias, invitaciones y atención por examen conservan su estado de propuesta; no se integran al repositorio oficial por esta comprobación. (José Aránguiz)
+
+## Catálogo territorial — CAM-086
+
+Añadí la carga administrativa explícita del catálogo SUBDERE-CUT-2018-v04 y la selección opcional en Contacto, sin modificar 012 ni crear 013. El backend aprobó 499 pruebas en 44 suites; la verificación aislada de catálogo/perfil aprobó 14 condiciones. Flutter y PostgreSQL 16 de este incremento quedan pendientes. La guía está en [bloque-1-perfiles-ubicacion.md](bloque-1-perfiles-ubicacion.md). (José Aránguiz)
+

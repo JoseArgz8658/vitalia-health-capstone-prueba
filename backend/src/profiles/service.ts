@@ -3,6 +3,7 @@ import {type Pool} from 'pg';
 import {type AccountSummary} from '../accounts/repository';
 import {type DocumentDatabase} from '../documents/service';
 import {profileInput} from './validation';
+import {createTerritoryService} from './territories';
 import {createMeasurementService} from './measurements';
 import {ProfileError} from './errors';
 export {ProfileError} from './errors';
@@ -32,6 +33,7 @@ function translate(error:unknown):never{
 }
 export function createProfileService(db:DocumentDatabase){return {
  ...createMeasurementService(db),
+ territories:createTerritoryService(db),
  async get(account:AccountSummary){allowed(account);try{return await db.transaction(tx=>read(tx,account));}catch(e){translate(e);}},
  async save(account:AccountSummary,input:unknown){
   allowed(account);const parsed=profileInput.safeParse(input);if(!parsed.success)throw new ProfileError(400,'INVALID_PROFILE');
@@ -63,3 +65,4 @@ export function createProfileService(db:DocumentDatabase){return {
  }
 };}
 export type ProfileServices=ReturnType<typeof createProfileService>;
+

@@ -21,5 +21,6 @@ export const profileInput=z.object({
  firstSurname:required,secondSurname:optional,birthDate,
  phone:z.string().trim().min(1).max(40).nullable(),
  rut:z.string().max(20).transform(value=>normalizeRut(value)).refine(value=>value!==null).nullable(),
- preferredCommuneCode:z.string().trim().min(1).max(16).nullable(),
+ preferredCommuneCode:z.string().regex(/^\d{5}$/).nullable(),
 }).strict();
+

@@ -31,3 +31,8 @@ Ejecuté flutter analyze sin incidencias y flutter test con 82 pruebas aprobadas
 Apliqué el archivo completo backend/database/permissions/profiles-app.sql en vitalia_dev mediante pgAdmin; terminó en COMMIT, sin errores, en 532 ms. Después probé el módulo desde la aplicación y confirmé que las medidas se guardan y permanecen al salir y volver a abrir el perfil. Esta comprobación acredita guardado y recuperación en el entorno local; no la presento como una nueva prueba de cancelación, aislamiento entre cuentas o rechazo de todos los valores inválidos. (José Aránguiz)
 
 Conservo pendientes el catálogo territorial y la selección de comuna, la auditoría específica de perfiles/medidas, la política de rectificación y los bloques de clínicas, invitaciones y atención. El resultado no cierra toda la fase 7 ni modifica el repositorio oficial. (José Aránguiz)
+
+## Comprobaciones manuales adicionales — 29 de octubre de 2026
+
+Confirmé cancelación sin registro nuevo, rechazo de peso cero o negativo y separación de medidas al ingresar con otro paciente. Estos recorridos se suman al guardado y recuperación comprobados. El catálogo territorial posterior se registra por separado en CAM-086. (José Aránguiz)
+

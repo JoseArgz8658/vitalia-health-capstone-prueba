@@ -6,6 +6,7 @@ DO $$ BEGIN
  THEN RAISE EXCEPTION 'Revisar rol vitalia_app antes de conceder permisos'; END IF;
 END $$;
 GRANT USAGE ON SCHEMA public TO vitalia_app;
+GRANT SELECT ON public.vitalia_regions,public.vitalia_provinces,public.vitalia_communes TO vitalia_app;
 GRANT SELECT ON public.vitalia_people,public.vitalia_person_identifiers,
  public.vitalia_patient_profiles,public.vitalia_professional_profiles TO vitalia_app;
 GRANT INSERT(id,account_id,first_name,additional_names,first_surname,second_surname,birth_date,phone,preferred_commune_code)
@@ -20,3 +21,4 @@ GRANT SELECT ON public.vitalia_patient_measurements TO vitalia_app;
 GRANT INSERT(id,patient_person_id,measured_at,weight_kg,height_cm,source,recorded_by)
  ON public.vitalia_patient_measurements TO vitalia_app;
 COMMIT;
+

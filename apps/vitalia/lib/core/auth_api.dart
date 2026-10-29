@@ -26,6 +26,7 @@ class AuthApi {
     final data = await _profileRequest(update: update);
     return data['profile'] as Map<String, dynamic>?;
   }
+  Future<Map<String, dynamic>> territories() => _profileRequest(catalog: true);
   Future<List<Map<String, dynamic>>> measurements() async {
     final data = await _profileRequest(measures: true);
     return (data['measurements'] as List).map((value) => Map<String, dynamic>.from(value as Map)).toList();
@@ -34,7 +35,7 @@ class AuthApi {
     final data = await _profileRequest(measures: true, update: value);
     return Map<String, dynamic>.from(data['measurement'] as Map);
   }
-  Future<Map<String, dynamic>> _profileRequest({bool measures = false, Map<String, dynamic>? update}) async {
+  Future<Map<String, dynamic>> _profileRequest({bool measures = false, bool catalog = false, Map<String, dynamic>? update}) async {
     final token = _token;
     if (token == null || expiresAt == null || !expiresAt!.isAfter(DateTime.now())) {
       clear();
@@ -42,7 +43,7 @@ class AuthApi {
     }
     final headers = {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'};
     try {
-      final uri = _base.resolve(measures ? '/api/profile/measurements' : '/api/profile');
+      final uri = _base.resolve(catalog ? '/api/profile/territories' : measures ? '/api/profile/measurements' : '/api/profile');
       final response = await (update == null
         ? _client.get(uri, headers: headers)
         : _client.post(uri, headers: headers, body: jsonEncode(update)))
@@ -54,7 +55,7 @@ class AuthApi {
           400 => measures ? 'Ingresa peso en kg o altura en cm, mayores que cero, y una fecha que no sea futura.' : 'Revisa los nombres, la fecha y el dígito verificador del RUT.',
           403 => 'Esta cuenta no tiene acceso a este perfil.',
           409 => measures ? 'Guarda primero tus datos personales. Si ya lo hiciste, actualiza el historial antes de repetir.' : 'El perfil cambió o no se pudo guardar la identificación. Actualiza y revisa los datos. Un RUT registrado no se puede dejar vacío.',
-          503 => 'El perfil aún no está disponible. Revisa con el equipo la migración y sus permisos.',
+          503 => catalog ? 'El catálogo de ubicación aún no está disponible. Puedes conservar la ubicación actual e intentar después.' : 'El perfil aún no está disponible. Revisa con el equipo la migración y sus permisos.',
           _ => 'No se pudo guardar o consultar el perfil.',
         }, response.statusCode);
       }
@@ -322,4 +323,5 @@ class AuthApi {
     try { await _request('logout'); } finally { clear(); }
   }
 }
+
 

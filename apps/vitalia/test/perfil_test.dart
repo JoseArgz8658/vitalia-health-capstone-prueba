@@ -7,6 +7,8 @@ import 'package:vitalia_health/core/auth_api.dart';
 import 'package:vitalia_health/features/perfil/perfil_page.dart';
 
 class ProfileFake extends AuthApi {
+  @override
+  Future<Map<String, dynamic>> territories() async => {'version':'test','regions':[{'code':'13','name':'Metropolitana'}],'provinces':[{'code':'131','name':'Santiago','regionCode':'13'}],'communes':[{'code':'13101','name':'Santiago','provinceCode':'131'}]};
   Map<String, dynamic>? saved;
   int? failure;
   @override
@@ -77,3 +79,4 @@ void main() {
     await api.login('test@example.invalid','synthetic');expect(await api.profile(), isNull);api.close();
   });
 }
+

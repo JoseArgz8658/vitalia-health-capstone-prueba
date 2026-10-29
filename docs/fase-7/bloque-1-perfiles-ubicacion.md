@@ -24,7 +24,7 @@ Son ocho tablas y nueve claves foráneas nuevas. Sobre el esquema anterior de 17
 - No guardo edad fija. Rechazo fechas de nacimiento futuras o infinitas. Las medidas requieren fecha no futura, al menos un dato positivo y finito, fuente y autor.
 - El RUT no sustituye el UUID. La combinación país/tipo/valor es única, y una persona tiene un identificador por país/tipo. CAM-083 normaliza puntos/guion/K y valida módulo 11 antes de guardarlo por API. No acredita identidad. Un RUT ya registrado no puede vaciarse mediante el formulario; si está verificado, no se permite cambiarlo.
 - Los identificadores nacen como not_verified y los profesionales como pending. La creación de una fila no verifica identidad o habilitación profesional. Los futuros servicios controlarán quién puede cambiar esos estados.
-- Los catálogos territoriales quedan vacíos. No invento regiones/comunas ni cargo nombres sin una fuente oficial revisada.
+- La migración 012 deja los catálogos territoriales vacíos. CAM-086 incorpora una carga explícita del catálogo SUBDERE-CUT-2018-v04; no se ejecuta automáticamente ni inventa territorios.
 - El servicio actualiza updated_at al editar y utiliza su revisión para rechazar un guardado obsoleto; no hay trigger automático. Las FK conservan el borrado restringido por defecto.
 - Las FK no implementan aislamiento multiclínica ni acceso profesional por sí mismas. La API de perfiles solo permite editar datos propios, obteniendo la identidad de la sesión. Tampoco envío perfiles o medidas al asistente.
 
@@ -99,7 +99,7 @@ Para habilitar el acceso de ese usuario a las nuevas tablas, abre en VS Code bac
 
 Después inicia API y Flutter como habitualmente. En Mis exámenes o Mis pacientes pulsa el icono de persona con ayuda Mi perfil. La pantalla abre en consulta, dividida en Datos personales, Contacto e Identificación. Pulsa Editar datos personales para habilitar los campos. Completa primer nombre y primer apellido; los demás campos son opcionales en este incremento. Guarda para volver a consulta, o pulsa Cancelar edición para descartar el borrador sin enviarlo. Vuelve al inicio y abre Mi perfil nuevamente: debe conservar los datos guardados. Prueba un RUT con dígito incorrecto y comprueba que no se guarda. Una cuenta distinta debe ver su propio perfil vacío. Si la sesión expira, debe volver a acceso. Comprueba que subir/consultar exámenes siga funcionando.
 
-La edición de estos datos no modifica revisiones aprobadas ni la información usada por el asistente. Aún faltan catálogo territorial, elección de profesional y las invitaciones clínicas. (José Aránguiz)
+La edición de estos datos no modifica revisiones aprobadas ni la información usada por el asistente. La carga y selección territorial se incorpora posteriormente en CAM-086; la elección de profesional y las invitaciones clínicas siguen pendientes. (José Aránguiz)
 
 ## Medidas personales — CAM-085
 
@@ -108,3 +108,23 @@ Después de guardar los datos personales del paciente aparece el módulo Medidas
 Reinicia API y Flutter con la configuración local habitual. En Mi perfil consulta el módulo y pulsa Registrar medidas. Escribe peso en kg o altura en cm, o ambos; se admite coma decimal. La fecha inicial es el momento de abrir el formulario, y puedes elegir otro día anterior o actual. Al guardar queda un registro histórico nuevo. Al cancelar no se envían datos. La interfaz muestra hasta veinte registros recientes con su procedencia declarada por el paciente. No se permite editar ni borrar registros históricos en este bloque.
 
 Si falla la conexión y no sabes si se guardó, puedes cancelar el formulario y actualizar medidas para consultar el servidor. Reintentar el mismo formulario sin cambiarlo conserva el identificador y no debe duplicar el registro. Comprueba persistencia al cerrar y reabrir el perfil, separación entre cuentas, rechazo de cero/negativos y cancelación sin guardado. Ningún dato de este módulo se envía al asistente. (José Aránguiz)
+
+## Ubicación opcional — CAM-086
+
+Añadí el catálogo de SUBDERE y selectores en Contacto del perfil. Antes de aplicarlo, actualiza la rama y ejecuta npm test, flutter analyze y flutter test. La comprobación de backend registrada es 499 pruebas en 44 suites. No vuelvas a ejecutar la migración 012. (José Aránguiz)
+
+Una vez revisadas las pruebas, desde backend ejecuta el cargador con una cuenta administrativa de PostgreSQL local y PGDATABASE=vitalia_dev. El comando es:
+
+```powershell
+node --env-file=.env dist/database/load-territories.js
+$LASTEXITCODE
+```
+
+No cambies permanentemente el usuario de la aplicación a postgres. Utiliza credenciales administrativas solo en la terminal de carga y restáuralas al terminar. El resultado esperado es Catálogo territorial cargado: 16 regiones, 56 provincias y 346 comunas, salida 0. Repetir debe informar que ya estaba cargado y coincide. El cargador no se ejecuta al iniciar la API, rechaza otra base y revierte ante datos territoriales distintos. (José Aránguiz)
+
+Revisa y ejecuta el archivo completo backend/database/permissions/profiles-app.sql como postgres en Query Tool de vitalia_dev. Añade lectura de regiones/provincias/comunas a vitalia_app, sin escritura. Debe finalizar con COMMIT. Después reinicia la API habitual como vitalia_app y Flutter. (José Aránguiz)
+
+En Mi perfil, consulta Contacto y pulsa Editar datos personales. Elige región, provincia y comuna y guarda. Al volver a entrar deben aparecer los nombres. Cambiar región limpia provincia/comuna; cambiar provincia limpia comuna. Si elegiste región, completa comuna o utiliza Quitar ubicación antes de guardar. Cancelar edición restaura lo guardado. Si no se puede cargar el catálogo se conserva el código anterior y puedes editar los otros campos. No se envía ubicación a la IA ni se utiliza como domicilio verificado. (José Aránguiz)
+
+La versión fuente es CUT 2018 de SUBDERE, con procedencia y huellas en backend/database/catalogs/README.md. Mantengo pendientes pruebas directas Windows/PostgreSQL 16, auditoría de cambios y rectificación del historial, además de los bloques de clínicas y atención. (José Aránguiz)
+

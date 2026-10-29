@@ -4,6 +4,8 @@ import 'package:vitalia_health/core/auth_api.dart';
 import 'package:vitalia_health/features/perfil/medidas_panel.dart';
 
 class MeasuresFake extends AuthApi {
+  @override
+  Future<Map<String, dynamic>> territories() async => {'version':'test','regions':[{'code':'13','name':'Metropolitana'}],'provinces':[{'code':'131','name':'Santiago','regionCode':'13'}],'communes':[{'code':'13101','name':'Santiago','provinceCode':'131'}]};
   final List<Map<String, dynamic>> saved = [];
   int failures = 0;
   @override
@@ -43,3 +45,4 @@ void main() {
     await tester.pumpWidget(const SizedBox());api.close();
   });
 }
+
