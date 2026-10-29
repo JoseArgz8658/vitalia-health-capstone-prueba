@@ -39,3 +39,7 @@ Ejecuté npm test con 530 pruebas aprobadas en 46 suites, flutter analyze sin in
 Comprobé el recorrido desde la interfaz: creación y persistencia de clínica, creación y recuperación de sucursal, cancelación sin registro y ausencia de la gestión para paciente/profesional. Los recorridos funcionaron. La etiqueta Número o S/N generó una duda de uso: se ingresó un número válido, pero la abreviatura no resultó comprensible. (José Aránguiz)
 
 Cambié la etiqueta a Número de la dirección y añadí un ejemplo visible y un icono de ayuda que explica que S/N significa sin número. La ayuda incluye Avenida Ejemplo 1234 y distingue los campos opcionales de piso y oficina. Revisé sintaxis Dart; la comprobación visual de este ajuste queda pendiente. No cambié el contrato, las validaciones, la base de datos ni las dependencias. Las 90 pruebas recibidas corresponden a la versión anterior a esta mejora de ayuda. (José Aránguiz)
+
+## Ayuda breve para el número de dirección
+
+Reemplacé la alerta por una ayuda breve que aparece al pasar el puntero sobre el icono: «Ingresa el número, por ejemplo 1234. Si no tiene, escribe S/N (sin número)». La ayuda no abre un diálogo ni requiere cerrar una ventana. En dispositivos táctiles puede consultarse manteniendo pulsado el icono. Conservé la etiqueta y el ejemplo del campo. Comprobé la sintaxis con dart format; la revisión visual en Flutter de este ajuste queda pendiente. (José Aránguiz)
