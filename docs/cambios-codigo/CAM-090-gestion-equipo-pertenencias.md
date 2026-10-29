@@ -46,3 +46,11 @@ No apliqué 016 ni los nuevos permisos a la base del equipo. La guía es [gestio
 ## Comprobación posterior en Windows
 
 Ejecuté `npm test`: 599 pruebas aprobadas en 48 suites, en 36,122 segundos, con salida 0. Ejecuté `flutter analyze` sin incidencias y `flutter test`: 104 pruebas aprobadas, con salida 0. Estas comprobaciones validan el código; no aplican 016 ni sus permisos a PostgreSQL. El respaldo actualizado, aplicación y verificación en PostgreSQL 16 y recorrido manual del equipo permanecen pendientes. (José Aránguiz)
+
+## Aplicación y recorrido confirmados en PostgreSQL 16 y Windows
+
+Guardé el respaldo previo a 016 y apliqué la migración de gestión de pertenencias en PostgreSQL local. El verificador aprobó 37 comprobaciones y revirtió los datos sintéticos. Ejecuté `team-app.sql` en pgAdmin sobre la base de trabajo y terminó con COMMIT sin errores en 56 ms. (José Aránguiz)
+
+Comprobé el listado del equipo, cancelación sin guardar, validación del motivo obligatorio, suspensión persistente, historial con autor/fecha/motivo/estados y reactivación conservando ambos cambios. Confirmé que la pertenencia del jefe no ofrece edición y que el administrador consulta sin editar. Estos recorridos funcionaron según lo previsto. La suspensión sigue limitada a la pertenencia; no declaro revocadas las asignaciones del flujo anterior. (José Aránguiz)
+
+Conservo pendientes de comprobación manual el conflicto entre dos formularios abiertos y la activación de una nueva invitación con especialidad después de 016. La cobertura automatizada y aislada de esos comportamientos no equivale a haber ejecutado esos recorridos manuales en Windows. Concurrencia real entre instancias, Docker y los demás pendientes de alcance siguen abiertos. El repositorio oficial permanece sin cambios. (José Aránguiz)
