@@ -35,3 +35,12 @@ Registré para CAM-092 el respaldo `vitalia_dev_antes_018`, los resultados de Wi
 Este ajuste utiliza la migración 018 y los permisos ya concedidos. No creé migración 019 ni modifiqué migraciones aplicadas. La atención por examen continúa propuesta como 019. Documenté el flujo actualizado en [contraseñas por modo](../fase-7/contrasenas-por-modo.md). El repositorio oficial permanece fuera de este cambio.
 
 (José Aránguiz)
+
+
+## Confirmación en Windows y observación de interfaz
+
+Registré la salida de Windows: flutter analyze sin problemas, 117 pruebas Flutter aprobadas y 646 pruebas backend en 51 suites aprobadas. El usuario confirmó que el flujo manual es funcional. La ejecución local del verificador ampliado no mostró sus mensajes en la salida compartida, por lo que no doy por confirmadas las 49 comprobaciones en PostgreSQL 16.
+
+Registré como pendiente visual modernizar el formulario de contraseña: mejorar jerarquía, espaciado, campos y presentación, manteniendo las validaciones y el flujo ya comprobados. Esta observación no implica un fallo funcional ni declara terminada toda la fase 7.
+
+(José Aránguiz)
