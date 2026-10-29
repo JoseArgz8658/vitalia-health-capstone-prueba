@@ -1,5 +1,5 @@
 # Fase 7 — Perfiles, clínicas y atención por examen
-Rama de este incremento: fase-7/01-perfiles-ubicacion. La migración 012 está aplicada y comprobada en PostgreSQL 16 local. El perfil y el guardado/recuperación de medidas se comprobaron en Windows; el catálogo territorial y su selección también se comprobaron en Windows/PostgreSQL 16. Los bloques posteriores siguen pendientes. Las migraciones 013+ continúan propuestas.
+Rama activa de estructura institucional: fase-7/02-clinicas-pertenencias, continuando la base validada de fase-7/01-perfiles-ubicacion. La migración 012 está aplicada y comprobada en PostgreSQL 16 local. El perfil y el guardado/recuperación de medidas se comprobaron en Windows; el catálogo territorial y su selección también se comprobaron en Windows/PostgreSQL 16. Los bloques posteriores siguen pendientes. 013 está preparada en código para revisión y aplicación deliberada; 014+ continúan propuestas.
 
 ## Decisiones confirmadas
 Teléfono opcional, un médico responsable por examen a la vez, segunda opinión posterior sin sobrescribir revisión, derivaciones dentro de la misma clínica. Propuesta ampliada: 18 tablas nuevas, importadas como modelo visual separado. Las restricciones del diagrama Oracle no son migraciones PostgreSQL.
@@ -9,10 +9,10 @@ applyAdditionalMigration abre transacción, usa bloqueo advisory, exige versión
 009_professional_reviews conserva UNIQUE processing_id y trigger que rechaza UPDATE/DELETE de revisiones. No editar 001..011 ni eliminar ese trigger para adaptar opiniones posteriores.
 
 ## Orden de implementación propuesto
-| Bloque | Migración reservada, aún no creada | Entidades | Dependencia y compatibilidad |
+| Bloque | Migración y estado | Entidades | Dependencia y compatibilidad |
 |---|---|---|---|
 | 1 | 012_profiles_locations | regions, provinces, communes, people, identifiers, patient_profiles, professional_profiles, patient_measurements | Crear primero territorios vacíos para FK de people. No cargar nombres/RUT a partir de exámenes. Perfil ausente sigue permitiendo login actual. |
-| 2 | 013_clinics_memberships | clinics, branches, specialties, professional_specialties, clinic_memberships, branch_memberships | FK compuestas para coherencia de clínica y sucursal. No asignar una clínica ficticia a todos los documentos antiguos. |
+| 2 | 013_clinics_memberships (preparada; pendiente en PostgreSQL 16) | clinics, branches, specialties, professional_specialties, clinic_memberships, branch_memberships | FK compuestas para coherencia de clínica y sucursal. No asignar una clínica ficticia a todos los documentos antiguos. |
 | 3 | 014_account_roles | account_roles | Copiar pares account_id/role_code existentes con control de duplicidad. Conservar role_code durante transición. No activar privilegios múltiples antes de actualizar validación de actor y sesiones. |
 | 4 | 015_exam_care_reviews | exam_care, exam_referrals, care_reviews | Crear tablas y PK/UNIQUE antes de FK por el ciclo care.prior_review ↔ review.care. Índice parcial de una atención requested/active por documento. Trigger de inmutabilidad para nuevas revisiones. |
 | 5 | transición explícita, versión por definir | Puente legado/revisión nueva si es necesario | Definir lectura dual del API, explicación y chat. No aplicar INSERT SELECT que invente sede/profesional responsable. No duplicar una aprobación cambiando su autor. |
@@ -81,3 +81,10 @@ Añadí la carga administrativa explícita del catálogo SUBDERE-CUT-2018-v04 y 
 Comprobé el incremento de ubicación de CAM-086 en Windows y PostgreSQL 16: 499 pruebas backend, 86 Flutter, análisis sin incidencias, catálogo cargado, permisos aplicados y todos los recorridos manuales de selección, persistencia, dependencia, cancelación y ubicación opcional funcionales. Los apartados históricos anteriores conservan el estado que tenían al registrarse. (José Aránguiz)
 
 La base funcional 7.1 comprende perfiles, medidas y ubicación. Auditoría específica, rectificación y ampliación de validación en dispositivos permanecen como pendientes explícitos antes del despliegue real. El siguiente bloque propuesto es 7.2: clínicas, sucursales, especialidades y pertenencias. La migración 013 todavía no está creada ni aplicada. Las invitaciones y la designación institucional de jefes clínicos requieren su flujo específico; no deben habilitarse mediante edición directa de un rol. No se asignarán clínicas ficticias a los documentos existentes ni se ampliará el acceso clínico del administrador. (José Aránguiz)
+
+## Inicio de fase 7.2 — CAM-087
+
+Preparé seis tablas institucionales y la migración 013 desde la base validada de 7.1, con ejecutor y 28 comprobaciones revertibles. El backend aprobó 504 pruebas en 45 suites. El motor aislado comprobó migración, repetición, huella, restricciones y ausencia de permisos para la aplicación. La validación en Windows y la aplicación en PostgreSQL 16 están pendientes. La guía es [bloque-2-clinicas-pertenencias.md](bloque-2-clinicas-pertenencias.md). (José Aránguiz)
+
+Las pertenencias son inactivas por defecto y no conceden acceso a exámenes. No modifiqué las migraciones anteriores, Flutter, roles globales, revisiones, asignaciones ni el repositorio oficial. La fase 7.2 sigue abierta: faltan API y pantallas con autorización institucional, trazabilidad y permisos específicos. Las invitaciones del jefe clínico permanecen en su bloque posterior. (José Aránguiz)
+
