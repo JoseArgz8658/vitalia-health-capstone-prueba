@@ -58,3 +58,7 @@ Faltan servicios y pantallas de gestión institucional con auditoría y restricc
 ## Continuación de gestión — CAM-088
 
 Registré el inventario confirmado de 31 tablas y 13 migraciones. Preparé API y pantalla administrativa para crear/consultar clínicas y sucursales. La auditoría nueva utiliza 014, con permisos específicos y aplicación pendiente. La guía está en [gestion-institucional.md](gestion-institucional.md). Los permisos de esta continuación son distintos de la estructura inicial sin concesiones. No habilité pertenencias, invitaciones, edición ni desactivación por API. (José Aránguiz)
+
+## Autorización e invitaciones — CAM-089
+
+Preparé la continuación institucional con 015, cinco tablas nuevas, servicio y pantallas. La creación y consulta de instituciones de CAM-088 ya se comprobaron en Windows y PostgreSQL 16; esta nueva continuación todavía requiere sus propias pruebas y aplicación. La guía está en [invitaciones-institucionales.md](invitaciones-institucionales.md) y la evidencia en [CAM-089](../cambios-codigo/CAM-089-autorizacion-invitaciones-institucionales.md). No cambian 013 ni 014. (José Aránguiz)

@@ -1,3 +1,4 @@
+import '../incorporacion/activar_invitacion_page.dart';
 import 'package:flutter/material.dart';
 import '../../core/auth_api.dart';
 import 'registro_page.dart';
@@ -95,6 +96,7 @@ class _AccesoPageState extends State<AccesoPage> {
                 Navigator.of(context).push(MaterialPageRoute<void>(
                   builder: (_) => RegistroPage(api: widget.api!))),
                 child: const Text('Crear cuenta de paciente')),
+              TextButton(onPressed: _busy || widget.api == null ? null : () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ActivarInvitacionPage(api: widget.api!))), child: const Text('Activar invitación profesional')),
               TextButton(onPressed: () => showDialog<void>(context: context,
                 builder: (c) => AlertDialog(title: const Text('Recuperar acceso'),
                   content: const Text('La recuperación de contraseña aún no está disponible.'),

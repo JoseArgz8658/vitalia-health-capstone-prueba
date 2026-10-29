@@ -104,6 +104,79 @@ class AuthApi {
     catch (_) { throw const AuthFailure('No se pudo conectar. Conserva el formulario y reintenta.'); }
   }
 
+  Future<Map<String, dynamic>> onboarding(
+    String path, {
+    Map<String, dynamic>? body,
+  }) async {
+    final activation = path == '/activate';
+    if (!activation &&
+        path != '/context' &&
+        !RegExp(
+          r'^/[a-f0-9-]{36}(?:/(?:authorizations(?:/[a-f0-9-]{36}/(?:verify|revoke))?|specialties|invitations(?:/[a-f0-9-]{36}/revoke)?))?$',
+        ).hasMatch(path)) {
+      throw const AuthFailure('Solicitud institucional inválida.');
+    }
+    final token = _token;
+    if (!activation &&
+        (token == null ||
+            expiresAt == null ||
+            !expiresAt!.isAfter(DateTime.now()))) {
+      clear();
+      throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+    }
+    try {
+      final uri = _base.resolve('/api/onboarding$path');
+      final headers = {
+        'Content-Type': 'application/json',
+        if (!activation) 'Authorization': 'Bearer $token',
+      };
+      final response =
+          await (body == null
+                  ? _client.get(uri, headers: headers)
+                  : _client.post(uri, headers: headers, body: jsonEncode(body)))
+              .timeout(const Duration(seconds: 30));
+      if (!activation && (_token != token || response.statusCode == 401)) {
+        clear();
+        throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+      }
+      if (response.statusCode >= 400) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final code = (data['error'] as Map?)?['code'];
+        throw AuthFailure(
+          code == 'EXISTING_ACCOUNT'
+              ? 'El correo ya tiene una cuenta. No se modificó su contraseña ni su rol. Solicita al equipo la incorporación de esa cuenta.'
+              : switch (response.statusCode) {
+                  400 =>
+                    activation
+                        ? 'Revisa el código, nombres y contraseña. El código puede estar vencido, revocado o utilizado.'
+                        : 'Revisa los datos y las sucursales o especialidades seleccionadas.',
+                  403 =>
+                    'Solo el administrador o el jefe autorizado de esta clínica pueden realizar esta operación.',
+                  409 =>
+                    'La autorización o invitación no está disponible. Actualiza antes de repetir; revoca la invitación anterior si necesitas emitir otra.',
+                  429 =>
+                    'Hay otra activación en curso. Espera un momento e intenta nuevamente.',
+                  503 =>
+                    'La incorporación institucional aún no está disponible. Revisa migración y permisos con el equipo.',
+                  _ => 'No se pudo completar la incorporación institucional.',
+                },
+          response.statusCode,
+        );
+      }
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } on AuthFailure {
+      rethrow;
+    } on TimeoutException {
+      throw const AuthFailure(
+        'La solicitud tardó demasiado. Actualiza antes de repetir. Si se creó una invitación y perdiste su código, revócala antes de emitir otra.',
+      );
+    } catch (_) {
+      throw const AuthFailure(
+        'No se pudo conectar. Actualiza antes de repetir la solicitud.',
+      );
+    }
+  }
+
   Uri documentUri([String suffix = '', Map<String, String>? query]) {
     if (suffix.isNotEmpty && !RegExp(r'^[a-f0-9-]{36}/(file|processing|review|explanation|assistant(?:/explanation)?)$').hasMatch(suffix)) {
       throw const AuthFailure('Documento inválido.');

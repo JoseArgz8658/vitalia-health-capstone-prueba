@@ -1,3 +1,4 @@
+import '../incorporacion/incorporacion_page.dart';
 import '../clinicas/clinicas_page.dart';
 import '../../core/mensaje_vista.dart';
 import '../profesional/profesional_documentos_page.dart';
@@ -78,6 +79,7 @@ class _AsignacionesPageState extends State<AsignacionesPage> {
     }
     return Scaffold(
     appBar: AppBar(title: Text(_admin ? 'Asignaciones de pacientes' : 'Mis pacientes'), actions: [
+      IconButton(tooltip: _admin ? 'Incorporación institucional' : 'Equipo de mi clínica', icon: const Icon(Icons.group_add_outlined), onPressed: _busy || widget.sessionBusy ? null : () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => IncorporacionPage(api: widget.auth, admin: _admin, onExpired: widget.onExpired)))),
       if (_admin) IconButton(tooltip: 'Clínicas y sucursales', icon: const Icon(Icons.local_hospital_outlined),
         onPressed: _busy || widget.sessionBusy ? null : () => Navigator.of(context).push(MaterialPageRoute<void>(
           builder: (_) => ClinicasPage(api: widget.auth, onExpired: widget.onExpired)))),
