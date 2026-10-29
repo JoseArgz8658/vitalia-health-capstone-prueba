@@ -162,6 +162,8 @@ class _ClinicasPageState extends State<ClinicasPage> {
     String label, {
     bool required = false,
     int max = 150,
+    String? hint,
+    String? help,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 18),
     child: TextFormField(
@@ -170,6 +172,19 @@ class _ClinicasPageState extends State<ClinicasPage> {
       maxLength: max,
       decoration: InputDecoration(
         labelText: label,
+        hintText: hint,
+        suffixIcon: help == null ? null : IconButton(
+          tooltip: 'Ayuda sobre el número de la dirección',
+          icon: const Icon(Icons.help_outline),
+          onPressed: () => showDialog<void>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: const Text('Número de la dirección'),
+              content: Text(help),
+              actions: [TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Entendido'))],
+            ),
+          ),
+        ),
         counterText: '',
         border: const OutlineInputBorder(),
       ),
@@ -279,7 +294,9 @@ class _ClinicasPageState extends State<ClinicasPage> {
                               ),
                               _field(
                                 'addressNumber',
-                                'Número o S/N',
+                                'Número de la dirección',
+                              hint: 'Ej.: 1234 o S/N (sin número)',
+                              help: 'Escribe el número de la dirección de la sucursal. Por ejemplo, si está en Avenida Ejemplo 1234, escribe 1234.\n\nSi la dirección no tiene numeración, escribe S/N, que significa sin número.\n\nEl piso y la oficina se registran en sus campos opcionales.',
                                 required: true,
                                 max: 40,
                               ),
