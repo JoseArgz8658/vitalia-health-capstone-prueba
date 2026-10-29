@@ -54,3 +54,9 @@ Guardé el respaldo previo a 016 y apliqué la migración de gestión de pertene
 Comprobé el listado del equipo, cancelación sin guardar, validación del motivo obligatorio, suspensión persistente, historial con autor/fecha/motivo/estados y reactivación conservando ambos cambios. Confirmé que la pertenencia del jefe no ofrece edición y que el administrador consulta sin editar. Estos recorridos funcionaron según lo previsto. La suspensión sigue limitada a la pertenencia; no declaro revocadas las asignaciones del flujo anterior. (José Aránguiz)
 
 Conservo pendientes de comprobación manual el conflicto entre dos formularios abiertos y la activación de una nueva invitación con especialidad después de 016. La cobertura automatizada y aislada de esos comportamientos no equivale a haber ejecutado esos recorridos manuales en Windows. Concurrencia real entre instancias, Docker y los demás pendientes de alcance siguen abiertos. El repositorio oficial permanece sin cambios. (José Aránguiz)
+
+## Confirmación de recorridos manuales restantes
+
+Creé una especialidad de prueba desde el administrador, invité y activé un profesional seleccionándola y confirmé su aparición en el equipo institucional. También comprobé el conflicto entre dos formularios: el segundo guardado fue rechazado y conservó el primer cambio. Ambos recorridos funcionaron. Con estas confirmaciones completo los recorridos manuales previstos de CAM-090; no equivalen a pruebas de carga o concurrencia entre varias instancias. (José Aránguiz)
+
+Mantengo pendientes Docker, gestión de jefaturas, acreditación e incorporación de cuentas existentes. Para esta última debe distinguirse la cuenta profesional ya existente de una cuenta de paciente: el modelo actual conserva un único rol global y no debe sustituirlo silenciosamente para aceptar una invitación. El repositorio oficial permanece sin cambios. (José Aránguiz)
