@@ -31,3 +31,7 @@ Quedan pendientes validación de esta rama en Windows, respaldo y aplicación de
 Ejecuté npm test en Windows: 45 suites y 504 pruebas aprobadas, código de salida 0. Antes de aplicar 013 preparé un respaldo actualizado mediante pgAdmin y confirmé su finalización correcta. Apliqué la migración en vitalia_dev con credenciales administrativas temporales; informó Migración de clínicas y pertenencias aplicada. Ejecuté el verificador: Clínicas y pertenencias: 28 comprobaciones correctas. Datos sintéticos revertidos, código 0. (José Aránguiz)
 
 Esta evidencia comprueba la aplicación y los casos del verificador en PostgreSQL local. La repetición deliberada de 013 y el inventario final quedan por confirmar. No habilité gestión institucional, invitaciones ni acceso clínico; tampoco concedí nuevos permisos a vitalia_app ni cambié el repositorio oficial. La fase 7.2 continúa con sus servicios y pantallas pendientes. (José Aránguiz)
+
+## Inventario confirmado
+
+Comprobé en Query Tool la base vitalia_dev con 31 tablas, 13 migraciones y migracion_013_aplicada=true. El siguiente incremento funcional se registra en CAM-088 y requiere una migración nueva de auditoría; no modifica la 013 aplicada. La repetición deliberada de 013 no fue comunicada y no se declara realizada. (José Aránguiz)

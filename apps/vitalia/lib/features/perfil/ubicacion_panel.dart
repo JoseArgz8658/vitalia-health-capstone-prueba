@@ -10,10 +10,14 @@ class UbicacionPanel extends StatefulWidget {
     required this.enabled,
     required this.onChanged,
     required this.onExpired,
+    this.loadCatalog,
+    this.requiredLocation = false,
   });
   final AuthApi api;
+  final Future<Map<String, dynamic>> Function()? loadCatalog;
   final String? value;
   final bool editing, enabled;
+  final bool requiredLocation;
   final ValueChanged<String?> onChanged;
   final VoidCallback onExpired;
   @override
@@ -66,7 +70,8 @@ class _UbicacionPanelState extends State<UbicacionPanel> {
       _error = null;
     });
     try {
-      final catalog = await widget.api.territories();
+      final catalog =
+          await (widget.loadCatalog?.call() ?? widget.api.territories());
       if (!mounted) return;
       setState(() {
         _catalog = catalog;
@@ -111,7 +116,9 @@ class _UbicacionPanelState extends State<UbicacionPanel> {
           .toList(),
       onChanged: widget.enabled && options.isNotEmpty ? changed : null,
       validator: (_) => required && value == null
-          ? 'Selecciona la comuna o quita la ubicación.'
+          ? (widget.requiredLocation
+                ? 'Selecciona la comuna.'
+                : 'Selecciona la comuna o quita la ubicación.')
           : null,
     ),
   );
@@ -177,10 +184,12 @@ class _UbicacionPanelState extends State<UbicacionPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(bottom: 12),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
           child: Text(
-            'Ubicación opcional. Elige región, provincia y comuna, o déjala sin registrar.',
+            widget.requiredLocation
+                ? 'Selecciona región, provincia y comuna de la sucursal.'
+                : 'Ubicación opcional. Elige región, provincia y comuna, o déjala sin registrar.',
           ),
         ),
         _selector('Región', _region, _rows('regions'), (value) {
@@ -206,24 +215,25 @@ class _UbicacionPanelState extends State<UbicacionPanel> {
             'communes',
           ).where((x) => x['provinceCode'] == _province).toList(),
           widget.onChanged,
-          required: _region != null,
+          required: widget.requiredLocation || _region != null,
         ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            onPressed: widget.enabled
-                ? () {
-                    setState(() {
-                      _region = null;
-                      _province = null;
-                    });
-                    widget.onChanged(null);
-                  }
-                : null,
-            icon: const Icon(Icons.location_off_outlined),
-            label: const Text('Quitar ubicación'),
+        if (!widget.requiredLocation)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: widget.enabled
+                  ? () {
+                      setState(() {
+                        _region = null;
+                        _province = null;
+                      });
+                      widget.onChanged(null);
+                    }
+                  : null,
+              icon: const Icon(Icons.location_off_outlined),
+              label: const Text('Quitar ubicación'),
+            ),
           ),
-        ),
         const Padding(
           padding: EdgeInsets.only(bottom: 18),
           child: Text(

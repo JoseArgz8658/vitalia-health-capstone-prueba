@@ -54,3 +54,7 @@ Si falla la migración, la transacción intenta revertirla. Si falla el verifica
 ## Continuación funcional
 
 Faltan servicios y pantallas de gestión institucional con auditoría y restricciones por institución. Antes de activar jefes clínicos se incorporará el flujo de autorización externa verificable e invitación; el administrador no podrá nombrarlos por decisión propia. Después se integrarán gestión de profesionales y atención por examen. Ninguna de esas capacidades se considera disponible por esta migración. (José Aránguiz)
+
+## Continuación de gestión — CAM-088
+
+Registré el inventario confirmado de 31 tablas y 13 migraciones. Preparé API y pantalla administrativa para crear/consultar clínicas y sucursales. La auditoría nueva utiliza 014, con permisos específicos y aplicación pendiente. La guía está en [gestion-institucional.md](gestion-institucional.md). Los permisos de esta continuación son distintos de la estructura inicial sin concesiones. No habilité pertenencias, invitaciones, edición ni desactivación por API. (José Aránguiz)

@@ -1,3 +1,4 @@
+import '../clinicas/clinicas_page.dart';
 import '../../core/mensaje_vista.dart';
 import '../profesional/profesional_documentos_page.dart';
 import 'package:flutter/material.dart';
@@ -77,6 +78,9 @@ class _AsignacionesPageState extends State<AsignacionesPage> {
     }
     return Scaffold(
     appBar: AppBar(title: Text(_admin ? 'Asignaciones de pacientes' : 'Mis pacientes'), actions: [
+      if (_admin) IconButton(tooltip: 'Clínicas y sucursales', icon: const Icon(Icons.local_hospital_outlined),
+        onPressed: _busy || widget.sessionBusy ? null : () => Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => ClinicasPage(api: widget.auth, onExpired: widget.onExpired)))),
       if (widget.onProfile != null) IconButton(tooltip: 'Mi perfil', onPressed: widget.sessionBusy || _busy ? null : widget.onProfile, icon: const Icon(Icons.account_circle_outlined)),
       TextButton(onPressed: widget.sessionBusy || _busy ? null : widget.onLogout,
         child: const Text('Cerrar sesión')),
@@ -159,3 +163,4 @@ class _AsignacionesPageState extends State<AsignacionesPage> {
   );
   }
 }
+

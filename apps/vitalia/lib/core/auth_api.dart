@@ -65,6 +65,45 @@ class AuthApi {
     catch (_) { throw const AuthFailure('No se pudo consultar el perfil. Intenta nuevamente.'); }
   }
 
+  Future<Map<String, dynamic>> institutionTerritories() => _institutionRequest('/territories');
+  Future<List<Map<String, dynamic>>> institutions({String? clinicId, int offset = 0}) async {
+    final suffix = clinicId == null ? '' : '/${_institutionId(clinicId)}/branches';
+    final data = await _institutionRequest(suffix, offset: offset);
+    return (data['items'] as List).map((x) => Map<String, dynamic>.from(x as Map)).toList();
+  }
+  Future<Map<String, dynamic>> createInstitution(Map<String, dynamic> value, {String? clinicId}) async {
+    final data = await _institutionRequest(clinicId == null ? '' : '/${_institutionId(clinicId)}/branches', update: value);
+    return Map<String, dynamic>.from(data['item'] as Map);
+  }
+  String _institutionId(String id) {
+    if (!RegExp(r'^[a-f0-9-]{36}$').hasMatch(id)) throw const AuthFailure('Institución inválida.');
+    return id;
+  }
+  Future<Map<String, dynamic>> _institutionRequest(String suffix, {int? offset, Map<String, dynamic>? update}) async {
+    final token = _token;
+    if (token == null || expiresAt == null || !expiresAt!.isAfter(DateTime.now())) {
+      clear(); throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+    }
+    try {
+      final uri = _base.resolve('/api/institutions$suffix').replace(queryParameters: offset == null ? null : {'limit':'20','offset':'$offset'});
+      final headers = {'Authorization':'Bearer $token','Content-Type':'application/json'};
+      final response = await (update == null ? _client.get(uri, headers: headers) : _client.post(uri, headers: headers, body: jsonEncode(update))).timeout(const Duration(seconds:15));
+      if (_token != token) throw const AuthFailure('La sesión cambió.', 401);
+      if (response.statusCode == 401) { clear(); throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401); }
+      if (response.statusCode >= 400) throw AuthFailure(switch (response.statusCode) {
+        400 => 'Revisa el nombre, contacto, dirección y comuna.',
+        403 => 'Esta cuenta no puede gestionar instituciones.',
+        404 => 'La clínica ya no está disponible. Actualiza la lista.',
+        409 => 'La clínica está inactiva o la solicitud cambió. Actualiza antes de repetir.',
+        503 => 'La gestión institucional aún no está disponible. Revisa migración y permisos con el equipo.',
+        _ => 'No se pudo completar la gestión institucional.',
+      }, response.statusCode);
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } on AuthFailure { rethrow; }
+    on TimeoutException { throw const AuthFailure('La solicitud tardó demasiado. Reintenta el mismo formulario para evitar duplicados.'); }
+    catch (_) { throw const AuthFailure('No se pudo conectar. Conserva el formulario y reintenta.'); }
+  }
+
   Uri documentUri([String suffix = '', Map<String, String>? query]) {
     if (suffix.isNotEmpty && !RegExp(r'^[a-f0-9-]{36}/(file|processing|review|explanation|assistant(?:/explanation)?)$').hasMatch(suffix)) {
       throw const AuthFailure('Documento inválido.');

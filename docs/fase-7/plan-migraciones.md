@@ -1,5 +1,5 @@
 # Fase 7 — Perfiles, clínicas y atención por examen
-Rama activa de estructura institucional: fase-7/02-clinicas-pertenencias, continuando la base validada de fase-7/01-perfiles-ubicacion. La migración 012 está aplicada y comprobada en PostgreSQL 16 local. El perfil y el guardado/recuperación de medidas se comprobaron en Windows; el catálogo territorial y su selección también se comprobaron en Windows/PostgreSQL 16. Los bloques posteriores siguen pendientes. 013 está aplicada en PostgreSQL 16 local y sus 28 comprobaciones aprobaron; 014+ continúan propuestas.
+Rama activa de estructura institucional: fase-7/02-clinicas-pertenencias, continuando la base validada de fase-7/01-perfiles-ubicacion. La migración 012 está aplicada y comprobada en PostgreSQL 16 local. El perfil y el guardado/recuperación de medidas se comprobaron en Windows; el catálogo territorial y su selección también se comprobaron en Windows/PostgreSQL 16. Los bloques posteriores siguen pendientes. 013 está aplicada en PostgreSQL 16 local y sus 28 comprobaciones aprobaron; 014 de auditoría institucional está preparada en CAM-088; 015+ continúan propuestas.
 
 ## Decisiones confirmadas
 Teléfono opcional, un médico responsable por examen a la vez, segunda opinión posterior sin sobrescribir revisión, derivaciones dentro de la misma clínica. Propuesta ampliada: 18 tablas nuevas, importadas como modelo visual separado. Las restricciones del diagrama Oracle no son migraciones PostgreSQL.
@@ -13,8 +13,8 @@ applyAdditionalMigration abre transacción, usa bloqueo advisory, exige versión
 |---|---|---|---|
 | 1 | 012_profiles_locations | regions, provinces, communes, people, identifiers, patient_profiles, professional_profiles, patient_measurements | Crear primero territorios vacíos para FK de people. No cargar nombres/RUT a partir de exámenes. Perfil ausente sigue permitiendo login actual. |
 | 2 | 013_clinics_memberships (aplicada; 28 comprobaciones correctas) | clinics, branches, specialties, professional_specialties, clinic_memberships, branch_memberships | FK compuestas para coherencia de clínica y sucursal. No asignar una clínica ficticia a todos los documentos antiguos. |
-| 3 | 014_account_roles | account_roles | Copiar pares account_id/role_code existentes con control de duplicidad. Conservar role_code durante transición. No activar privilegios múltiples antes de actualizar validación de actor y sesiones. |
-| 4 | 015_exam_care_reviews | exam_care, exam_referrals, care_reviews | Crear tablas y PK/UNIQUE antes de FK por el ciclo care.prior_review ↔ review.care. Índice parcial de una atención requested/active por documento. Trigger de inmutabilidad para nuevas revisiones. |
+| 3 | 015_account_roles (propuesta renumerada) | account_roles | Copiar pares account_id/role_code existentes con control de duplicidad. Conservar role_code durante transición. No activar privilegios múltiples antes de actualizar validación de actor y sesiones. |
+| 4 | 016_exam_care_reviews (propuesta renumerada) | exam_care, exam_referrals, care_reviews | Crear tablas y PK/UNIQUE antes de FK por el ciclo care.prior_review ↔ review.care. Índice parcial de una atención requested/active por documento. Trigger de inmutabilidad para nuevas revisiones. |
 | 5 | transición explícita, versión por definir | Puente legado/revisión nueva si es necesario | Definir lectura dual del API, explicación y chat. No aplicar INSERT SELECT que invente sede/profesional responsable. No duplicar una aprobación cambiando su autor. |
 
 Las migraciones concretas dependerán de permisos y consistencia del estado real. Separar DDL listo de borrador; no reservar números mediante SQL incompleto en el directorio autodescubierto.
@@ -92,3 +92,10 @@ Las pertenencias son inactivas por defecto y no conceden acceso a exámenes. No 
 ## Validación local de la estructura 7.2
 
 Comprobé 504 pruebas backend en Windows, respaldo finalizado y aplicación de 013 en vitalia_dev. El verificador aprobó 28 comprobaciones y revirtió los datos sintéticos, salida 0. La evidencia está en CAM-087. Conservo pendientes inventario final y repetición de la migración; los servicios, pantallas y autorizaciones institucionales de 7.2 todavía no están implementados. No cambió el repositorio oficial. (José Aránguiz)
+
+## Gestión institucional — CAM-088
+
+Registré el inventario confirmado por Query Tool: vitalia_dev, 31 tablas, 13 migraciones y 013 aplicada. Preparé creación y consulta de clínicas/sucursales para administrador, con auditoría atómica y reintentos identificados. Añadí 014_institution_audit y permisos separados; no modifiqué 013. El número 014 reservado para roles era una propuesta sin SQL creado y se desplaza a 015; atención por examen queda propuesta para 016. (José Aránguiz)
+
+El backend aprobó 530 pruebas y el servicio pasó 14 comprobaciones aisladas. Las rutas no otorgan acceso a exámenes ni permiten designar jefes clínicos. Flutter, 014 y permisos de este incremento siguen pendientes en Windows/PostgreSQL 16. La guía está en [gestion-institucional.md](gestion-institucional.md). No se considera terminada la fase 7.2. (José Aránguiz)
+

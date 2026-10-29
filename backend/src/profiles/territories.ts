@@ -9,8 +9,7 @@ export interface TerritoryCatalog {version:string;regions:Territory[];provinces:
 export const CATALOG_VERSION='SUBDERE-CUT-2018-v04';
 
 // Catálogo público sin datos personales; la ruta conserva la sesión y los roles del perfil.
-export function createTerritoryService(db:Pick<Pool,'query'>){return async(account:AccountSummary):Promise<TerritoryCatalog>=>{
- if(!['paciente','profesional'].includes(account.role))throw new ProfileError(403,'FORBIDDEN');
+export async function readTerritoryCatalog(db:Pick<Pool,'query'>):Promise<TerritoryCatalog>{
  try{
   const result=await db.query<{kind:string;code:string;name:string;parent:string|null}>(`
    SELECT 'region' AS kind,code,name,NULL::text AS parent FROM public.vitalia_regions
@@ -27,4 +26,8 @@ export function createTerritoryService(db:Pick<Pool,'query'>){return async(accou
   if(['42501','42P01'].includes((e as {code?:string}).code??''))throw new ProfileError(503,'TERRITORIES_UNAVAILABLE');
   throw e;
  }
+}
+export function createTerritoryService(db:Pick<Pool,'query'>){return async(account:AccountSummary):Promise<TerritoryCatalog>=>{
+ if(!['paciente','profesional'].includes(account.role))throw new ProfileError(403,'FORBIDDEN');
+ return readTerritoryCatalog(db);
 };}
