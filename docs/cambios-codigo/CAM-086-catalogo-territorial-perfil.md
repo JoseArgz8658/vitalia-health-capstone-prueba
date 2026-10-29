@@ -29,3 +29,11 @@ Confirmé los recorridos manuales de CAM-085: cancelación sin guardar, rechazo 
 ## Pendientes
 
 Continúan pendientes validación Windows y PostgreSQL 16 de este catálogo, auditoría específica de perfil/medidas y política de rectificación. Clínicas, sucursales, pertenencias, invitaciones profesionales, atención por examen y extracción/chat preliminar siguen en bloques posteriores. No modifiqué el repositorio oficial ni consideré cerrada la fase 7. (José Aránguiz)
+
+## Validación posterior en Windows y PostgreSQL 16 — 29 de octubre de 2026
+
+Ejecuté npm test en Windows: 44 suites y 499 pruebas aprobadas, salida 0. Ejecuté flutter analyze sin incidencias y flutter test con 86 pruebas aprobadas, salida 0. Los avisos de paquetes nuevos y console.warn de escenarios simulados no impidieron la aprobación. (José Aránguiz)
+
+Cargué el catálogo en vitalia_dev: 16 regiones, 56 provincias y 346 comunas, código 0. Apliqué el archivo actualizado profiles-app.sql en pgAdmin; terminó con COMMIT sin errores en 55 ms. Comprobé desde la aplicación selección y guardado, persistencia al reabrir, limpieza de selecciones dependientes al cambiar región/provincia, cancelación que recupera lo guardado y Quitar ubicación con guardado opcional. Todos los recorridos informados fueron funcionales. (José Aránguiz)
+
+Queda validado el incremento funcional de ubicación en el entorno local. Conservo para el seguimiento auditoría específica y rectificación de perfiles/medidas, compatibilidad y accesibilidad en dispositivos adicionales, así como pruebas no realizadas de otros escenarios. No declaro resuelta la seguridad de despliegue ni terminada la fase 7 completa. El repositorio oficial permanece sin cambios. (José Aránguiz)
