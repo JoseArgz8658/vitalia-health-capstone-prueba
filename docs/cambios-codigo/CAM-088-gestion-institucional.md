@@ -43,3 +43,7 @@ Cambié la etiqueta a Número de la dirección y añadí un ejemplo visible y un
 ## Ayuda breve para el número de dirección
 
 Reemplacé la alerta por una ayuda breve que aparece al pasar el puntero sobre el icono: «Ingresa el número, por ejemplo 1234. Si no tiene, escribe S/N (sin número)». La ayuda no abre un diálogo ni requiere cerrar una ventana. En dispositivos táctiles puede consultarse manteniendo pulsado el icono. Conservé la etiqueta y el ejemplo del campo. Comprobé la sintaxis con dart format; la revisión visual en Flutter de este ajuste queda pendiente. (José Aránguiz)
+
+## Confirmación de la ayuda contextual
+
+Comprobé visualmente la ayuda al pasar el puntero y confirmé que el ajuste funciona correctamente. Esta confirmación completa la revisión manual pendiente de la ayuda contextual; no equivale a una nueva ejecución de las suites automatizadas. (José Aránguiz)
