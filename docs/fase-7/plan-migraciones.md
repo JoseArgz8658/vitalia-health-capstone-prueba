@@ -1,5 +1,5 @@
 # Fase 7 — Perfiles, clínicas y atención por examen
-Rama de este incremento: fase-7/01-perfiles-ubicacion. La migración 012 está aplicada y comprobada en PostgreSQL 16 local. El perfil y el guardado/recuperación de medidas se comprobaron en Windows; el catálogo territorial y los bloques posteriores siguen pendientes. Las migraciones 013+ continúan propuestas.
+Rama de este incremento: fase-7/01-perfiles-ubicacion. La migración 012 está aplicada y comprobada en PostgreSQL 16 local. El perfil y el guardado/recuperación de medidas se comprobaron en Windows; el catálogo territorial y su selección también se comprobaron en Windows/PostgreSQL 16. Los bloques posteriores siguen pendientes. Las migraciones 013+ continúan propuestas.
 
 ## Decisiones confirmadas
 Teléfono opcional, un médico responsable por examen a la vez, segunda opinión posterior sin sobrescribir revisión, derivaciones dentro de la misma clínica. Propuesta ampliada: 18 tablas nuevas, importadas como modelo visual separado. Las restricciones del diagrama Oracle no son migraciones PostgreSQL.
@@ -75,3 +75,9 @@ Preparé el catálogo versionado de SUBDERE y la selección de comuna dependient
 
 Añadí la carga administrativa explícita del catálogo SUBDERE-CUT-2018-v04 y la selección opcional en Contacto, sin modificar 012 ni crear 013. El backend aprobó 499 pruebas en 44 suites; la verificación aislada de catálogo/perfil aprobó 14 condiciones. Flutter y PostgreSQL 16 de este incremento quedan pendientes. La guía está en [bloque-1-perfiles-ubicacion.md](bloque-1-perfiles-ubicacion.md). (José Aránguiz)
 
+
+## Cierre funcional de ubicación y siguiente bloque — 29 de octubre de 2026
+
+Comprobé el incremento de ubicación de CAM-086 en Windows y PostgreSQL 16: 499 pruebas backend, 86 Flutter, análisis sin incidencias, catálogo cargado, permisos aplicados y todos los recorridos manuales de selección, persistencia, dependencia, cancelación y ubicación opcional funcionales. Los apartados históricos anteriores conservan el estado que tenían al registrarse. (José Aránguiz)
+
+La base funcional 7.1 comprende perfiles, medidas y ubicación. Auditoría específica, rectificación y ampliación de validación en dispositivos permanecen como pendientes explícitos antes del despliegue real. El siguiente bloque propuesto es 7.2: clínicas, sucursales, especialidades y pertenencias. La migración 013 todavía no está creada ni aplicada. Las invitaciones y la designación institucional de jefes clínicos requieren su flujo específico; no deben habilitarse mediante edición directa de un rol. No se asignarán clínicas ficticias a los documentos existentes ni se ampliará el acceso clínico del administrador. (José Aránguiz)
