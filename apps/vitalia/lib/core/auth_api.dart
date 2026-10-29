@@ -9,6 +9,12 @@ class AuthFailure implements Exception {
   final int? status;
 }
 
+class ProfessionalPasswordSetupRequired extends AuthFailure {
+  const ProfessionalPasswordSetupRequired(this.token)
+    : super('Configura tu contraseña profesional para continuar.');
+  final String token;
+}
+
 class AuthApi {
   AuthApi({http.Client? client, String? baseUrl})
     : _client = client ?? http.Client(),
@@ -753,6 +759,16 @@ class AuthApi {
         'login',
         body: {'email': email.trim(), 'password': password, 'mode': mode},
       );
+      if (data['professionalPasswordSetup'] is Map) {
+        final setup = data['professionalPasswordSetup'] as Map;
+        final token = setup['token'];
+        if (token is! String || !RegExp(r'^[a-f0-9]{64}$').hasMatch(token)) {
+          throw const AuthFailure(
+            'No se pudo preparar la configuración profesional.',
+          );
+        }
+        throw ProfessionalPasswordSetupRequired(token);
+      }
       _token = data['token'] as String;
       expiresAt = DateTime.parse(data['expiresAt'] as String);
       if (!expiresAt!.isAfter(DateTime.now()))
@@ -772,6 +788,71 @@ class AuthApi {
       throw const AuthFailure('La cuenta no tiene un rol autorizado.');
     }
     return user;
+  }
+
+  Future<void> saveProfessionalPassword({
+    required String currentPassword,
+    required String password,
+    required String confirmation,
+    String? setupToken,
+  }) async {
+    final session = _token;
+    if (setupToken == null &&
+        (session == null ||
+            expiresAt == null ||
+            !expiresAt!.isAfter(DateTime.now()))) {
+      clear();
+      throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+    }
+    try {
+      final response = await _client
+          .post(
+            _base.resolve(
+              '/api/onboarding/professional-password/${setupToken == null ? 'change' : 'setup'}',
+            ),
+            headers: {
+              'Content-Type': 'application/json',
+              if (setupToken != null)
+                'Authorization': 'ProfessionalSetup $setupToken',
+              if (setupToken == null) 'Authorization': 'Bearer $session',
+            },
+            body: jsonEncode({
+              'currentPassword': currentPassword,
+              'professionalPassword': password,
+              'professionalConfirmation': confirmation,
+              'confirmed': true,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+      if (setupToken == null && session != _token)
+        throw const AuthFailure('La sesión cambió.', 401);
+      if (response.statusCode >= 400) {
+        final code = (jsonDecode(response.body) as Map)['error']?['code'];
+        if (response.statusCode == 401 && setupToken == null) clear();
+        throw AuthFailure(switch (code) {
+          'CURRENT_PASSWORD_INVALID' => 'La contraseña actual no es correcta.',
+          'PASSWORD_REUSED' =>
+            'La contraseña profesional debe ser diferente a la de paciente.',
+          'PASSWORD_UNCHANGED' =>
+            'La nueva contraseña debe ser diferente a la actual.',
+          'SETUP_EXPIRED' =>
+            'La configuración venció. Vuelve a iniciar sesión como profesional.',
+          'PROFESSIONAL_PASSWORD_EXISTS' =>
+            'Tu contraseña profesional ya está configurada. Vuelve a iniciar sesión.',
+          _ =>
+            'No se pudo cambiar la contraseña. Revisa los datos e intenta nuevamente.',
+        }, response.statusCode);
+      }
+      if (setupToken == null) clear();
+    } on AuthFailure {
+      rethrow;
+    } on TimeoutException {
+      throw const AuthFailure(
+        'La solicitud tardó demasiado. Comprueba el acceso con la nueva contraseña antes de repetir.',
+      );
+    } catch (_) {
+      throw const AuthFailure('No se pudo conectar con el servidor.');
+    }
   }
 
   Future<void> register(String email, String password) async {

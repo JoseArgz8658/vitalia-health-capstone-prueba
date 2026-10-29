@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/auth_api.dart';
 import 'registro_page.dart';
+import '../perfil/contrasena_profesional_page.dart';
 
 class AccesoPage extends StatefulWidget {
   const AccesoPage({
@@ -54,6 +55,14 @@ class _AccesoPageState extends State<AccesoPage> {
             : 'paciente',
       );
       if (mounted) widget.onAuthenticated?.call(user);
+    } on ProfessionalPasswordSetupRequired catch (e) {
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              ContrasenaProfesionalPage(api: widget.api!, setupToken: e.token),
+        ),
+      );
     } on AuthFailure catch (e) {
       if (mounted) setState(() => _error = e.message);
     } finally {
@@ -229,17 +238,6 @@ class _AccesoPageState extends State<AccesoPage> {
                                       ),
                                     ),
                               child: const Text('Crear cuenta de paciente'),
-                            ),
-                          if (!widget.adminMode && _professionalMode)
-                            TextButton(
-                              onPressed: _busy
-                                  ? null
-                                  : () => Navigator.of(
-                                      context,
-                                    ).pushNamed('/clave-profesional'),
-                              child: const Text(
-                                'Configurar contraseña profesional de mi cuenta de paciente',
-                              ),
                             ),
                           TextButton(
                             onPressed: () => showDialog<void>(

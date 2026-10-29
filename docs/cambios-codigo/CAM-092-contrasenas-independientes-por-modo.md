@@ -35,3 +35,7 @@ Registré para CAM-091 el respaldo previo, la aplicación de 017, sus 27 comprob
 Documenté la ejecución en [contraseñas por modo](../fase-7/contrasenas-por-modo.md). El repositorio oficial no forma parte de este cambio.
 
 (José Aránguiz)
+
+## Evidencia local y ajuste posterior
+
+Registré el respaldo `vitalia_dev_antes_018`, 112 pruebas Flutter y 632 backend aprobadas en Windows, la aplicación de 018, sus 39 comprobaciones correctas y los permisos con COMMIT (64 ms). El usuario solicitó después retirar el botón del inicio y gestionar la contraseña desde el perfil; ese ajuste está en CAM-093, con validación manual pendiente. (José Aránguiz)

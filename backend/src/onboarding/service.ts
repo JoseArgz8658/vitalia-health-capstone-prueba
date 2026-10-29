@@ -90,6 +90,27 @@ export function createOnboardingService(db:DocumentDatabase){
  for(const id of v.specialtyIds)await tx.query('INSERT INTO public.vitalia_invitation_specialties(invitation_id,specialty_id) VALUES($1,$2)',[v.requestId,id]);
  await audit(tx,a.id,clinic,'invitation_created',v.authorizationId,v.requestId);return {item:r.rows[0],token};});},
  async revoke(a:AccountSummary,clinic:string,id:string){checkId(clinic);checkId(id);return transaction(async tx=>{await lock(tx,clinic);await manage(tx,a,clinic);const r=await tx.query(`UPDATE public.vitalia_professional_invitations SET revoked_at=CURRENT_TIMESTAMP WHERE clinic_id=$1 AND id=$2 AND activated_at IS NULL AND revoked_at IS NULL ${a.role==='administrador'?'':"AND clinical_role='profesional'"} RETURNING id,authorization_id`,[clinic,id]);if(!r.rows.length)fail(409,'INVITATION_UNAVAILABLE');await audit(tx,a.id,clinic,'invitation_revoked',r.rows[0].authorization_id,id);});},
+ async changeProfessionalPassword(a:AccountSummary,input:unknown){
+ if(a.role!=='profesional')fail(403,'FORBIDDEN');
+ const v=parse(professionalPasswordInput.extend({confirmed:z.literal(true)}),input);
+ if(!v.professionalPassword||v.professionalPassword!==v.professionalConfirmation)fail(400,'PROFESSIONAL_PASSWORD_REQUIRED');
+ const newPassword=v.professionalPassword;
+ if(activating)fail(429,'ACTIVATION_BUSY');activating=true;
+ try{return await transaction(async tx=>{
+  await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))',['vitalia-password-'+a.id]);
+  const account=(await tx.query('SELECT id,role_code,password_hash FROM public.vitalia_accounts WHERE id=$1',[a.id])).rows[0];
+  const roles=(await tx.query('SELECT role_code,password_hash,active FROM public.vitalia_account_roles WHERE account_id=$1',[a.id])).rows;
+  const role=roles.find(r=>r.role_code==='profesional'&&r.active);
+  const currentHash=role?.password_hash??(account?.role_code==='profesional'?account.password_hash:null);
+  if(!role||!currentHash||!await verifyPassword(v.currentPassword,currentHash))fail(403,'CURRENT_PASSWORD_INVALID');
+  if(await verifyPassword(newPassword,currentHash))fail(400,'PASSWORD_UNCHANGED');
+  if(account.role_code!=='profesional'&&await verifyPassword(newPassword,account.password_hash))fail(400,'PASSWORD_REUSED');
+  const passwordHash=await hashPassword(newPassword);
+  await tx.query("UPDATE public.vitalia_account_roles SET password_hash=$2 WHERE account_id=$1 AND role_code='profesional' AND active",[a.id,passwordHash]);
+  await tx.query("DELETE FROM public.vitalia_sessions WHERE account_id=$1 AND active_role='profesional'",[a.id]);
+  return {changed:true};
+ });}finally{activating=false;}
+ },
  async configureProfessionalPassword(a:AccountSummary,input:unknown){
  if(a.role!=='paciente')fail(403,'FORBIDDEN');
  const v=parse(professionalPasswordInput,input);

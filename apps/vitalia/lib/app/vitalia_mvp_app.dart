@@ -131,15 +131,6 @@ class _VitaliaMvpAppState extends State<VitaliaMvpApp>
     theme: temaVitalia(),
     initialRoute: widget.initialRoute,
     onGenerateRoute: (settings) {
-      if (settings.name == '/clave-profesional')
-        return MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => ActivarInvitacionPage(
-            api: AuthApi(),
-            ownsApi: true,
-            passwordSetup: true,
-          ),
-        );
       if (settings.name == '/activar-invitacion')
         return MaterialPageRoute<void>(
           settings: settings,

@@ -51,13 +51,27 @@ export async function verifyAccountModes(client:Pick<PoolClient,'query'>):Promis
  // Simular cuenta dual activada antes de 018: sin hash adicional, nunca reutiliza paciente.
  await client.query("INSERT INTO public.vitalia_account_roles(account_id,role_code,grant_source) VALUES($1,'profesional','legacy')",[otherAccount]);
  const oldPatient={id:otherAccount,role:'paciente'} as AccountSummary,oldMail=otherAccount+'@example.invalid';
- check(await auth({email:oldMail,password,mode:'profesional'})===null);
+ check((await auth({email:oldMail,password,mode:'profesional'}))?.professionalPasswordRequired===true);
  await denied(()=>onboarding.configureProfessionalPassword(oldPatient,{currentPassword:'incorrecta',professionalPassword,professionalConfirmation:professionalPassword}),403);
  await denied(()=>onboarding.configureProfessionalPassword(oldPatient,{currentPassword:password,professionalPassword:password,professionalConfirmation:password}),400);
  check((await onboarding.configureProfessionalPassword(oldPatient,{currentPassword:password,professionalPassword,professionalConfirmation:professionalPassword})).configured);
  check((await auth({email:oldMail,password:professionalPassword,mode:'profesional'}))?.role==='profesional');
  check((await auth({email:oldMail,password,mode:'paciente'}))?.role==='paciente');
  await denied(()=>onboarding.configureProfessionalPassword(oldPatient,{currentPassword:password,professionalPassword:'No-reemplazar-2026!',professionalConfirmation:'No-reemplazar-2026!'}),409);
+ const nextPassword='Profesional-renovada-2026!';
+ const priorProfessional=await issueSession(client,otherAccount,'profesional');
+ const priorPatient=await issueSession(client,otherAccount,'paciente');
+ await denied(()=>onboarding.changeProfessionalPassword({...oldPatient,role:'profesional'},{currentPassword:professionalPassword,professionalPassword:password,professionalConfirmation:password,confirmed:true}),400);
+ check((await onboarding.changeProfessionalPassword({...oldPatient,role:'profesional'},{currentPassword:professionalPassword,professionalPassword:nextPassword,professionalConfirmation:nextPassword,confirmed:true})).changed);
+ check(await findSessionAccount(client,priorProfessional.token)===null);
+ check((await findSessionAccount(client,priorPatient.token))?.role==='paciente');
+ check(await auth({email:oldMail,password:professionalPassword,mode:'profesional'})===null);
+ check((await auth({email:oldMail,password:nextPassword,mode:'profesional'}))?.role==='profesional');
+ check((await auth({email:oldMail,password,mode:'paciente'}))?.role==='paciente');
+ // Profesional cuyo modo original también era profesional conserva la credencial nueva por modo.
+ check((await onboarding.changeProfessionalPassword(ca,{currentPassword:password,professionalPassword:nextPassword,professionalConfirmation:nextPassword,confirmed:true})).changed);
+ check(await auth({email:ca.email,password,mode:'profesional'})===null);
+ check((await auth({email:ca.email,password:nextPassword,mode:'profesional'}))?.role==='profesional');
  return checks;
  }finally{if(begun)await client.query('ROLLBACK');}
 }
