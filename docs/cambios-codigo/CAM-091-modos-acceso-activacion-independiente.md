@@ -51,3 +51,9 @@ Preparé siete pruebas Flutter nuevas y adapté las anteriores al nuevo modo y r
 ## Pendientes conservados
 
 Conservo ambas entregas en el diseño; falta configurar el servicio de correo, una dirección pública accesible y sus pruebas de entrega. La dirección local no funcionará desde otro equipo sin publicación o configuración de red. Tampoco declaro resueltas acreditación profesional, gestión de jefaturas, transición a atención por examen, habilitación voluntaria del perfil paciente para profesionales existentes ni Docker/concurrencia entre instancias. La vista/chat preliminares siguen en su bloque posterior. (José Aránguiz)
+
+## Corrección del registro detectada en Windows
+
+Ejecuté el backend en Windows: 617 pruebas aprobadas en 49 suites, salida 0, en 40,595 segundos. El análisis Flutter detectó una referencia indefinida a `mode` dentro de `AuthApi.register`, que se propagó como fallo de compilación a las suites dependientes. La modificación del cuerpo de login había afectado también al registro. (José Aránguiz)
+
+Retiré `mode` únicamente del cuerpo de registro y conservé correo/contraseña; login mantiene su modo explícito. No añadí selección de permisos al registro ni cambié backend, dependencias o migraciones. Revisé ambos cuerpos de solicitud en el código. El análisis y los tests Flutter corregidos siguen pendientes en Windows; no considero esta ejecución fallida una validación de la interfaz. El repositorio oficial permanece sin cambios. (José Aránguiz)
