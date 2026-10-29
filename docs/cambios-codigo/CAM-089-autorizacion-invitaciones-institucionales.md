@@ -46,3 +46,7 @@ Preparé seis pruebas Flutter y comprobé sintaxis con Dart. Flutter no está in
 ## Pendientes conservados
 
 Conservo pendientes la gestión auditada de suspensión/edición institucional y profesional, incorporación de cuentas existentes, acreditación profesional, administración ampliada del catálogo de especialidades y paginación más allá de los límites iniciales. El selector muestra hasta 200 clínicas, sucursales y especialidades; los historiales recientes, hasta 50 autorizaciones/invitaciones. También siguen pendientes elección de profesional por examen, derivaciones, segunda opinión y vista/chat preliminares para el paciente. No modifiqué el repositorio oficial. (José Aránguiz)
+
+## Comprobación posterior en Windows
+
+Ejecuté `npm test`: 566 pruebas aprobadas en 47 suites, en 35,693 segundos, con salida 0. Ejecuté `flutter analyze` sin incidencias y `flutter test`: 96 pruebas aprobadas, con salida 0. Los avisos de consola de los casos negativos del backend no produjeron fallos en la suite. Estas comprobaciones no aplican 015 ni sus permisos a PostgreSQL. El respaldo actualizado, aplicación y verificación en PostgreSQL 16 y recorrido manual de invitaciones continúan pendientes. (José Aránguiz)
