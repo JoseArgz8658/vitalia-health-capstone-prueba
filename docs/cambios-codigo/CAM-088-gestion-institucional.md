@@ -31,3 +31,11 @@ Añadí cuatro pruebas Flutter para creación, reintento, cancelación, validaci
 ## Pendientes conservados
 
 Continúan pendientes validación Windows, gestión de estados y modificaciones con auditoría, especialidades/pertenencias por API, autorización institucional e invitaciones del primer jefe clínico, gestión de sus profesionales y atención por examen. No agregué un rol público ni un selector para adjudicarse permisos. Los exámenes previos mantienen su flujo. Conservo pendientes de auditoría/rectificación del perfil y evaluación de cobertura y rendimiento de IA. (José Aránguiz)
+
+## Comprobación posterior en Windows y PostgreSQL
+
+Ejecuté npm test con 530 pruebas aprobadas en 46 suites, flutter analyze sin incidencias y flutter test con 90 pruebas aprobadas, códigos 0. Apliqué 014 y recibí salida 0; ejecuté institutions-app.sql en pgAdmin con COMMIT, sin errores, en 71 ms. El verificador informó Gestión institucional: 14 comprobaciones correctas. Datos sintéticos revertidos, salida 0. (José Aránguiz)
+
+Comprobé el recorrido desde la interfaz: creación y persistencia de clínica, creación y recuperación de sucursal, cancelación sin registro y ausencia de la gestión para paciente/profesional. Los recorridos funcionaron. La etiqueta Número o S/N generó una duda de uso: se ingresó un número válido, pero la abreviatura no resultó comprensible. (José Aránguiz)
+
+Cambié la etiqueta a Número de la dirección y añadí un ejemplo visible y un icono de ayuda que explica que S/N significa sin número. La ayuda incluye Avenida Ejemplo 1234 y distingue los campos opcionales de piso y oficina. Revisé sintaxis Dart; la comprobación visual de este ajuste queda pendiente. No cambié el contrato, las validaciones, la base de datos ni las dependencias. Las 90 pruebas recibidas corresponden a la versión anterior a esta mejora de ayuda. (José Aránguiz)
