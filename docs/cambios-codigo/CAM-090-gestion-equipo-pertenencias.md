@@ -42,3 +42,7 @@ Añadí 33 pruebas backend sobre contratos, roles, alcance, versión, auditoría
 Ejecuté 37 comprobaciones del equipo y las 41 del verificador de invitaciones con datos sintéticos revertidos en un motor PostgreSQL aislado. Además comprobé migración, procedencia de la carga inicial, repetición sin cambios, rechazo de checksum distinto, funcionamiento con rol limitado, activación compatible y reversión cuando falta permiso de insertar auditoría. Simulé el bloqueo advisory y adapté el transporte para ejecutar el DDL; no equivale a validar concurrencia real, PostgreSQL 16 del equipo o Docker. No añadí ese motor como dependencia. (José Aránguiz)
 
 No apliqué 016 ni los nuevos permisos a la base del equipo. La guía es [gestion-equipo.md](../fase-7/gestion-equipo.md). Conservo pendientes suspensión/cambio de jefaturas mediante su procedimiento institucional, acreditación profesional, incorporación de cuentas existentes, edición institucional general y atención por examen. La fase 7.2 y el proyecto completo no se consideran cerrados por este incremento. El repositorio oficial permanece sin cambios. (José Aránguiz)
+
+## Comprobación posterior en Windows
+
+Ejecuté `npm test`: 599 pruebas aprobadas en 48 suites, en 36,122 segundos, con salida 0. Ejecuté `flutter analyze` sin incidencias y `flutter test`: 104 pruebas aprobadas, con salida 0. Estas comprobaciones validan el código; no aplican 016 ni sus permisos a PostgreSQL. El respaldo actualizado, aplicación y verificación en PostgreSQL 16 y recorrido manual del equipo permanecen pendientes. (José Aránguiz)
