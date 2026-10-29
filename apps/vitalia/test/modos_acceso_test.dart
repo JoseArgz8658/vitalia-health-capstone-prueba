@@ -57,11 +57,25 @@ Future<void> fillExisting(WidgetTester t) async {
     await t.ensureVisible(field);
     await t.enterText(field, pair.$2);
   }
-  await t.ensureVisible(find.byType(CheckboxListTile));
-  await t.tap(find.byType(CheckboxListTile));
+  FocusManager.instance.primaryFocus?.unfocus();
+  await t.testTextInput.hide();
   await t.pumpAndSettle();
-  await t.ensureVisible(find.text('Iniciar sesión y aceptar invitación'));
-  await t.tap(find.text('Iniciar sesión y aceptar invitación'));
+  final consent = find.byType(CheckboxListTile);
+  await t.ensureVisible(consent);
+  await t.pumpAndSettle();
+  final checkbox = find.descendant(
+    of: consent,
+    matching: find.byType(Checkbox),
+  ).hitTestable();
+  expect(checkbox, findsOneWidget);
+  await t.tap(checkbox);
+  await t.pumpAndSettle();
+  expect(t.widget<CheckboxListTile>(consent).value, isTrue);
+  final submit = find.text('Iniciar sesión y aceptar invitación');
+  await t.ensureVisible(submit);
+  await t.pumpAndSettle();
+  expect(submit.hitTestable(), findsOneWidget);
+  await t.tap(submit);
   await t.pumpAndSettle();
 }
 
