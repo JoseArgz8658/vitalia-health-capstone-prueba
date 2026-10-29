@@ -25,3 +25,9 @@ En PGlite aislado ejecuté 001..012, preparé el historial y apliqué 013. Compr
 ## Pendientes
 
 Quedan pendientes validación de esta rama en Windows, respaldo y aplicación deliberada de 013 en PostgreSQL 16, sus 28 comprobaciones y repetición controlada de la migración. No solicito Flutter por este bloque porque no cambié el cliente. No considero terminada la fase 7.2 por añadir estructura: faltan servicios y pantallas institucionales con autorización, y después el flujo de invitaciones. Los pendientes de auditoría/rectificación de perfil y las mejoras de IA conservan su seguimiento. (José Aránguiz)
+
+## Comprobación posterior en Windows y PostgreSQL 16
+
+Ejecuté npm test en Windows: 45 suites y 504 pruebas aprobadas, código de salida 0. Antes de aplicar 013 preparé un respaldo actualizado mediante pgAdmin y confirmé su finalización correcta. Apliqué la migración en vitalia_dev con credenciales administrativas temporales; informó Migración de clínicas y pertenencias aplicada. Ejecuté el verificador: Clínicas y pertenencias: 28 comprobaciones correctas. Datos sintéticos revertidos, código 0. (José Aránguiz)
+
+Esta evidencia comprueba la aplicación y los casos del verificador en PostgreSQL local. La repetición deliberada de 013 y el inventario final quedan por confirmar. No habilité gestión institucional, invitaciones ni acceso clínico; tampoco concedí nuevos permisos a vitalia_app ni cambié el repositorio oficial. La fase 7.2 continúa con sus servicios y pantallas pendientes. (José Aránguiz)
