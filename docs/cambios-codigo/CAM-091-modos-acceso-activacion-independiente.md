@@ -63,3 +63,7 @@ Retiré `mode` únicamente del cuerpo de registro y conservé correo/contraseña
 Después de corregir el registro, ejecuté análisis Flutter sin incidencias. La suite informó 109 pruebas aprobadas y dos fallidas: el helper de aceptación intentaba tocar el centro de CheckboxListTile antes de estabilizar el desplazamiento y no marcaba la confirmación; por eso no se ejecutaba el login esperado. (José Aránguiz)
 
 Ajusté el helper para retirar foco/teclado, esperar el desplazamiento, tocar el Checkbox que participa en el hit test y comprobar que su valor sea verdadero antes de enviar. También espero visibilidad del botón de envío. No suprimí las advertencias ni invoqué callbacks directamente; mantuve la confirmación obligatoria y las expectativas de ambos casos. No modifiqué producción, backend, migraciones o permisos. La ejecución Flutter corregida continúa pendiente en Windows. (José Aránguiz)
+
+## Corrección de la llamada síncrona del teclado de prueba
+
+La ejecución en Windows detectó que `TestTextInput.hide()` devuelve void y que el helper lo esperaba con await. Retiré ese await y conservé `pumpAndSettle` después de ocultar el teclado y después del desplazamiento. La suite informó 104 pruebas aprobadas y un archivo sin compilar; no lo presento como siete fallos funcionales distintos. El análisis, los siete casos de modos y la suite completa corregidos siguen pendientes. No cambié aplicación, backend, esquema o permisos. (José Aránguiz)
