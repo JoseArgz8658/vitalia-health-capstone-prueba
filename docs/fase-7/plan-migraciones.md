@@ -1,5 +1,5 @@
 # Fase 7 — Perfiles, clínicas y atención por examen
-Rama activa de estructura institucional: fase-7/02-clinicas-pertenencias, continuando la base validada de fase-7/01-perfiles-ubicacion. La migración 012 está aplicada y comprobada en PostgreSQL 16 local. El perfil y el guardado/recuperación de medidas se comprobaron en Windows; el catálogo territorial y su selección también se comprobaron en Windows/PostgreSQL 16. Los bloques posteriores siguen pendientes. 013 está aplicada en PostgreSQL 16 local y sus 28 comprobaciones aprobaron; 014 de auditoría institucional está aplicada y comprobada en PostgreSQL 16 local; la creación y consulta institucional se validaron en Windows según CAM-088. 015 de invitaciones está aplicada y validada en Windows/PostgreSQL 16 según CAM-089. 016 de gestión de pertenencias está aplicada y validada según CAM-090. 017 de modos de cuenta y aceptación fue aplicada y validada por el usuario según CAM-091. 018 de contraseñas independientes está aplicada y comprobada según la evidencia de CAM-092; el ajuste de acceso obligatorio y cambio desde el perfil se documenta en CAM-093, pendiente de validación local; 019 de atención sigue propuesta.
+Rama activa de estructura institucional: fase-7/02-clinicas-pertenencias, continuando la base validada de fase-7/01-perfiles-ubicacion. La migración 012 está aplicada y comprobada en PostgreSQL 16 local. El perfil y el guardado/recuperación de medidas se comprobaron en Windows; el catálogo territorial y su selección también se comprobaron en Windows/PostgreSQL 16. Los bloques posteriores siguen pendientes. 013 está aplicada en PostgreSQL 16 local y sus 28 comprobaciones aprobaron; 014 de auditoría institucional está aplicada y comprobada en PostgreSQL 16 local; la creación y consulta institucional se validaron en Windows según CAM-088. 015 de invitaciones está aplicada y validada en Windows/PostgreSQL 16 según CAM-089. 016 de gestión de pertenencias está aplicada y validada según CAM-090. 017 de modos de cuenta y aceptación fue aplicada y validada por el usuario según CAM-091. 018 de contraseñas independientes está aplicada y comprobada según la evidencia de CAM-092; el ajuste de acceso obligatorio y cambio desde el perfil se documenta en CAM-093, con pruebas Windows y flujo manual confirmados; queda pendiente modernizar el formulario; 019 de atención sigue propuesta.
 
 ## Decisiones confirmadas
 Teléfono opcional, un médico responsable por examen a la vez, segunda opinión posterior sin sobrescribir revisión, derivaciones dentro de la misma clínica. Propuesta ampliada: 18 tablas nuevas, importadas como modelo visual separado. Las restricciones del diagrama Oracle no son migraciones PostgreSQL.
@@ -13,7 +13,7 @@ applyAdditionalMigration abre transacción, usa bloqueo advisory, exige versión
 |---|---|---|---|
 | 1 | 012_profiles_locations | regions, provinces, communes, people, identifiers, patient_profiles, professional_profiles, patient_measurements | Crear primero territorios vacíos para FK de people. No cargar nombres/RUT a partir de exámenes. Perfil ausente sigue permitiendo login actual. |
 | 2 | 013_clinics_memberships (aplicada; 28 comprobaciones correctas) | clinics, branches, specialties, professional_specialties, clinic_memberships, branch_memberships | FK compuestas para coherencia de clínica y sucursal. No asignar una clínica ficticia a todos los documentos antiguos. |
-| 3 | 017_account_modes (preparada; pendiente de aplicación) | account_roles y active_role en sessions | Copiar concesiones actuales y conservar el modo en cada sesión. Mantener role_code legado y comprobar concesión activa. Aceptación autenticada de invitaciones sin cambiar contraseña. |
+| 3 | 017_account_modes (aplicada y validada) | account_roles y active_role en sessions | Copiar concesiones actuales y conservar el modo en cada sesión. Mantener role_code legado y comprobar concesión activa. Aceptación autenticada de invitaciones sin cambiar contraseña. |
 | 4 | 019_exam_care_reviews (propuesta renumerada) | exam_care, exam_referrals, care_reviews | Crear tablas y PK/UNIQUE antes de FK por el ciclo care.prior_review ↔ review.care. Índice parcial de una atención requested/active por documento. Trigger de inmutabilidad para nuevas revisiones. |
 | 5 | transición explícita, versión por definir | Puente legado/revisión nueva si es necesario | Definir lectura dual del API, explicación y chat. No aplicar INSERT SELECT que invente sede/profesional responsable. No duplicar una aprobación cambiando su autor. |
 
@@ -21,7 +21,7 @@ Las migraciones concretas dependerán de permisos y consistencia del estado real
 
 ## Contratos para no romper lo existente
 - Login, carga, worker, revisión y chat actuales continúan funcionando mientras no se cambia su contrato.
-- accounts.id sigue siendo UUID y credenciales se mantienen solo en accounts.
+- accounts.id sigue siendo UUID. La credencial original se conserva en accounts y la profesional independiente en account_roles desde 018.
 - El primer bloque no convierte role_code en múltiples roles activos ni cambia /me.
 - Perfil incompleto debe mostrarse explícitamente; no bloquear de inmediato cuentas antiguas.
 - No tomar nombres/RUT de documentos como identidad verificada de la cuenta.
@@ -154,3 +154,9 @@ Preparé 018_mode_passwords sin reescribir 017. Separé la credencial profesiona
 ## Ajuste de acceso y contraseña desde el perfil
 
 Retiré el botón de configuración del inicio. Preparé configuración obligatoria mediante autorización limitada para cuentas duales antiguas y cambio de contraseña desde Seguridad de acceso en el perfil profesional. Utilicé 018 sin alterar su SQL ni crear otra migración. Véase CAM-093. La siguiente migración de atención por examen permanece propuesta como 019. (José Aránguiz)
+
+## Continuación tras CAM-093
+
+Registré el funcionamiento manual confirmado del acceso y cambio de contraseña, con 117 pruebas Flutter y 646 backend aprobadas en Windows. Dejé pendiente modernizar visualmente el formulario sin cambiar sus validaciones. La salida compartida no confirma las 49 comprobaciones ampliadas en PostgreSQL 16.
+
+El siguiente bloque del plan es atención por examen: elección de clínica, especialidad y profesional por el paciente, responsable único, derivación dentro de la institución y conservación de revisiones anteriores. Debo concretar el criterio de profesionales elegibles y la compatibilidad con asignaciones y revisiones existentes antes de aplicar una migración de atención. La extracción preliminar con advertencia y el envío de invitaciones por correo siguen pendientes independientes. No he iniciado la migración 019 ni modificado el repositorio oficial. (José Aránguiz)
