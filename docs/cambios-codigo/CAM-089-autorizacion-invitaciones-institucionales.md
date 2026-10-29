@@ -50,3 +50,11 @@ Conservo pendientes la gestión auditada de suspensión/edición institucional y
 ## Comprobación posterior en Windows
 
 Ejecuté `npm test`: 566 pruebas aprobadas en 47 suites, en 35,693 segundos, con salida 0. Ejecuté `flutter analyze` sin incidencias y `flutter test`: 96 pruebas aprobadas, con salida 0. Los avisos de consola de los casos negativos del backend no produjeron fallos en la suite. Estas comprobaciones no aplican 015 ni sus permisos a PostgreSQL. El respaldo actualizado, aplicación y verificación en PostgreSQL 16 y recorrido manual de invitaciones continúan pendientes. (José Aránguiz)
+
+## Aplicación y recorrido confirmados en PostgreSQL 16 y Windows
+
+Guardé el respaldo previo y apliqué 015 en PostgreSQL local. El ejecutor informó «Migración de invitaciones institucionales aplicada» y el verificador aprobó 41 comprobaciones con datos sintéticos revertidos. Ejecuté el archivo de permisos en pgAdmin y finalizó con COMMIT sin errores, en 77 ms. (José Aránguiz)
+
+Comprobé desde la interfaz el registro de autorización, su verificación, emisión de la invitación del primer jefe clínico, activación y acceso a su clínica. Después comprobé la invitación y activación de un profesional desde la cuenta del jefe. El profesional ordinario no pudo invitar a otros profesionales y permaneció sin pacientes ni exámenes al no tener asignaciones. Estos recorridos fueron confirmados en Windows. (José Aránguiz)
+
+Conservo pendientes de comprobación manual la reutilización de un código consumido y la revocación de una invitación antes de activarla. Sus condiciones tienen cobertura automatizada y del verificador, pero no las presento como recorridos manuales ya realizados. No incorporé correos, contraseñas ni códigos de las pruebas a la documentación. Las verificaciones de concurrencia real, Docker y los demás pendientes de alcance permanecen abiertos. No modifiqué el repositorio oficial. (José Aránguiz)
