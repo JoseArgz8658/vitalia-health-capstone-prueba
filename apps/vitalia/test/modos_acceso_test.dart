@@ -58,7 +58,7 @@ Future<void> fillExisting(WidgetTester t) async {
     await t.enterText(field, pair.$2);
   }
   FocusManager.instance.primaryFocus?.unfocus();
-  await t.testTextInput.hide();
+  t.testTextInput.hide();
   await t.pumpAndSettle();
   final consent = find.byType(CheckboxListTile);
   await t.ensureVisible(consent);
