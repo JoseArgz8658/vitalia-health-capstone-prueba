@@ -1,3 +1,6 @@
+import {createCredentialVerificationService} from '../professional-credentials/service';
+import {type DocumentDatabase} from '../documents/service';
+import {type AccountSummary} from '../accounts/repository';
 import {randomUUID} from 'node:crypto';
 import {type PoolClient} from 'pg';
 type Client=Pick<PoolClient,'query'>;
@@ -32,6 +35,16 @@ export async function verifyExamCare(client:Client):Promise<number>{
    await client.query("INSERT INTO public.vitalia_clinic_memberships(id,clinic_id,professional_person_id,active) VALUES($1,$2,$3,true)",[p.member,cid,p.person]);
    await client.query('INSERT INTO public.vitalia_membership_specialties(clinic_id,membership_id,specialty_id) VALUES($1,$2,$3)',[cid,p.member,specialty]);
    await client.query('INSERT INTO public.vitalia_branch_memberships(clinic_id,branch_id,membership_id) VALUES($1,$2,$3)',[cid,bid,p.member]);
+  }
+  // 020 endurece elegibilidad: preparar procedencia sintética cuando esa migración exista.
+  if((await client.query("SELECT to_regclass('public.vitalia_credential_requests') AS name")).rows[0]?.name){
+   const db={query:client.query.bind(client),transaction:async(fn:(tx:Client)=>Promise<unknown>)=>fn(client)} as DocumentDatabase;
+   const credentials=createCredentialVerificationService(db),actor={id:admin,role:'administrador'} as AccountSummary;
+   for(const [index,p]of professionals.entries()){
+    const cid=index===2?otherClinic:clinic,id=randomUUID();
+    await credentials.request(actor,cid,p.member,{requestId:id,expectedRevision:0,registrationReference:'SYNTHETIC',supportingReference:'Evidencia exclusivamente sintética'});
+    await credentials.decide(actor,cid,p.member,id,{requestId:randomUUID(),expectedRevision:0,decision:'verified',sourceReference:'Fuente exclusivamente sintética',checkedAt:new Date(Date.now()-10000).toISOString(),reason:'Comprobación sintética',confirmed:true});
+   }
   }
   const first=professionals[0],second=professionals[1],outside=professionals[2];
   const document=randomUUID(),otherDocument=randomUUID(),processing=randomUUID(),otherProcessing=randomUUID();

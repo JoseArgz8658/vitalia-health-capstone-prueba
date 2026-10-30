@@ -409,6 +409,75 @@ class AuthApi {
     }
   }
 
+  Future<Map<String, dynamic>> professionalCredentials(
+    String clinicId,
+    String memberId, {
+    String? requestId,
+    Map<String, dynamic>? body,
+  }) async {
+    final clinic = _institutionId(clinicId), member = _institutionId(memberId);
+    if (requestId != null) _institutionId(requestId);
+    if (requestId != null && body == null)
+      throw const AuthFailure('Solicitud inválida.');
+    final token = _token;
+    if (token == null ||
+        expiresAt == null ||
+        !expiresAt!.isAfter(DateTime.now())) {
+      clear();
+      throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+    }
+    try {
+      final path =
+          '/api/professional-credentials/$clinic/$member${body == null
+              ? ''
+              : requestId == null
+              ? '/requests'
+              : '/requests/$requestId/decision'}';
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      };
+      final response =
+          await (body == null
+                  ? _client.get(_base.resolve(path), headers: headers)
+                  : _client.post(
+                      _base.resolve(path),
+                      headers: headers,
+                      body: jsonEncode(body),
+                    ))
+              .timeout(const Duration(seconds: 20));
+      if (_token != token || response.statusCode == 401) {
+        clear();
+        throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+      }
+      if (response.statusCode >= 400)
+        throw AuthFailure(switch (response.statusCode) {
+          400 =>
+            'Revisa las referencias, la fecha de consulta y la confirmación.',
+          403 =>
+            'No tienes permiso para esta verificación. El jefe registra antecedentes y el administrador decide.',
+          404 =>
+            'La solicitud o pertenencia no está disponible en esta clínica.',
+          409 =>
+            'El perfil cambió, existe una solicitud pendiente o ya fue resuelta. Actualiza antes de continuar.',
+          503 =>
+            'La verificación profesional aún no está disponible. Revisa migración y permisos con el equipo.',
+          _ => 'No se pudo completar la verificación profesional.',
+        }, response.statusCode);
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } on AuthFailure {
+      rethrow;
+    } on TimeoutException {
+      throw const AuthFailure(
+        'La solicitud tardó demasiado. Reintenta sin cambiar los datos o actualiza para comprobar el resultado.',
+      );
+    } catch (_) {
+      throw const AuthFailure(
+        'No se pudo conectar. Conserva los datos para reintentar.',
+      );
+    }
+  }
+
   Uri documentUri([String suffix = '', Map<String, String>? query]) {
     if (suffix.isNotEmpty &&
         !RegExp(

@@ -1,3 +1,4 @@
+import {createCredentialVerificationService} from './professional-credentials/service';
 import {createTeamService} from './team/service';
 import {createOnboardingService} from './onboarding/service';
 import {createInstitutionService} from './institutions/service';
@@ -83,7 +84,7 @@ async function main(): Promise<void> {
       issue: (id,mode) => issueSession(database, id,mode),
       find: token => findSessionAccount(database, token),
       revoke: token => revokeSession(database, token),
-    }, register, documents, createProcessingService(database), createAssignmentService(documentDatabase(database)), createProfessionalService(documentDatabase(database), s3DocumentStorage(storage, storageConfig)), createReviewService(documentDatabase(database)), createExplanationService(documentDatabase(database), createExplanationGenerator()), createExamAssistantService(documentDatabase(database), createExamAssistant()), createProfileService(documentDatabase(database)), createInstitutionService(documentDatabase(database)), createOnboardingService(documentDatabase(database)), createTeamService(documentDatabase(database))).listen(config.PORT, config.HOST);
+    }, register, documents, createProcessingService(database), createAssignmentService(documentDatabase(database)), createProfessionalService(documentDatabase(database), s3DocumentStorage(storage, storageConfig)), createReviewService(documentDatabase(database)), createExplanationService(documentDatabase(database), createExplanationGenerator()), createExamAssistantService(documentDatabase(database), createExamAssistant()), createProfileService(documentDatabase(database)), createInstitutionService(documentDatabase(database)), createOnboardingService(documentDatabase(database)), createTeamService(documentDatabase(database)), createCredentialVerificationService(documentDatabase(database))).listen(config.PORT, config.HOST);
     server.on('listening', () => console.info('Vitalia API iniciada en el entorno local.'));
     server.on('error', () => {
       console.error('No se pudo iniciar el servidor. Revisa el puerto y la dirección configurados.');

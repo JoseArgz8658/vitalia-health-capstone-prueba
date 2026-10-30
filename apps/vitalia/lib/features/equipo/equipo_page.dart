@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../core/auth_api.dart';
+import 'credenciales_profesionales_page.dart';
 
 class EquipoPage extends StatefulWidget {
   const EquipoPage({
@@ -404,6 +405,25 @@ class _EquipoPageState extends State<EquipoPage> {
                               const Text(
                                 'La gestión de jefaturas requiere su procedimiento institucional.',
                               ),
+                            TextButton.icon(
+                              onPressed: _busy
+                                  ? null
+                                  : () => Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) =>
+                                            CredencialesProfesionalesPage(
+                                              api: widget.api,
+                                              clinicId: widget.clinicId,
+                                              memberId: m['id'] as String,
+                                              professionalName:
+                                                  '${m['firstName']} ${m['firstSurname']}',
+                                              onExpired: widget.onExpired,
+                                            ),
+                                      ),
+                                    ),
+                              icon: const Icon(Icons.verified_user_outlined),
+                              label: const Text('Credenciales profesionales'),
+                            ),
                             _history(m),
                           ],
                         ),

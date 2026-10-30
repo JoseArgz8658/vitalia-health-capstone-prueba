@@ -48,3 +48,7 @@ El entorno aislado simula el bloqueo consultivo de migraciones y no sustituye un
 La guía está en [atención por examen](../fase-7/atencion-por-examen.md). No ejecuté migraciones en la base del usuario ni modifiqué el repositorio oficial.
 
 (José Aránguiz)
+
+## Aplicación local confirmada
+
+Registré el respaldo previo comunicado por el usuario, las 651 pruebas backend aprobadas, la aplicación de 019, sus 54 comprobaciones correctas con datos sintéticos revertidos y el inventario de pgAdmin: vitalia_dev, 44 tablas, 19 migraciones y 019 aplicada. El siguiente incremento de credenciales está documentado en CAM-095 y requiere sus propias comprobaciones. (José Aránguiz)
