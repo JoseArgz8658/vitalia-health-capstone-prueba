@@ -1,5 +1,5 @@
+import {reviewedExtractionValid} from './validation';
 import {randomUUID} from 'node:crypto';
-import {isDeepStrictEqual} from 'node:util';
 import {z} from 'zod';
 import {type Pool} from 'pg';
 import {type AccountSummary} from '../accounts/repository';
@@ -47,7 +47,7 @@ export function createReviewService(db:DocumentDatabase){
      WHERE id=$1 AND patient_id=$2 AND status='stored' FOR SHARE`,[documentId,account.id]);
     if(owned.rows.length!==1)throw new ReviewNotFoundError();
     const found=await tx.query<ReviewRow>(`SELECT v.id,v.processing_id,v.reviewed_extraction,v.observations,v.created_at
-     FROM public.vitalia_professional_reviews v
+     FROM public.vitalia_current_approved_reviews v
      WHERE v.document_id=$1 AND v.patient_id=$2 AND v.approved=true`,[documentId,account.id]);
     const row=found.rows[0];
     return {review:row?{extraction:extractionSchema.parse(row.reviewed_extraction),
@@ -84,9 +84,7 @@ export function createReviewService(db:DocumentDatabase){
     if(await findReview(tx,documentId))throw new ReviewConflictError();
     const value=processingResultSchema.parse(job.result);const original=value.ai?.extraction;
     if(!original)throw new ReviewConflictError();
-    if(original.informe&&!reviewed.informe)throw new ReviewInputError();
-    const missing=reviewed.examen===null||reviewed.fecha===null||(reviewed.informe&&Object.values(reviewed.informe).some(field=>field===null))||reviewed.resultados.some(row=>Object.values(row).some(field=>field===null));
-    if((missing||!isDeepStrictEqual(original,reviewed))&&!parsed.data.observations)throw new ReviewInputError();
+    if(!reviewedExtractionValid(reviewed,original,parsed.data.observations))throw new ReviewInputError();
     await tx.query(`INSERT INTO public.vitalia_professional_reviews
      (id,processing_id,document_id,patient_id,assignment_id,reviewer_id,original_extraction,reviewed_extraction,observations,confirmed_original)
      VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,true)`,

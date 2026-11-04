@@ -192,3 +192,11 @@ Registré CAM-097 validado: 734 pruebas backend y 131 Flutter, análisis sin inc
 Preparé 022_care_inbox, bandeja paginada del responsable, contacto confirmado, descarga revalidada y comienzo auditado de atención. Comprobé 763 pruebas backend y 52 condiciones SQL aisladas, repetidas con permisos de aplicación, además de repetición/checksum/rollback. Nueve pruebas Flutter nuevas están preparadas; 140 pruebas esperadas pendientes en Windows, junto con migración, permisos y recorrido. Véase [bandeja-por-examen.md](bandeja-por-examen.md). (José Aránguiz)
 
 No habilité extracción ni aprobación por esta bandeja. Debo continuar con revisión por atención, derivaciones y segundas opiniones; mantengo el trabajo en el repositorio de pruebas hasta el cierre, seguido de comparación/preparación de integración con develop oficial. (José Aránguiz)
+
+## Revisión por atención preparada — CAM-099
+
+Registré CAM-098 validado con 763 pruebas backend, análisis Flutter y 140 pruebas correctas, respaldo, 022 aplicada con 52 comprobaciones revertidas, permisos con COMMIT en 67 ms y recorrido manual funcional. La extracción aún no fue solicitada. (José Aránguiz)
+
+Preparé 023_care_review_registry, aprobación inmutable y cierre atómico de atención, formulario por pasos y lectura común para paciente/explicaciones/chat sin fabricar asignaciones ni copiar resultados. Comprobé 789 pruebas backend, 52 condiciones SQL aisladas repetidas con permisos de aplicación y migración/repetición/checksum/rollback, incluida compatibilidad de referencias históricas. Preparé nueve pruebas Flutter: 149 esperadas pendientes en Windows junto con la aplicación del esquema/permisos y el recorrido real. Véase [revision-por-atencion.md](revision-por-atencion.md). (José Aránguiz)
+
+Después de aplicar este incremento indicaré la solicitud de procesamiento y su revisión real. Mantengo pendientes derivaciones, segundas opiniones y cierre integrado de fase 7 antes de comparar y preparar la integración con develop oficial. (José Aránguiz)

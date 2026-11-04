@@ -1,3 +1,5 @@
+import 'revision_panel.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../core/auth_api.dart';
@@ -5,8 +7,11 @@ import '../documentos_reales/documento.dart';
 import '../documentos_reales/guardar_documento.dart';
 import 'atenciones_api.dart';
 
-String _state(dynamic value) =>
-    value == 'active' ? 'En atención' : 'Pendiente de iniciar';
+String _state(dynamic value) => switch (value) {
+  'active' => 'En atención',
+  'completed' => 'Completada',
+  _ => 'Pendiente de iniciar',
+};
 
 class AtencionesPage extends StatefulWidget {
   const AtencionesPage({
@@ -80,7 +85,7 @@ class _AtencionesPageState extends State<AtencionesPage> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Atenciones pendientes o iniciadas de tus pertenencias habilitadas. Cada examen tiene su propio responsable.',
+                'Atenciones solicitadas, iniciadas o completadas de tus pertenencias habilitadas. Cada examen tiene su propio responsable.',
               ),
               Align(
                 alignment: Alignment.centerRight,
@@ -359,6 +364,21 @@ class _AtencionDetallePageState extends State<AtencionDetallePage> {
                       label: const Text('Descargar examen'),
                     ),
                   ]),
+                  if (care['status'] == 'active' ||
+                      care['status'] == 'completed')
+                    RevisionPanel(
+                      auth: widget.api.auth,
+                      patientId: '',
+                      documentId: doc['id'] as String,
+                      careId: widget.id,
+                      onFailure: _failure,
+                      onSaving: (value) {
+                        if (mounted) setState(() => _busy = value);
+                      },
+                      onSaved: () {
+                        if (mounted) _load();
+                      },
+                    ),
                 ],
               ],
             ),

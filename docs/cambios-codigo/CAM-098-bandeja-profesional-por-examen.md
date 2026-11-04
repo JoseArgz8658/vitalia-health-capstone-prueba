@@ -34,3 +34,7 @@ Continúo en fase-7/03-atencion-examen del repositorio de pruebas. Debo completa
 ## Ajuste del recorrido automatizado tras validación en Windows
 
 Registré 763 pruebas backend aprobadas y análisis Flutter sin incidencias. En Flutter pasaron 139 pruebas y falló el recorrido de asignaciones anteriores porque intentaba pulsar Ver exámenes fuera del área visible, desplazado por la tarjeta de atenciones. Añadí ensureVisible y pumpAndSettle antes del tap; conservé las expectativas de apertura del historial y regreso al listado. No oculté advertencias ni modifiqué el comportamiento de la aplicación. La repetición del archivo y de la suite Flutter sigue pendiente en Windows; no doy todavía las 140 pruebas por aprobadas. (José Aránguiz)
+
+## Confirmación local completada
+
+Registré análisis Flutter sin incidencias y las 140 pruebas aprobadas con código 0 tras ajustar el desplazamiento del recorrido anterior. Tras el respaldo, 022 se aplicó con 52 comprobaciones correctas y datos sintéticos revertidos; los permisos finalizaron con COMMIT en 67 ms. El usuario confirmó el recorrido de bandeja, contacto, descarga e inicio persistente. El procesamiento no se solicitó y permanece pendiente hasta indicar el recorrido integrado de revisión. (José Aránguiz)

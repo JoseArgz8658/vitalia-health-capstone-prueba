@@ -1,3 +1,8 @@
+import {randomUUID} from 'node:crypto';
+import {isDeepStrictEqual} from 'node:util';
+import {extractionSchema,type Extraction} from '../ai/contract';
+import {processingResultSchema} from '../processing/result';
+import {reviewedExtractionValid} from '../reviews/validation';
 import {type Pool} from 'pg';
 import {z} from 'zod';
 import {type AccountSummary} from '../accounts/repository';
@@ -21,7 +26,7 @@ const joins=`FROM public.vitalia_exam_care c
  JOIN public.vitalia_membership_specialties ms ON ms.membership_id=m.id AND ms.specialty_id=s.id AND ms.clinic_id=cl.id
  JOIN public.vitalia_people patient ON patient.account_id=c.patient_id
  JOIN public.vitalia_care_contacts contact ON contact.document_id=d.id AND contact.patient_id=c.patient_id`;
-const scope=`p.account_id=$1 AND c.status IN ('requested','active')
+const scope=`p.account_id=$1 AND c.status IN ('requested','active','completed')
  AND f.registration_reference=a.after_state->>'registrationReference'
  AND f.verification_revision::text=a.after_state->>'revision'
  AND f.verification_decided_by=a.actor_id AND f.verification_decided_at=a.created_at`;
@@ -58,9 +63,19 @@ async function load(tx:DB,a:AccountSummary,id:string,update=false){
  await tx.query('SELECT public.vitalia_lock_care_selection($1,$2,$3)',[row.responsible_membership_id,row.specialty_id,row.branch_id]);
  return row;
 }
-async function audit(tx:DB,a:AccountSummary,action:'list'|'view'|'download',id:string|null){
+async function audit(tx:DB,a:AccountSummary,action:'list'|'view'|'download'|'view_review',id:string|null){
  await tx.query('INSERT INTO public.vitalia_care_access_audit(care_id,actor_id,action) VALUES($1,$2,$3)',[id,a.id,action]);
 }
+interface CareReview {id:string;processing_id:string;reviewer_id:string;reviewer_email:string;reviewed_extraction:Extraction;observations:string;created_at:Date}
+async function savedReview(tx:DB,id:string){
+ return (await tx.query<CareReview>(`SELECT r.id,r.processing_id,r.reviewer_id,a.email AS reviewer_email,
+  r.reviewed_extraction,r.observations,r.created_at FROM public.vitalia_care_reviews r
+  JOIN public.vitalia_accounts a ON a.id=r.reviewer_id WHERE r.care_id=$1`,[id])).rows[0]??null;
+}
+function reviewSummary(r:CareReview){return {id:r.id,processingId:r.processing_id,reviewerId:r.reviewer_id,
+ reviewerEmail:r.reviewer_email,extraction:extractionSchema.parse(r.reviewed_extraction),observations:r.observations,reviewedAt:r.created_at,approved:true};}
+const careReviewInput=z.object({processingId:z.uuid(),extraction:extractionSchema,observations:z.string().trim().max(2000),
+ confirmedOriginal:z.literal(true),expectedRevision:z.number().int().min(0).max(2147483646)}).strict();
 export function createCareInboxService(db:DocumentDatabase,storage:Pick<DocumentStorage,'read'>){return {
  async list(a:AccountSummary,input:unknown){professional(a);
   const schema=z.object({offset:z.string().regex(/^(0|[1-9]\d*)$/).transform(Number).pipe(z.number().int().max(100000)).optional().default(0)}).strict();
@@ -88,6 +103,46 @@ export function createCareInboxService(db:DocumentDatabase,storage:Pick<Document
    if(r.status!=='requested'||r.revision!==expected)throw new CareInboxError(409,'CARE_CHANGED');
    await tx.query(`UPDATE public.vitalia_exam_care SET status='active',updated_by=$2,revision=revision+1 WHERE id=$1`,[id,a.id]);
    return {started:true,replayed:false};
+  });}catch(e){translate(e);}
+ },
+ async review(a:AccountSummary,id:string){professional(a);if(!z.uuid().safeParse(id).success)throw new CareInboxError(404,'CARE_NOT_FOUND');
+  try{return await db.transaction(async tx=>{
+   const r=await load(tx,a,id),review=await savedReview(tx,id);
+   const job=(await tx.query<{id:string;status:string;result:unknown}>(
+    'SELECT id,status,result FROM public.vitalia_document_processing WHERE document_id=$1',[r.document_id])).rows[0];
+   const value=job?.result==null?null:processingResultSchema.parse(job.result),original=value?.ai?.extraction??null;
+   await audit(tx,a,'view_review',id);
+   return {processingId:job?.id??null,processingStatus:job?.status??'not_requested',expectedRevision:r.revision,
+    originalExtraction:original,sourceText:value?.inputText??null,
+    canReview:r.status==='active'&&job?.status==='requires_review'&&original!==null&&!review,
+    review:review?reviewSummary(review):null};
+  });}catch(e){translate(e);}
+ },
+ async approve(a:AccountSummary,id:string,input:unknown){professional(a);if(!z.uuid().safeParse(id).success)throw new CareInboxError(404,'CARE_NOT_FOUND');
+  const parsed=careReviewInput.safeParse(input);
+  if(!parsed.success||Buffer.byteLength(JSON.stringify(parsed.data),'utf8')>24*1024)throw new CareInboxError(400,'INVALID_CARE_REVIEW');
+  const v=parsed.data;
+  try{return await db.transaction(async tx=>{
+   const r=await load(tx,a,id,true),existing=await savedReview(tx,id);
+   if(existing){
+    if(r.status==='completed'&&r.revision===v.expectedRevision+1&&existing.processing_id===v.processingId&&
+      existing.reviewer_id===a.id&&existing.observations===v.observations&&isDeepStrictEqual(existing.reviewed_extraction,v.extraction))return reviewSummary(existing);
+    throw new CareInboxError(409,'CARE_CHANGED');
+   }
+   if(r.status!=='active'||r.revision!==v.expectedRevision)throw new CareInboxError(409,'CARE_CHANGED');
+   await tx.query('SELECT public.vitalia_lock_review_processing($1,$2)',[v.processingId,r.document_id]);
+   const job=(await tx.query<{id:string;status:string;result:unknown}>(
+    'SELECT id,status,result FROM public.vitalia_document_processing WHERE document_id=$1',[r.document_id])).rows[0];
+   if(!job||job.id!==v.processingId||job.status!=='requires_review')throw new CareInboxError(409,'CARE_CHANGED');
+   const original=processingResultSchema.parse(job.result).ai?.extraction;
+   if(!original)throw new CareInboxError(409,'CARE_CHANGED');
+   if(!reviewedExtractionValid(v.extraction,original,v.observations))throw new CareInboxError(400,'INVALID_CARE_REVIEW');
+   await tx.query(`INSERT INTO public.vitalia_care_reviews(id,care_id,document_id,patient_id,processing_id,reviewer_membership_id,
+    reviewer_id,original_extraction,reviewed_extraction,observations,confirmed_original)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::jsonb,$10,true)`,
+    [randomUUID(),id,r.document_id,r.patient_id,job.id,r.responsible_membership_id,a.id,JSON.stringify(original),JSON.stringify(v.extraction),v.observations]);
+   await tx.query("UPDATE public.vitalia_exam_care SET status='completed',updated_by=$2,revision=revision+1 WHERE id=$1",[id,a.id]);
+   const saved=await savedReview(tx,id);if(!saved)throw new Error('Revisión no disponible.');return reviewSummary(saved);
   });}catch(e){translate(e);}
  },
  async download(a:AccountSummary,id:string){professional(a);if(!z.uuid().safeParse(id).success)throw new CareInboxError(404,'CARE_NOT_FOUND');

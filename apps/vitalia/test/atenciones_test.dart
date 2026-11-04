@@ -40,6 +40,18 @@ class InboxAuth extends AuthApi {
   }) async {
     if (expired) throw const AuthFailure('Sesión terminada', 401);
     if (unavailable) throw const AuthFailure('Atención no disponible.', 404);
+    if (action == 'review')
+      return http.Response(
+        jsonEncode({
+          'processingId': null,
+          'originalExtraction': null,
+          'canReview': false,
+          'review': null,
+          'expectedRevision': revision,
+          'processingStatus': 'not_requested',
+        }),
+        200,
+      );
     if (action == 'begin') {
       expect(body, {'expectedRevision': 0});
       starts++;

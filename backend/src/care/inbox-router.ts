@@ -19,6 +19,14 @@ export function createCareInboxRouter(auth:Pick<AuthServices,'find'>,service:Car
   if(Object.keys(req.query).length)throw new CareInboxError(400,'INVALID_CARE_INPUT');
   res.json(await service.begin(res.locals.account,req.params.id as string,req.body));
  });
+ router.get('/:id/review',async(req,res)=>{
+  if(Object.keys(req.query).length)throw new CareInboxError(400,'INVALID_CARE_INPUT');
+  res.json(await service.review(res.locals.account,req.params.id as string));
+ });
+ router.post('/:id/review',async(req,res)=>{
+  if(Object.keys(req.query).length)throw new CareInboxError(400,'INVALID_CARE_INPUT');
+  res.status(201).json({review:await service.approve(res.locals.account,req.params.id as string,req.body)});
+ });
  let downloads=0;
  router.get('/:id/file',async(req,res)=>{
   if(Object.keys(req.query).length)throw new CareInboxError(400,'INVALID_CARE_INPUT');
@@ -33,6 +41,6 @@ export function createCareInboxRouter(auth:Pick<AuthServices,'find'>,service:Car
  });
  const errors:ErrorRequestHandler=(e,_req,res,next)=>{
   if(e instanceof CareInboxError){res.status(e.status).json({error:{code:e.code,message:
-   e.status===404?'Atención no disponible.':e.status===409?'La atención cambió. Actualiza antes de continuar.':'No se pudo acceder a la atención.'}});return;}next(e);
+   e.status===400?'Revisa fechas, resultados, observaciones y confirmación del original.':e.status===404?'Atención no disponible.':e.status===409?'La atención cambió. Actualiza antes de continuar.':'No se pudo acceder a la atención.'}});return;}next(e);
  };router.use(errors);return router;
 }

@@ -75,7 +75,8 @@ async function main(): Promise<void> {
        AND to_regclass('public.vitalia_exam_assistant_turns') IS NOT NULL
        AND to_regclass('public.vitalia_exam_assistant_audit') IS NOT NULL
        AND to_regclass('public.vitalia_care_contacts') IS NOT NULL
-       AND to_regclass('public.vitalia_care_access_audit') IS NOT NULL AS ready`,
+       AND to_regclass('public.vitalia_care_access_audit') IS NOT NULL
+       AND to_regclass('public.vitalia_approved_review_refs') IS NOT NULL AS ready`,
     );
     if (schema.rows[0]?.ready !== true) throw new Error('Faltan migraciones de acceso.');
     const storageConfig = readStorageConfig(process.env);
