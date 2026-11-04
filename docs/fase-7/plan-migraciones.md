@@ -168,3 +168,11 @@ Preparé 019 con cuatro tablas, integridad por documento/paciente/clínica, resp
 ## Verificación profesional — CAM-095
 
 Preparé 020 con solicitud institucional y decisión administrativa auditable sobre la credencial global. El jefe registra antecedentes de su clínica y no decide verificaciones globales; el administrador registra fuente y fundamento sin obtener acceso clínico. Endurecí la elegibilidad para exigir evidencia documentada y conservé las 54 comprobaciones de atención. La aplicación local y Flutter siguen pendientes. La guía es [credenciales-profesionales.md](credenciales-profesionales.md). Después continuaré con catálogo y elección por documento; no doy esa funcionalidad por implementada todavía. (José Aránguiz)
+
+## Validación de credenciales y catálogo territorial de atención — CAM-096
+
+Registré 020 aplicada en PostgreSQL local, 46 comprobaciones de credenciales, 54 de atención y permisos con COMMIT; también el recorrido informado con perfil verificado. Añadí el catálogo de atención por comuna confirmada, con sucursales/especialidades/pertenencias activas y credenciales documentadas. Comprobé 706 pruebas backend y 28 condiciones SQL aisladas, repetidas con rol de lectura durante la consulta. No añadí migración ni cambié Flutter. La comprobación nativa del nuevo catálogo permanece pendiente. Véase [catalogo-atencion.md](catalogo-atencion.md). (José Aránguiz)
+
+Ajusté el próximo flujo: ubicación/contacto obligatorios al envío, datos precargados del perfil con confirmación, zona de atención modificable sin cambiar implícitamente el domicilio, clínica/sucursal/especialidad/profesional, archivo y resumen final en pasos dentro de la misma pantalla. Todavía debo implementar esos formularios y su persistencia/revalidación por examen; no los considero resueltos por el catálogo. La comprobación semántica del archivo como examen queda fuera del MVP hasta nueva instrucción. Las mejoras generales de diseño permanecen planificadas. (José Aránguiz)
+
+Terminaré la fase 7 en el repositorio de pruebas. Antes del traspaso compararé con el `develop` actualizado del oficial y prepararé una integración comprobada para su revisión/fusión según las reglas acordadas. Desde ese momento trabajaré únicamente en el oficial y conservaré el de pruebas como historial. (José Aránguiz)

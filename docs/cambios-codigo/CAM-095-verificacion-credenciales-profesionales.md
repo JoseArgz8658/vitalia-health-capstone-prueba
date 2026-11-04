@@ -47,3 +47,7 @@ Añadí cinco pruebas Flutter de presentación, separación de facultades, confi
 La guía es [credenciales profesionales](../fase-7/credenciales-profesionales.md). El catálogo y la elección por examen continúan después de esta comprobación. No modifiqué el repositorio oficial.
 
 (José Aránguiz)
+
+## Validación recibida en el entorno local
+
+Registré la salida compartida de Windows: 676 pruebas backend en 53 suites, análisis Flutter sin problemas y 122 pruebas Flutter, ambos con código 0. Tras el respaldo se aplicó 020 con 46 comprobaciones de credenciales y 54 de atención correctas, con datos sintéticos revertidos. Los permisos finalizaron con COMMIT en 87 ms y el recorrido manual informado mostró el perfil profesional verificado. No extiendo esa confirmación a escenarios manuales no informados. (José Aránguiz)
