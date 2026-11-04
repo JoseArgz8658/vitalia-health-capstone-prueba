@@ -184,3 +184,11 @@ Registré CAM-096 validado en Windows con 706 pruebas y en PostgreSQL con 28 com
 Comprobé 734 pruebas backend en 55 suites y 34 condiciones SQL aisladas, repetidas con permisos de aplicación. Preparé nueve pruebas Flutter nuevas y adapté una existente: 131 pruebas esperadas, todavía pendientes en Windows junto con análisis, respaldo, migración/permisos y recorrido. No confundo formateo Dart con ejecución Flutter. (José Aránguiz)
 
 Separé el acceso de los documentos nuevos respecto de las asignaciones históricas. La bandeja clínica por examen y las acciones del responsable, derivaciones, segundas opiniones y lectura de contacto bajo esos permisos todavía requieren su siguiente incremento; no doy la fase por cerrada. Conservé fuera del MVP la comprobación semántica del archivo como examen. El traspaso al oficial permanece condicionado al cierre y a la comparación con develop actualizado. (José Aránguiz)
+
+## Bandeja del responsable preparada — CAM-098
+
+Registré CAM-097 validado: 734 pruebas backend y 131 Flutter, análisis sin incidencias, respaldo, 021 aplicada con 34 comprobaciones revertidas y permisos con COMMIT en 82 ms. El recorrido manual confirmó examen guardado. La extracción no se solicitó y permanece pendiente por acuerdo. (José Aránguiz)
+
+Preparé 022_care_inbox, bandeja paginada del responsable, contacto confirmado, descarga revalidada y comienzo auditado de atención. Comprobé 763 pruebas backend y 52 condiciones SQL aisladas, repetidas con permisos de aplicación, además de repetición/checksum/rollback. Nueve pruebas Flutter nuevas están preparadas; 140 pruebas esperadas pendientes en Windows, junto con migración, permisos y recorrido. Véase [bandeja-por-examen.md](bandeja-por-examen.md). (José Aránguiz)
+
+No habilité extracción ni aprobación por esta bandeja. Debo continuar con revisión por atención, derivaciones y segundas opiniones; mantengo el trabajo en el repositorio de pruebas hasta el cierre, seguido de comparación/preparación de integración con develop oficial. (José Aránguiz)

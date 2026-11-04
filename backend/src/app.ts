@@ -1,3 +1,5 @@
+import {createCareInboxRouter} from './care/inbox-router';
+import {type CareInboxServices} from './care/inbox';
 import {createCareUploadRouter} from './care/upload-router';
 import {type CareUploadServices} from './care/upload';
 import {createCareCatalogRouter} from './care/catalog-router';
@@ -33,7 +35,7 @@ import { createAuthRouter, type AuthServices } from './auth/router';
 import { createRegistrationRouter } from './auth/registration-router';
 import { type PatientRegistrar } from './auth/registration';
 
-export function createApp(auth?: AuthServices, register?: PatientRegistrar, documents?: DocumentServices, processing?: ProcessingServices, assignments?: AssignmentServices, professional?: ProfessionalServices, reviews?: ReviewServices, explanations?: ExplanationServices, assistant?: ExamAssistantServices, profiles?: ProfileServices, institutions?: InstitutionServices, onboarding?: OnboardingServices, team?: TeamServices, credentialVerification?: CredentialVerificationServices, careCatalog?: CareCatalogServices, careUpload?: CareUploadServices) {
+export function createApp(auth?: AuthServices, register?: PatientRegistrar, documents?: DocumentServices, processing?: ProcessingServices, assignments?: AssignmentServices, professional?: ProfessionalServices, reviews?: ReviewServices, explanations?: ExplanationServices, assistant?: ExamAssistantServices, profiles?: ProfileServices, institutions?: InstitutionServices, onboarding?: OnboardingServices, team?: TeamServices, credentialVerification?: CredentialVerificationServices, careCatalog?: CareCatalogServices, careUpload?: CareUploadServices, careInbox?: CareInboxServices) {
   const app = express();
   app.disable('x-powered-by');
   app.use(localWebCors);
@@ -44,6 +46,7 @@ export function createApp(auth?: AuthServices, register?: PatientRegistrar, docu
     res.status(200).json({ status: 'ok', service: 'vitalia-api' });
   });
 
+  if (auth && careInbox) app.use('/api/care-inbox', createCareInboxRouter(auth, careInbox));
   if (auth && careUpload) app.use('/api/care', createCareUploadRouter(auth, careUpload));
   if (auth && careCatalog) app.use('/api/care', createCareCatalogRouter(auth, careCatalog));
   if (auth && credentialVerification) app.use('/api/professional-credentials', createCredentialVerificationRouter(auth, credentialVerification));

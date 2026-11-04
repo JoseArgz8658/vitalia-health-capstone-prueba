@@ -31,3 +31,7 @@ El motor aislado PGlite sustituye advisory locks y no demuestra concurrencia rea
 ## Continuidad
 
 Registré la confirmación recibida de CAM-096: 706 pruebas backend aprobadas en Windows y 28 comprobaciones del catálogo correctas en PostgreSQL, con datos sintéticos revertidos. Mantengo fuera del MVP la comprobación semántica de que el archivo es un examen, según lo acordado. No introduje reserva de horas, notificaciones de emergencia ni comprobación externa de registros médicos. Al completar la fase 7 prepararé la integración con el develop actualizado del repositorio oficial, siguiendo las reglas acordadas. (José Aránguiz)
+
+## Confirmación del entorno local recibida
+
+Registré 734 pruebas backend aprobadas en 55 suites, análisis Flutter sin incidencias y 131 pruebas Flutter, con código 0. Tras el respaldo, 021 se aplicó con 34 comprobaciones correctas y datos sintéticos revertidos. Los permisos finalizaron con COMMIT en 82 ms. El paciente confirmó que el examen quedó guardado y que el formulario funcionó. La extracción no se ejecutó; queda pendiente hasta el recorrido integrado de procesamiento/revisión. (José Aránguiz)

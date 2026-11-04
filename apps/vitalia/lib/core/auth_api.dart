@@ -467,6 +467,71 @@ class AuthApi {
     }
   }
 
+  Future<http.Response> careInboxRequest({
+    String? id,
+    String? action,
+    int offset = 0,
+    Map<String, dynamic>? body,
+  }) async {
+    if ((id != null && !RegExp(r'^[a-f0-9-]{36}$').hasMatch(id)) ||
+        (action != null && !['file', 'begin'].contains(action)) ||
+        (action != null && id == null) ||
+        (action == 'begin' && body == null) ||
+        (action != 'begin' && body != null)) {
+      throw const AuthFailure('Solicitud de atención inválida.');
+    }
+    final token = _token;
+    if (token == null ||
+        expiresAt == null ||
+        !expiresAt!.isAfter(DateTime.now())) {
+      clear();
+      throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+    }
+    final uri = _base
+        .resolve(
+          '/api/care-inbox${id == null ? '' : '/$id'}${action == null ? '' : '/$action'}',
+        )
+        .replace(queryParameters: id == null ? {'offset': '$offset'} : null);
+    try {
+      final response =
+          await (body == null
+                  ? _client.get(
+                      uri,
+                      headers: {'Authorization': 'Bearer $token'},
+                    )
+                  : _client.post(
+                      uri,
+                      headers: {
+                        'Authorization': 'Bearer $token',
+                        'Content-Type': 'application/json',
+                      },
+                      body: jsonEncode(body),
+                    ))
+              .timeout(const Duration(seconds: 60));
+      if (_token != token) throw const AuthFailure('La sesión cambió.', 401);
+      if (response.statusCode == 401) {
+        clear();
+        throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+      }
+      if (response.statusCode >= 400)
+        throw AuthFailure(switch (response.statusCode) {
+          403 => 'Ingresa en modo profesional para consultar tus atenciones.',
+          404 => 'Esta atención ya no está disponible para tu cuenta. Actualiza la bandeja.',
+          409 => 'La atención cambió. Actualiza antes de continuar.',
+          503 =>
+            'La bandeja no está disponible temporalmente. Intenta nuevamente.',
+          _ => 'No se pudo consultar la atención.',
+        }, response.statusCode);
+      return response;
+    } on AuthFailure {
+      rethrow;
+    } catch (_) {
+      throw const AuthFailure(
+        'No se pudo completar la solicitud. Actualiza la atención antes de repetir.',
+      );
+    }
+  }
+
   Future<Map<String, dynamic>> careContext() => _careGet('context');
 
   Future<Map<String, dynamic>> careCatalog(
