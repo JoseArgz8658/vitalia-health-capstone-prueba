@@ -29,3 +29,8 @@ Preparé nueve pruebas Flutter y formateé seis archivos Dart. Todavía debo eje
 Registré CAM-097 con 734 pruebas backend, análisis sin problemas y 131 pruebas Flutter en Windows; respaldo previo; 021 aplicada con 34 comprobaciones correctas revertidas; permisos con COMMIT en 82 ms. El paciente confirmó que el examen se guardó y que el formulario funcionó. El procesamiento no se solicitó: lo mantengo pendiente hasta indicar expresamente el recorrido de extracción y revisión. (José Aránguiz)
 
 Continúo en fase-7/03-atencion-examen del repositorio de pruebas. Debo completar revisión por atención, derivaciones y segundas opiniones antes del cierre y posterior preparación del traspaso al develop actualizado del repositorio oficial. No modifiqué el oficial ni declaré terminada la fase 7. (José Aránguiz)
+
+
+## Ajuste del recorrido automatizado tras validación en Windows
+
+Registré 763 pruebas backend aprobadas y análisis Flutter sin incidencias. En Flutter pasaron 139 pruebas y falló el recorrido de asignaciones anteriores porque intentaba pulsar Ver exámenes fuera del área visible, desplazado por la tarjeta de atenciones. Añadí ensureVisible y pumpAndSettle antes del tap; conservé las expectativas de apertura del historial y regreso al listado. No oculté advertencias ni modifiqué el comportamiento de la aplicación. La repetición del archivo y de la suite Flutter sigue pendiente en Windows; no doy todavía las 140 pruebas por aprobadas. (José Aránguiz)
