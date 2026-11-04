@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../core/auth_api.dart';
 
 class UbicacionPanel extends StatefulWidget {
@@ -12,12 +13,14 @@ class UbicacionPanel extends StatefulWidget {
     required this.onExpired,
     this.loadCatalog,
     this.requiredLocation = false,
+    this.locationDescription,
   });
   final AuthApi api;
   final Future<Map<String, dynamic>> Function()? loadCatalog;
   final String? value;
   final bool editing, enabled;
   final bool requiredLocation;
+  final String? locationDescription;
   final ValueChanged<String?> onChanged;
   final VoidCallback onExpired;
   @override
@@ -187,9 +190,10 @@ class _UbicacionPanelState extends State<UbicacionPanel> {
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Text(
-            widget.requiredLocation
-                ? 'Selecciona región, provincia y comuna de la sucursal.'
-                : 'Ubicación opcional. Elige región, provincia y comuna, o déjala sin registrar.',
+            widget.locationDescription ??
+                (widget.requiredLocation
+                    ? 'Selecciona región, provincia y comuna de la sucursal.'
+                    : 'Ubicación opcional. Elige región, provincia y comuna, o déjala sin registrar.'),
           ),
         ),
         _selector('Región', _region, _rows('regions'), (value) {
@@ -211,9 +215,9 @@ class _UbicacionPanelState extends State<UbicacionPanel> {
         _selector(
           'Comuna',
           widget.value,
-          _rows(
-            'communes',
-          ).where((x) => x['provinceCode'] == _province).toList(),
+          _rows('communes')
+              .where((x) => x['provinceCode'] == _province)
+              .toList(),
           widget.onChanged,
           required: widget.requiredLocation || _region != null,
         ),

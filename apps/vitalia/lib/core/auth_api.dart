@@ -1,6 +1,8 @@
 import 'assistant_failure_message.dart';
+
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 
 class AuthFailure implements Exception {
@@ -205,10 +207,8 @@ class AuthApi {
           400 => 'Revisa el nombre, contacto, dirección y comuna.',
           403 => 'Esta cuenta no puede gestionar instituciones.',
           404 => 'La clínica ya no está disponible. Actualiza la lista.',
-          409 =>
-            'La clínica está inactiva o la solicitud cambió. Actualiza antes de repetir.',
-          503 =>
-            'La gestión institucional aún no está disponible. Revisa migración y permisos con el equipo.',
+          409 => 'La clínica está inactiva o la solicitud cambió. Actualiza antes de repetir.',
+          503 => 'La gestión institucional aún no está disponible. Revisa migración y permisos con el equipo.',
           _ => 'No se pudo completar la gestión institucional.',
         }, response.statusCode);
       return jsonDecode(response.body) as Map<String, dynamic>;
@@ -299,14 +299,10 @@ class AuthApi {
                     activation
                         ? 'Revisa el código, nombres y contraseña. El código puede estar vencido, revocado o utilizado.'
                         : 'Revisa los datos y las sucursales o especialidades seleccionadas.',
-                  403 =>
-                    'Solo el administrador o el jefe autorizado de esta clínica pueden realizar esta operación.',
-                  409 =>
-                    'La autorización o invitación no está disponible. Actualiza antes de repetir; revoca la invitación anterior si necesitas emitir otra.',
-                  429 =>
-                    'Hay otra activación en curso. Espera un momento e intenta nuevamente.',
-                  503 =>
-                    'La incorporación institucional aún no está disponible. Revisa migración y permisos con el equipo.',
+                  403 => 'Solo el administrador o el jefe autorizado de esta clínica pueden realizar esta operación.',
+                  409 => 'La autorización o invitación no está disponible. Actualiza antes de repetir; revoca la invitación anterior si necesitas emitir otra.',
+                  429 => 'Hay otra activación en curso. Espera un momento e intenta nuevamente.',
+                  503 => 'La incorporación institucional aún no está disponible. Revisa migración y permisos con el equipo.',
                   _ => 'No se pudo completar la incorporación institucional.',
                 },
           response.statusCode,
@@ -381,15 +377,11 @@ class AuthApi {
           code == 'NO_MEMBERSHIP_CHANGE'
               ? 'No hiciste cambios en la pertenencia.'
               : switch (response.statusCode) {
-                  400 =>
-                    'Revisa el motivo y las sucursales o especialidades seleccionadas.',
-                  403 =>
-                    'Solo el jefe activo de esta clínica puede modificar pertenencias de profesionales ordinarios.',
+                  400 => 'Revisa el motivo y las sucursales o especialidades seleccionadas.',
+                  403 => 'Solo el jefe activo de esta clínica puede modificar pertenencias de profesionales ordinarios.',
                   404 => 'La pertenencia no está disponible en esta clínica.',
-                  409 =>
-                    'La pertenencia cambió o la clínica no está disponible. Actualiza la lista antes de editar nuevamente.',
-                  503 =>
-                    'La gestión del equipo aún no está disponible. Revisa migración y permisos con el equipo.',
+                  409 => 'La pertenencia cambió o la clínica no está disponible. Actualiza la lista antes de editar nuevamente.',
+                  503 => 'La gestión del equipo aún no está disponible. Revisa migración y permisos con el equipo.',
                   _ => 'No se pudo completar la gestión del equipo.',
                 },
           response.statusCode,
@@ -454,14 +446,11 @@ class AuthApi {
         throw AuthFailure(switch (response.statusCode) {
           400 =>
             'Revisa las referencias, la fecha de consulta y la confirmación.',
-          403 =>
-            'No tienes permiso para esta verificación. El jefe registra antecedentes y el administrador decide.',
+          403 => 'No tienes permiso para esta verificación. El jefe registra antecedentes y el administrador decide.',
           404 =>
             'La solicitud o pertenencia no está disponible en esta clínica.',
-          409 =>
-            'El perfil cambió, existe una solicitud pendiente o ya fue resuelta. Actualiza antes de continuar.',
-          503 =>
-            'La verificación profesional aún no está disponible. Revisa migración y permisos con el equipo.',
+          409 => 'El perfil cambió, existe una solicitud pendiente o ya fue resuelta. Actualiza antes de continuar.',
+          503 => 'La verificación profesional aún no está disponible. Revisa migración y permisos con el equipo.',
           _ => 'No se pudo completar la verificación profesional.',
         }, response.statusCode);
       return jsonDecode(response.body) as Map<String, dynamic>;
@@ -474,6 +463,57 @@ class AuthApi {
     } catch (_) {
       throw const AuthFailure(
         'No se pudo conectar. Conserva los datos para reintentar.',
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> careContext() => _careGet('context');
+
+  Future<Map<String, dynamic>> careCatalog(
+    String communeCode, {
+    int offset = 0,
+  }) => _careGet(
+    'catalog',
+    query: {'communeCode': communeCode, 'offset': '$offset'},
+  );
+
+  Future<Map<String, dynamic>> _careGet(
+    String path, {
+    Map<String, String>? query,
+  }) async {
+    final token = _token;
+    if (token == null ||
+        expiresAt == null ||
+        !expiresAt!.isAfter(DateTime.now())) {
+      clear();
+      throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+    }
+    try {
+      final response = await _client
+          .get(
+            _base.resolve('/api/care/$path').replace(queryParameters: query),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(const Duration(seconds: 15));
+      if (_token != token) throw const AuthFailure('La sesión cambió.', 401);
+      if (response.statusCode == 401) {
+        clear();
+        throw const AuthFailure('La sesión terminó. Ingresa nuevamente.', 401);
+      }
+      if (response.statusCode >= 400) {
+        throw AuthFailure(switch (response.statusCode) {
+          409 => 'Completa primero tus datos personales en Mi perfil.',
+          400 => 'Selecciona una comuna válida para consultar atención.',
+          403 => 'Ingresa en modo paciente para enviar un examen.',
+          _ => 'No se pudo consultar la atención. Intenta nuevamente.',
+        }, response.statusCode);
+      }
+      return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+    } on AuthFailure {
+      rethrow;
+    } catch (_) {
+      throw const AuthFailure(
+        'No se pudo consultar la atención. Intenta nuevamente.',
       );
     }
   }
@@ -545,6 +585,9 @@ class AuthApi {
           409 =>
             request.url.path.contains('/assistant')
                 ? 'Comprueba la revisión aprobada y el límite de treinta preguntas. Actualiza antes de repetir.'
+                : request.url.path == '/api/documents' &&
+                      request.method == 'POST'
+                ? 'La selección de atención o tu perfil cambió. Actualiza los datos antes de enviar.'
                 : 'Primero se requiere una revisión profesional aprobada.',
           413 => 'El archivo supera 10 MiB.',
           503 =>
@@ -594,9 +637,8 @@ class AuthApi {
     if (request.url.origin != _base.origin ||
         !['GET', 'POST'].contains(request.method) ||
         !(request.url.path == '/api/assignments' ||
-            RegExp(
-              r'^/api/assignments/[a-f0-9-]{36}/deactivate$',
-            ).hasMatch(request.url.path))) {
+            RegExp(r'^/api/assignments/[a-f0-9-]{36}/deactivate$')
+                .hasMatch(request.url.path))) {
       throw const AuthFailure('Solicitud de asignación inválida.');
     }
     request.headers['Authorization'] = 'Bearer $token';
@@ -614,8 +656,7 @@ class AuthApi {
         throw AuthFailure(switch (response.statusCode) {
           400 => 'Revisa los correos y la solicitud.',
           403 => 'No tienes permiso para gestionar estas asignaciones.',
-          404 =>
-            'Cuenta o asignación no disponible. Comprueba los correos y sus roles.',
+          404 => 'Cuenta o asignación no disponible. Comprueba los correos y sus roles.',
           _ => 'No se pudo completar la solicitud.',
         }, response.statusCode);
       }
@@ -740,16 +781,13 @@ class AuthApi {
       }
       if (response.statusCode >= 400) {
         throw AuthFailure(switch (response.statusCode) {
-          400 =>
-            'Revisa la fecha, los resultados, las observaciones y la confirmación.',
+          400 => 'Revisa la fecha, los resultados, las observaciones y la confirmación.',
           403 => 'No tienes permiso para revisar este documento.',
           404 =>
             'Paciente o documento no disponible. Comprueba tus asignaciones.',
-          409 =>
-            'Ya existe una revisión o cambió el procesamiento. Actualiza la revisión.',
+          409 => 'Ya existe una revisión o cambió el procesamiento. Actualiza la revisión.',
           413 => 'La revisión supera el tamaño permitido.',
-          _ =>
-            'No se pudo guardar o consultar la revisión. Actualiza antes de repetir.',
+          _ => 'No se pudo guardar o consultar la revisión. Actualiza antes de repetir.',
         }, response.statusCode);
       }
       return response;
@@ -904,12 +942,9 @@ class AuthApi {
             'La contraseña profesional debe ser diferente a la de paciente.',
           'PASSWORD_UNCHANGED' =>
             'La nueva contraseña debe ser diferente a la actual.',
-          'SETUP_EXPIRED' =>
-            'La configuración venció. Vuelve a iniciar sesión como profesional.',
-          'PROFESSIONAL_PASSWORD_EXISTS' =>
-            'Tu contraseña profesional ya está configurada. Vuelve a iniciar sesión.',
-          _ =>
-            'No se pudo cambiar la contraseña. Revisa los datos e intenta nuevamente.',
+          'SETUP_EXPIRED' => 'La configuración venció. Vuelve a iniciar sesión como profesional.',
+          'PROFESSIONAL_PASSWORD_EXISTS' => 'Tu contraseña profesional ya está configurada. Vuelve a iniciar sesión.',
+          _ => 'No se pudo cambiar la contraseña. Revisa los datos e intenta nuevamente.',
         }, response.statusCode);
       }
       if (setupToken == null) clear();

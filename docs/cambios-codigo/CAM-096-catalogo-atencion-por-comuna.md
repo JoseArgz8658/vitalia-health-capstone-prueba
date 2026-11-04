@@ -29,3 +29,7 @@ Mantengo pendiente dirección y contacto obligatorios al completar el envío, pr
 Dejé fuera del MVP la comprobación semántica de que el archivo es un examen médico, hasta nueva instrucción. Conservo las validaciones técnicas actuales. Registré para mejoras de interfaz navegación adaptable, acciones agrupadas, formularios por pasos y modernización de Seguridad de acceso, sin afirmar que este incremento las implementa. (José Aránguiz)
 
 Acordé finalizar la fase 7 en el repositorio de pruebas y después comparar con el `develop` actualizado del oficial, preparar y validar la integración antes de fusionar según las reglas del proyecto. Desde esa integración continuaré únicamente en el oficial; conservaré el repositorio de pruebas como historial. No realizaré un traspaso anticipado. (José Aránguiz)
+
+## Confirmación local recibida
+
+Registré 706 pruebas aprobadas en 54 suites en Windows, con código 0. El verificador nativo del catálogo completó sus 28 comprobaciones y revirtió los datos sintéticos. Esta confirmación corresponde al catálogo; no implica validación local de la carga añadida después en CAM-097. (José Aránguiz)

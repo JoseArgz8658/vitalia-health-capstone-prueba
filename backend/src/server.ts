@@ -1,3 +1,4 @@
+import {createCareUploadService} from './care/upload';
 import {createCareCatalogService} from './care/catalog';
 import {createCredentialVerificationService} from './professional-credentials/service';
 import {createTeamService} from './team/service';
@@ -71,13 +72,15 @@ async function main(): Promise<void> {
        AND to_regclass('public.vitalia_explanation_audit') IS NOT NULL
        AND to_regclass('public.vitalia_exam_assistant_threads') IS NOT NULL
        AND to_regclass('public.vitalia_exam_assistant_turns') IS NOT NULL
-       AND to_regclass('public.vitalia_exam_assistant_audit') IS NOT NULL AS ready`,
+       AND to_regclass('public.vitalia_exam_assistant_audit') IS NOT NULL
+       AND to_regclass('public.vitalia_care_contacts') IS NOT NULL AS ready`,
     );
     if (schema.rows[0]?.ready !== true) throw new Error('Faltan migraciones de acceso.');
     const storageConfig = readStorageConfig(process.env);
     storage = createStorageClient(storageConfig);
     await checkPrivateBucket(storage, storageConfig);
-    const documents = createDocumentService(documentDatabase(database), s3DocumentStorage(storage, storageConfig));
+    const careUpload = createCareUploadService(documentDatabase(database));
+    const documents = createDocumentService(documentDatabase(database), s3DocumentStorage(storage, storageConfig), careUpload);
     const authenticate = await createCredentialAuthenticator(database);
     const register = createPatientRegistrar(database);
     server = createApp({
@@ -85,7 +88,7 @@ async function main(): Promise<void> {
       issue: (id,mode) => issueSession(database, id,mode),
       find: token => findSessionAccount(database, token),
       revoke: token => revokeSession(database, token),
-    }, register, documents, createProcessingService(database), createAssignmentService(documentDatabase(database)), createProfessionalService(documentDatabase(database), s3DocumentStorage(storage, storageConfig)), createReviewService(documentDatabase(database)), createExplanationService(documentDatabase(database), createExplanationGenerator()), createExamAssistantService(documentDatabase(database), createExamAssistant()), createProfileService(documentDatabase(database)), createInstitutionService(documentDatabase(database)), createOnboardingService(documentDatabase(database)), createTeamService(documentDatabase(database)), createCredentialVerificationService(documentDatabase(database)), createCareCatalogService(database)).listen(config.PORT, config.HOST);
+    }, register, documents, createProcessingService(database), createAssignmentService(documentDatabase(database)), createProfessionalService(documentDatabase(database), s3DocumentStorage(storage, storageConfig)), createReviewService(documentDatabase(database)), createExplanationService(documentDatabase(database), createExplanationGenerator()), createExamAssistantService(documentDatabase(database), createExamAssistant()), createProfileService(documentDatabase(database)), createInstitutionService(documentDatabase(database)), createOnboardingService(documentDatabase(database)), createTeamService(documentDatabase(database)), createCredentialVerificationService(documentDatabase(database)), createCareCatalogService(database), careUpload).listen(config.PORT, config.HOST);
     server.on('listening', () => console.info('Vitalia API iniciada en el entorno local.'));
     server.on('error', () => {
       console.error('No se pudo iniciar el servidor. Revisa el puerto y la dirección configurados.');

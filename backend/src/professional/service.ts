@@ -28,7 +28,7 @@ async function assigned(tx:Database,account:AccountSummary,patientId:string){
 }
 async function document(tx:Database,patientId:string,id:string){
  const result=await tx.query<DocumentRow>(`SELECT ${columns} FROM public.vitalia_documents
- WHERE id=$1 AND patient_id=$2 AND status='stored'`,[id,patientId]);
+ WHERE id=$1 AND patient_id=$2 AND status='stored' AND care_flow=false`,[id,patientId]);
  if(result.rows.length!==1)throw new ProfessionalNotFoundError();return result.rows[0];
 }
 async function audit(tx:Database,account:AccountSummary,patientId:string,assignmentId:string,
@@ -45,7 +45,7 @@ export function createProfessionalService(db:DocumentDatabase,storage:Pick<Docum
    return db.transaction(async tx=>{
     const assignmentId=await assigned(tx,account,patientId);
     const result=await tx.query<DocumentRow>(`SELECT ${columns} FROM public.vitalia_documents
-     WHERE patient_id=$1 AND status='stored' ORDER BY exam_date DESC,created_at DESC,id DESC LIMIT $2 OFFSET $3`,[patientId,limit,offset]);
+     WHERE patient_id=$1 AND status='stored' AND care_flow=false ORDER BY exam_date DESC,created_at DESC,id DESC LIMIT $2 OFFSET $3`,[patientId,limit,offset]);
     await audit(tx,account,patientId,assignmentId,'list');return result.rows.map(summary);
    });
   },

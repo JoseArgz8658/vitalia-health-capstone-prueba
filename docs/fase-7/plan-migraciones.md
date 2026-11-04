@@ -176,3 +176,11 @@ Registré 020 aplicada en PostgreSQL local, 46 comprobaciones de credenciales, 5
 Ajusté el próximo flujo: ubicación/contacto obligatorios al envío, datos precargados del perfil con confirmación, zona de atención modificable sin cambiar implícitamente el domicilio, clínica/sucursal/especialidad/profesional, archivo y resumen final en pasos dentro de la misma pantalla. Todavía debo implementar esos formularios y su persistencia/revalidación por examen; no los considero resueltos por el catálogo. La comprobación semántica del archivo como examen queda fuera del MVP hasta nueva instrucción. Las mejoras generales de diseño permanecen planificadas. (José Aránguiz)
 
 Terminaré la fase 7 en el repositorio de pruebas. Antes del traspaso compararé con el `develop` actualizado del oficial y prepararé una integración comprobada para su revisión/fusión según las reglas acordadas. Desde ese momento trabajaré únicamente en el oficial y conservaré el de pruebas como historial. (José Aránguiz)
+
+## Carga con elección y contacto preparados — CAM-097
+
+Registré CAM-096 validado en Windows con 706 pruebas y en PostgreSQL con 28 comprobaciones revertidas. Preparé 021_care_upload, contacto inmutable por examen y cuatro pasos de carga con residencia/zona separadas. El paciente confirma la atención y decide si guardar domicilio/teléfono; el servidor obtiene el correo y revalida credenciales/relaciones al confirmar. Véase [carga-con-atencion.md](carga-con-atencion.md). (José Aránguiz)
+
+Comprobé 734 pruebas backend en 55 suites y 34 condiciones SQL aisladas, repetidas con permisos de aplicación. Preparé nueve pruebas Flutter nuevas y adapté una existente: 131 pruebas esperadas, todavía pendientes en Windows junto con análisis, respaldo, migración/permisos y recorrido. No confundo formateo Dart con ejecución Flutter. (José Aránguiz)
+
+Separé el acceso de los documentos nuevos respecto de las asignaciones históricas. La bandeja clínica por examen y las acciones del responsable, derivaciones, segundas opiniones y lectura de contacto bajo esos permisos todavía requieren su siguiente incremento; no doy la fase por cerrada. Conservé fuera del MVP la comprobación semántica del archivo como examen. El traspaso al oficial permanece condicionado al cierre y a la comparación con develop actualizado. (José Aránguiz)
