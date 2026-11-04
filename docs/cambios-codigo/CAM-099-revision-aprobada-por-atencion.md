@@ -29,3 +29,7 @@ Comprobé aplicación, repetición, checksum y rollback de 023; probé además r
 Registré CAM-098 con 763 pruebas backend, análisis Flutter sin incidencias y 140 pruebas aprobadas tras corregir el desplazamiento de Ver exámenes. Después del respaldo, 022 se aplicó con 52 comprobaciones revertidas y permisos con COMMIT en 67 ms. El recorrido de bandeja, contacto, descarga e inicio persistente fue confirmado. El usuario no solicitó procesamiento; debo indicar ese recorrido solo después de aplicar y validar este incremento. (José Aránguiz)
 
 Mantengo pendientes derivaciones, segundas opiniones y los demás puntos de cierre de fase 7, incluida su documentación y pruebas integradas. El traspaso al oficial requiere finalizar la fase y comparar con su develop actualizado. No modifiqué el repositorio oficial. (José Aránguiz)
+
+## Confirmación nativa y recorrido recibidos
+
+Registré 789 pruebas backend y 149 Flutter aprobadas, análisis sin incidencias y código 0. Tras el respaldo, 023 se aplicó con 52 comprobaciones correctas y datos sintéticos revertidos; los permisos finalizaron con COMMIT en 92 ms. La extracción terminó requires_review con approved:false; el profesional realizó su aprobación y la atención quedó Completada. El paciente confirmó que ve los resultados revisados. La demora inicial se presentó como procesamiento pendiente; no atribuyo una causa técnica definitiva sin diagnóstico adicional. La API y el procesador automático se ejecutan por separado. (José Aránguiz)

@@ -27,6 +27,13 @@ export function createCareInboxRouter(auth:Pick<AuthServices,'find'>,service:Car
   if(Object.keys(req.query).length)throw new CareInboxError(400,'INVALID_CARE_INPUT');
   res.status(201).json({review:await service.approve(res.locals.account,req.params.id as string,req.body)});
  });
+ router.get('/:id/referral-options',async(req,res)=>{
+  res.json(await service.referralOptions(res.locals.account,req.params.id as string,req.query));
+ });
+ router.post('/:id/referrals',async(req,res)=>{
+  if(Object.keys(req.query).length)throw new CareInboxError(400,'INVALID_CARE_INPUT');
+  res.status(201).json(await service.refer(res.locals.account,req.params.id as string,req.body));
+ });
  let downloads=0;
  router.get('/:id/file',async(req,res)=>{
   if(Object.keys(req.query).length)throw new CareInboxError(400,'INVALID_CARE_INPUT');

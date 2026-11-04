@@ -25,6 +25,30 @@ class AtencionesApi {
     );
   }
 
+  Future<Map<String, dynamic>> referralOptions(
+    String id, {
+    int offset = 0,
+  }) async {
+    final r = await auth.careInboxRequest(
+      id: id,
+      action: 'referral-options',
+      offset: offset,
+    );
+    return _json(r.body);
+  }
+
+  Future<Map<String, dynamic>> refer(
+    String id,
+    Map<String, dynamic> body,
+  ) async {
+    final r = await auth.careInboxRequest(
+      id: id,
+      action: 'referrals',
+      body: body,
+    );
+    return _json(r.body);
+  }
+
   Future<Uint8List> download(String id, Documento item) async {
     final r = await auth.careInboxRequest(id: id, action: 'file');
     if (r.bodyBytes.length != item.bytes ||

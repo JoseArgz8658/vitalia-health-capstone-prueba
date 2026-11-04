@@ -1,3 +1,4 @@
+import 'derivar_atencion_page.dart';
 import 'revision_panel.dart';
 
 import 'package:flutter/material.dart';
@@ -338,6 +339,13 @@ class _AtencionDetallePageState extends State<AtencionDetallePage> {
                         label: const Text('Comenzar atención'),
                       ),
                   ]),
+                  if (_data?['referral'] is Map)
+                    _card('Derivación recibida', [
+                      Text(
+                        'Profesional de origen: ${(_data!['referral'] as Map)['referredBy']}',
+                      ),
+                      Text('Motivo: ${(_data!['referral'] as Map)['reason']}'),
+                    ]),
                   _card('Contacto confirmado por el paciente', [
                     SelectableText('Teléfono: ${contact['phone']}'),
                     SelectableText('Correo: ${contact['email']}'),
@@ -364,6 +372,31 @@ class _AtencionDetallePageState extends State<AtencionDetallePage> {
                       label: const Text('Descargar examen'),
                     ),
                   ]),
+                  if (care['status'] == 'requested' ||
+                      care['status'] == 'active')
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.forward_to_inbox_outlined),
+                      label: const Text('Derivar dentro de la clínica'),
+                      onPressed: _busy
+                          ? null
+                          : () async {
+                              final sent = await Navigator.of(context)
+                                  .push<bool>(
+                                    MaterialPageRoute<bool>(
+                                      builder: (_) => DerivarAtencionPage(
+                                        api: widget.api,
+                                        id: widget.id,
+                                        onExpired: widget.onExpired,
+                                      ),
+                                    ),
+                                  );
+                              if (mounted && sent == true) {
+                                Navigator.of(context).pop();
+                              } else if (mounted) {
+                                await _load();
+                              }
+                            },
+                    ),
                   if (care['status'] == 'active' ||
                       care['status'] == 'completed')
                     RevisionPanel(

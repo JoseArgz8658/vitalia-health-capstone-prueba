@@ -200,3 +200,11 @@ Registré CAM-098 validado con 763 pruebas backend, análisis Flutter y 140 prue
 Preparé 023_care_review_registry, aprobación inmutable y cierre atómico de atención, formulario por pasos y lectura común para paciente/explicaciones/chat sin fabricar asignaciones ni copiar resultados. Comprobé 789 pruebas backend, 52 condiciones SQL aisladas repetidas con permisos de aplicación y migración/repetición/checksum/rollback, incluida compatibilidad de referencias históricas. Preparé nueve pruebas Flutter: 149 esperadas pendientes en Windows junto con la aplicación del esquema/permisos y el recorrido real. Véase [revision-por-atencion.md](revision-por-atencion.md). (José Aránguiz)
 
 Después de aplicar este incremento indicaré la solicitud de procesamiento y su revisión real. Mantengo pendientes derivaciones, segundas opiniones y cierre integrado de fase 7 antes de comparar y preparar la integración con develop oficial. (José Aránguiz)
+
+## Derivación y seguimiento preparados — CAM-100
+
+Registré CAM-099 aplicado y validado: 789 pruebas backend y 149 Flutter, análisis sin incidencias, respaldo, 023 con 52 comprobaciones revertidas, permisos con COMMIT en 92 ms, extracción requires_review y aprobación humana con estado Completada. El paciente confirmó acceso a los resultados aprobados. (José Aránguiz)
+
+Preparé 024_clinic_referrals, traslado atómico a otro responsable de la misma clínica, motivo visible, reintento sin duplicados y seguimiento del paciente. Comprobé 815 pruebas backend y 49 condiciones SQL aisladas repetidas con permisos de aplicación, junto con migración/repetición/checksum/rollback. Nueve pruebas Flutter nuevas están preparadas: 158 esperadas pendientes en Windows. Véase [derivacion-institucional.md](derivacion-institucional.md). (José Aránguiz)
+
+La derivación opera sobre atenciones abiertas, conserva el historial y no reabre aprobaciones. Debo continuar con la segunda opinión del paciente y el cierre integrado de la fase 7 antes de preparar el traspaso al oficial y su comparación con develop actualizado. (José Aránguiz)

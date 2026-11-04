@@ -474,10 +474,17 @@ class AuthApi {
     Map<String, dynamic>? body,
   }) async {
     if ((id != null && !RegExp(r'^[a-f0-9-]{36}$').hasMatch(id)) ||
-        (action != null && !['file', 'begin', 'review'].contains(action)) ||
+        (action != null &&
+            ![
+              'file',
+              'begin',
+              'review',
+              'referral-options',
+              'referrals',
+            ].contains(action)) ||
         (action != null && id == null) ||
-        (action == 'begin' && body == null) ||
-        (!['begin', 'review'].contains(action) && body != null)) {
+        (['begin', 'referrals'].contains(action) && body == null) ||
+        (!['begin', 'review', 'referrals'].contains(action) && body != null)) {
       throw const AuthFailure('Solicitud de atención inválida.');
     }
     final token = _token;
@@ -491,7 +498,11 @@ class AuthApi {
         .resolve(
           '/api/care-inbox${id == null ? '' : '/$id'}${action == null ? '' : '/$action'}',
         )
-        .replace(queryParameters: id == null ? {'offset': '$offset'} : null);
+        .replace(
+          queryParameters: id == null || action == 'referral-options'
+              ? {'offset': '$offset'}
+              : null,
+        );
     try {
       final response =
           await (body == null
@@ -515,7 +526,10 @@ class AuthApi {
       }
       if (response.statusCode >= 400)
         throw AuthFailure(switch (response.statusCode) {
-          400 => 'Revisa fechas, resultados, observaciones y confirmación del original.',
+          400 =>
+            action == 'referrals'
+                ? 'Revisa el destinatario, el motivo y la confirmación.'
+                : 'Revisa fechas, resultados, observaciones y confirmación del original.',
           403 => 'Ingresa en modo profesional para consultar tus atenciones.',
           404 => 'Esta atención ya no está disponible para tu cuenta. Actualiza la bandeja.',
           409 => 'La atención cambió. Actualiza antes de continuar.',
@@ -587,7 +601,7 @@ class AuthApi {
   Uri documentUri([String suffix = '', Map<String, String>? query]) {
     if (suffix.isNotEmpty &&
         !RegExp(
-          r'^[a-f0-9-]{36}/(file|processing|review|explanation|assistant(?:/explanation)?)$',
+          r'^[a-f0-9-]{36}/(file|processing|review|care|explanation|assistant(?:/explanation)?)$',
         ).hasMatch(suffix)) {
       throw const AuthFailure('Documento inválido.');
     }
@@ -607,11 +621,13 @@ class AuthApi {
     if (request.url.origin != _base.origin ||
         !(request.url.path == '/api/documents' ||
             RegExp(
-              r'^/api/documents/[a-f0-9-]{36}/(file|processing|review|explanation|assistant(?:/explanation)?)$',
+              r'^/api/documents/[a-f0-9-]{36}/(file|processing|review|care|explanation|assistant(?:/explanation)?)$',
             ).hasMatch(request.url.path))) {
       throw const AuthFailure('Solicitud de documento inválida.');
     }
-    if (request.url.path.endsWith('/review') && request.method != 'GET') {
+    if ((request.url.path.endsWith('/review') ||
+            request.url.path.endsWith('/care')) &&
+        request.method != 'GET') {
       throw const AuthFailure('La revisión del paciente es solo de consulta.');
     }
     if ((request.url.path.endsWith('/explanation') ||
